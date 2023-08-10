@@ -1,22 +1,18 @@
 use crate::handler::ListParamToSQLTrait;
-use crate::model::goods::GoodsModel;
-use crate::model::order::{OrderItemModel, OrderModel};
+use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde::{Deserialize, Serialize};
-use sqlx::Row;
+use serde::Deserialize;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/goods", get(get_goods).post(create_order))
-        .route("/api/goods/update", get(get_order_items))
-        .route("/api/skus", get(get_skus))
-        .route("/api/goods/skus", post(update_order))
-        .route("/api/goods/sku/update", post(update_order_item))
+        .route("/api/goods", get(get_goods))
+        .route("/api/skus", get(get_skus).post(create_sku))
+        .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
 
@@ -113,7 +109,7 @@ struct ListSKUsParam {
 
 impl ListParamToSQLTrait for ListSKUsParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from goods ".to_string();
+        let mut sql = "select * from skus ".to_string();
         let mut where_clauses = vec![];
         if let Some(name) = &self.name {
             where_clauses.push(format!(" name='{}' ", name));
@@ -124,6 +120,10 @@ impl ListParamToSQLTrait for ListSKUsParam {
         if let Some(plating) = &self.plating {
             where_clauses.push(format!(" plating='{}' ", plating));
         }
+        if let Some(color) = &self.color {
+            where_clauses.push(format!(" color='{}' ", color));
+        }
+
         if !where_clauses.is_empty() {
             sql.push_str(" where ");
             sql.push_str(&where_clauses.join(" and "));
@@ -132,13 +132,16 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(50);
         let offset = (page - 1) * page_size;
-        sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+        sql.push_str(&format!(
+            " order by id desc offset {} limit {};",
+            offset, page_size
+        ));
 
         sql
     }
 
     fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from goods ".to_string();
+        let mut sql = "select count(1) from skus ".to_string();
         let mut where_clauses = vec![];
         if let Some(name) = &self.name {
             where_clauses.push(format!(" name='{}' ", name));
@@ -149,6 +152,10 @@ impl ListParamToSQLTrait for ListSKUsParam {
         if let Some(plating) = &self.plating {
             where_clauses.push(format!(" plating='{}' ", plating));
         }
+        if let Some(color) = &self.color {
+            where_clauses.push(format!(" color='{}' ", color));
+        }
+
         if where_clauses.len() > 0 {
             sql.push_str(" where ");
             sql.push_str(&where_clauses.join(" and "));
@@ -161,15 +168,15 @@ impl ListParamToSQLTrait for ListSKUsParam {
 
 async fn get_skus(
     State(state): State<Arc<AppState>>,
-    Query(list_goods_param): Query<ListGoodsParam>,
-) -> ERPResult<APIListResponse<GoodsModel>> {
-    let pagination_sql = list_goods_param.to_pagination_sql();
-    let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
+    Query(list_skus_param): Query<ListSKUsParam>,
+) -> ERPResult<APIListResponse<SKUModel>> {
+    let pagination_sql = list_skus_param.to_pagination_sql();
+    let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(|err| ERPError::DBError(err))?;
 
-    let count_sql = list_goods_param.to_count_sql();
+    let count_sql = list_skus_param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
@@ -178,250 +185,156 @@ async fn get_skus(
     Ok(APIListResponse::new(goods, total.0 as i32))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct CreateGoodsParam {
-    customer_id: i32,
-    order_no: String,
-    order_date: i32,
-    delivery_date: i32,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct CreateOrderParam {
-    customer_id: i32,
-    order_no: String,
-    order_date: i32,
-    delivery_date: i32,
-}
-
-async fn create_order(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateOrderParam>,
-) -> ERPResult<APIEmptyResponse> {
-    // check order_no exists.
-    if let Ok(existing) = sqlx::query_as!(
-        OrderModel,
-        "select * from orders where order_no = $1",
-        payload.order_no
-    )
-    .fetch_one(&state.db)
-    .await
-    {
-        return Err(ERPError::AlreadyExists(format!(
-            "Order with order_no: {}",
-            payload.order_no
-        )));
-    }
-
-    // insert into table
-    sqlx::query(
-        r#"
-            insert into orders (customer_id, order_no, order_date, delivery_date)
-            values ($1, $2, $3, $4);
-        "#,
-    )
-    .bind(payload.customer_id)
-    .bind(payload.order_no)
-    .bind(payload.order_date)
-    .bind(payload.delivery_date)
-    .execute(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
-
-    Ok(APIEmptyResponse::new())
-}
-
 #[derive(Debug, Deserialize)]
-struct ListParam {
-    page: Option<i32>,
-    #[serde(rename(deserialize = "pageSize"))]
-    page_size: Option<i32>,
-    sort_col: Option<String>,
-    sort: Option<String>, // desc/asc: default desc
-}
-
-async fn get_orders(
-    State(state): State<Arc<AppState>>,
-    Query(list_param): Query<ListParam>,
-) -> ERPResult<APIListResponse<OrderModel>> {
-    let page = list_param.page.unwrap_or(1);
-    let page_size = list_param.page_size.unwrap_or(50);
-    let offset = (page - 1) * page_size;
-
-    let orders = sqlx::query_as!(
-        OrderModel,
-        "select * from orders offset $1 limit $2",
-        offset as i64,
-        page_size as i64
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
-
-    let count = sqlx::query!("select count(1) from orders")
-        .fetch_one(&state.db)
-        .await
-        .map_err(|err| ERPError::DBError(err))?
-        .count
-        .unwrap_or(0);
-
-    Ok(APIListResponse::new(orders, count as i32))
-}
-
-/// todo: add more params
-#[derive(Debug, Deserialize)]
-struct OrderItemsQuery {
-    order_id: i32,
-    page: Option<i32>,
-
-    #[serde(rename(deserialize = "pageSize"))]
-    page_size: Option<i32>,
-}
-
-impl OrderItemsQuery {
-    pub(crate) fn to_paginate_sql(&self) -> String {
-        todo!()
-    }
-
-    pub(crate) fn to_count_sql(&self) -> String {
-        todo!()
-    }
-}
-
-async fn get_order_items(
-    State(state): State<Arc<AppState>>,
-    Query(order_items_query): Query<OrderItemsQuery>,
-) -> ERPResult<APIListResponse<OrderItemModel>> {
-    if order_items_query.order_id == 0 {
-        return Err(ERPError::ParamNeeded(
-            order_items_query.order_id.to_string(),
-        ));
-    }
-
-    let page = order_items_query.page.unwrap_or(1);
-    let page_size = order_items_query.page_size.unwrap_or(50);
-    let offset = (page - 1) * page_size;
-
-    let order_items = sqlx::query_as!(
-        OrderItemModel,
-        "select * from order_items where order_id = $1 order by id desc offset $2 limit $3",
-        order_items_query.order_id,
-        offset as i64,
-        page_size as i64
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
-
-    let count = sqlx::query!(
-        "select count(1) from order_items where order_id = $1",
-        order_items_query.order_id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?
-    .count
-    .unwrap_or(0);
-
-    Ok(APIListResponse::new(order_items, count as i32))
-}
-
-#[derive(Debug, Deserialize)]
-struct UpdateOrderParam {
-    id: i32,
-    order_no: String,
-    customer_id: i32,
-    order_date: i32,
-    delivery_date: i32,
-}
-
-impl UpdateOrderParam {
-    pub fn to_sql(&self) -> String {
-        format!("update orders set order_no = '{}', customer_id = {}, order_date={}, delivery_date={} where id={}", self.order_no, self.customer_id, self.order_date, self.delivery_date, self.id)
-    }
-}
-
-async fn update_order(
-    State(state): State<Arc<AppState>>,
-    Json(update_order_param): Json<UpdateOrderParam>,
-) -> ERPResult<APIEmptyResponse> {
-    let order = sqlx::query_as!(
-        OrderModel,
-        "select * from orders where id = $1",
-        update_order_param.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", update_order_param.id)))?;
-
-    let _ = sqlx::query(&update_order_param.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(|err| ERPError::DBError(err))?;
-
-    Ok(APIEmptyResponse::new())
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateOrderItemParam {
-    id: i32,
-    order_id: i32,
-    sku_id: i32,
-    package_card: Option<String>,
-    package_card_des: Option<String>,
-    count: i32,
-    unit: Option<String>,
-    unit_price: Option<i32>,
-    total_price: Option<i32>,
+struct CreateSKUParam {
+    image: Option<String>,
+    goods_no: Option<String>,
+    sku_no: String,
+    color: Option<String>,
     notes: Option<String>,
 }
 
-impl UpdateOrderItemParam {
-    fn to_sql(&self) -> String {
-        let mut sql = format!(
-            "update order_items set order_id = {}, sku_id = {}, count={}",
-            self.order_id, self.sku_id, self.count
-        );
-        if let Some(package_card) = &self.package_card {
-            sql.push_str(&format!(", package_card = '{}'", package_card));
-        }
-        if let Some(package_card_des) = &self.package_card_des {
-            sql.push_str(&format!(", package_card_des = '{}'", package_card_des));
-        }
-        if let Some(unit) = &self.unit {
-            sql.push_str(&format!(", unit = '{}'", unit));
-        }
-        if let Some(unit_price) = &self.unit_price {
-            sql.push_str(&format!(", unit_price = {}", unit_price));
-        }
-        if let Some(total_price) = &self.total_price {
-            sql.push_str(&format!(", total_price = '{}'", total_price));
-        }
-        if let Some(notes) = &self.notes {
-            sql.push_str(&format!(", notes = {}", notes));
-        }
+#[derive(Debug, Deserialize)]
+struct CreateSKUsParam {
+    skus: Vec<CreateSKUParam>,
+}
 
-        sql
+impl CreateSKUsParam {
+    fn to_sql(&self) -> String {
+        let values = self
+            .skus
+            .iter()
+            .map(|sku| {
+                format!(
+                    "('{}', '{}', '{}', '{}', '{}')",
+                    sku.image.as_ref().unwrap_or(&"".to_string()),
+                    sku.goods_no.as_ref().unwrap_or(&"".to_string()),
+                    sku.sku_no,
+                    sku.color.as_ref().unwrap_or(&"".to_string()),
+                    sku.notes.as_ref().unwrap_or(&"".to_string())
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        format!(
+            "insert into skus (image, goods_no, sku_no, color, notes) values {}",
+            values
+        )
     }
 }
 
-async fn update_order_item(
+async fn create_sku(
     State(state): State<Arc<AppState>>,
-    Json(update_order_item_param): Json<UpdateOrderItemParam>,
+    Json(create_sku_param): Json<CreateSKUsParam>,
 ) -> ERPResult<APIEmptyResponse> {
-    let _ = sqlx::query_as!(
-        OrderItemModel,
-        "select * from order_items where id = $1",
-        update_order_item_param.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", update_order_item_param.id)))?;
+    // let to_insert_sql = String::new();
+    if create_sku_param.skus.is_empty() {
+        return Err(ERPError::ParamNeeded("skus".to_string()));
+    }
 
-    sqlx::query(&update_order_item_param.to_sql())
+    let sku_nos: Vec<String> = create_sku_param
+        .skus
+        .iter()
+        .map(|sku| format!("{}", sku.sku_no))
+        .collect();
+    let sku_nos_sql = sku_nos.join("', '");
+
+    let mut existing = sqlx::query_as!(
+        SKUModel,
+        "select * from skus where sku_no in ($1)",
+        sku_nos_sql
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|err| ERPError::DBError(err))?;
+
+    let existing_sku_nos: Vec<String> = existing
+        .iter()
+        .map(|sku| format!("{:?}", sku.sku_no))
+        .collect();
+    let to_insert: Vec<&CreateSKUParam> = create_sku_param
+        .skus
+        .iter()
+        .filter(|&sku| existing_sku_nos.contains(&sku.sku_no.to_string()))
+        .into_iter()
+        .collect();
+    if to_insert.is_empty() {
+        return Err(ERPError::AlreadyExists("SKU with sku_no".to_string()));
+    }
+
+    let values = to_insert
+        .iter()
+        .map(|sku| {
+            format!(
+                "('{}', '{}', '{}', '{}', '{}')",
+                sku.image.as_ref().unwrap_or(&"".to_string()),
+                sku.goods_no.as_ref().unwrap_or(&"".to_string()),
+                sku.sku_no,
+                sku.color.as_ref().unwrap_or(&"".to_string()),
+                sku.notes.as_ref().unwrap_or(&"".to_string())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    let sql = format!(
+        "insert into skus (image, goods_no, sku_no, color, notes) values {}",
+        values
+    );
+
+    sqlx::query(&sql)
         .execute(&state.db)
         .await
         .map_err(|err| ERPError::DBError(err))?;
+
+    Ok(APIEmptyResponse::new())
+}
+
+#[derive(Debug, Deserialize)]
+struct UpdateSKUParams {
+    id: i32,
+    image: Option<String>,
+    goods_no: Option<String>,
+    sku_no: Option<String>,
+    color: Option<String>,
+    notes: Option<String>,
+}
+
+impl UpdateSKUParams {
+    fn to_sql(&self) -> String {
+        let mut set_clauses = vec![];
+        if let Some(image) = &self.image {
+            set_clauses.push(format!(" image = '{}' ", image))
+        }
+        if let Some(goods_no) = &self.goods_no {
+            set_clauses.push(format!(" goods_no = '{}' ", goods_no))
+        }
+        if let Some(sku_no) = &self.sku_no {
+            set_clauses.push(format!(" sku_no = '{}' ", sku_no))
+        }
+        if let Some(color) = &self.color {
+            set_clauses.push(format!(" color = '{}' ", color))
+        }
+        if let Some(notes) = &self.notes {
+            set_clauses.push(format!(" notes = '{}' ", notes))
+        }
+
+        format!(
+            "update skus set {} where id = {}",
+            set_clauses.join(","),
+            self.id
+        )
+    }
+}
+
+async fn update_sku(
+    State(state): State<Arc<AppState>>,
+    Json(update_sku_param): Json<UpdateSKUParams>,
+) -> ERPResult<APIEmptyResponse> {
+    sqlx::query(&update_sku_param.to_sql())
+        .execute(&state.db)
+        .await?;
 
     Ok(APIEmptyResponse::new())
 }

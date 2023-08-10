@@ -33,6 +33,21 @@ create table skus
     notes    text     -- 备注
 );
 
+insert into skus (goods_id, image, goods_no, sku_no, color, notes)
+values
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_1', 'blue', 'notes....'),
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_2', 'blue', 'notes....'),
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_3', 'blue', 'notes....'),
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_4', 'blue', 'notes....'),
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_5', 'blue', 'notes....'),
+(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_6', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_1', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_2', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_3', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_4', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_5', 'blue', 'notes....'),
+(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_6', 'blue', 'notes....');
+
 -- 客户
 create table customers
 (
