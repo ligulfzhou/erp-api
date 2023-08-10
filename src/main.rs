@@ -44,6 +44,7 @@ async fn main() {
     let routes_all = Router::new()
         .merge(handler::routes_login::routes(app_state.clone()))
         .merge(handler::routes_order::routes(app_state.clone()))
+        .merge(handler::routes_customer::routes(app_state.clone()))
         .merge(handler::routes_goods::routes(app_state.clone()))
         .merge(handler::routes_hello::routes())
         .fallback_service(handler::routes_static::routes())
