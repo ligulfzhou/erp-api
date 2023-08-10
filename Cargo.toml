@@ -27,6 +27,9 @@ tracing-subscriber = "0.3.17"
 clap = {version = "4.3.19", features = ["derive"]}
 dotenv = "0.15.0"
 
+# read excel
+calamine = "0.21.2"
+
 [dev-dependencies]
 anyhow = "1.0.72"
 httpc-test = "0.1.5"

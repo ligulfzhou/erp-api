@@ -105,7 +105,7 @@ async fn create_customer(
 }
 
 #[derive(Debug, Deserialize)]
-struct UpdateCustomerParams {
+struct UpdateCustomerParam {
     pub id: i32,
     pub customer_no: String,
     pub name: String,
@@ -114,7 +114,7 @@ struct UpdateCustomerParams {
     pub notes: Option<String>,
 }
 
-impl UpdateCustomerParams {
+impl UpdateCustomerParam {
     fn to_sql(&self) -> String {
         let mut set_clauses = vec![];
 
@@ -142,7 +142,7 @@ impl UpdateCustomerParams {
 
 async fn update_customer(
     State(state): State<Arc<AppState>>,
-    Json(update_param): Json<UpdateCustomerParams>,
+    Json(update_param): Json<UpdateCustomerParam>,
 ) -> ERPResult<APIEmptyResponse> {
     // todo: check customer_no collision
     sqlx::query(&update_param.to_sql())
