@@ -10,3 +10,7 @@ pub trait ListParamToSQLTrait {
     fn to_pagination_sql(&self) -> String;
     fn to_count_sql(&self) -> String;
 }
+
+pub trait CreateOrUpdateParamToSQLTrait {
+    fn to_sql(&self)-> String;
+}
