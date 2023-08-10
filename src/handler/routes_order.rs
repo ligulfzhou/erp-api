@@ -1,3 +1,4 @@
+use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::model::order::{OrderItemModel, OrderModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
@@ -6,7 +7,6 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use crate::constants::DEFAULT_PAGE_SIZE;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -25,18 +25,29 @@ struct CreateOrderParam {
     delivery_date: i32,
 }
 
+impl CreateOrderParam {
+    fn to_sql(&self) -> String {
+        format!(
+            "insert into orders (customer_id, order_no, order_date, delivery_date)
+            values ('{}', '{}', {}, {});",
+            self.customer_id, self.order_no, self.order_date, self.delivery_date
+        )
+    }
+}
+
 async fn create_order(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateOrderParam>,
 ) -> ERPResult<APIEmptyResponse> {
     // check order_no exists.
-    if let Ok(existing) = sqlx::query_as!(
+    if sqlx::query_as!(
         OrderModel,
         "select * from orders where order_no = $1",
         payload.order_no
     )
     .fetch_one(&state.db)
     .await
+    .is_ok()
     {
         return Err(ERPError::AlreadyExists(format!(
             "Order with order_no: {}",
@@ -45,19 +56,10 @@ async fn create_order(
     }
 
     // insert into table
-    sqlx::query(
-        r#"
-            insert into orders (customer_id, order_no, order_date, delivery_date)
-            values ($1, $2, $3, $4);
-        "#,
-    )
-    .bind(payload.customer_id)
-    .bind(payload.order_no)
-    .bind(payload.order_date)
-    .bind(payload.delivery_date)
-    .execute(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
+    sqlx::query(&payload.to_sql())
+        .execute(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
 
     Ok(APIEmptyResponse::new())
 }

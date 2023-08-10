@@ -1,3 +1,4 @@
+use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -7,7 +8,6 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use std::sync::Arc;
-use crate::constants::DEFAULT_PAGE_SIZE;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()

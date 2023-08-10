@@ -7,13 +7,13 @@ use std::{net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 
 mod config;
+mod constants;
 mod error;
 mod handler;
 mod model;
 mod repository;
 mod response;
 mod service;
-mod constants;
 
 pub use self::error::{ERPError, ERPResult};
 
