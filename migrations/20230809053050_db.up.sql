@@ -10,6 +10,17 @@ create table goods
     notes    text  -- 备注
 );
 
+insert into goods (goods_no, image, name, plating, notes)
+values ('goods_no_1', 'http://baidu.com', 'goods_1', 'plating_1', 'notes_1');
+insert into goods (goods_no, image, name, plating, notes)
+values ('goods_no_2', 'http://baidu.com', 'goods_2', 'plating_2', 'notes_2');
+insert into goods (goods_no, image, name, plating, notes)
+values ('goods_no_3', 'http://baidu.com', 'goods_3', 'plating_3', 'notes_3');
+insert into goods (goods_no, image, name, plating, notes)
+values ('goods_no_4', 'http://baidu.com', 'goods_4', 'plating_4', 'notes_4');
+insert into goods (goods_no, image, name, plating, notes)
+values ('goods_no_5', 'http://baidu.com', 'goods_5', 'plating_5', 'notes_5');
+
 -- sku表
 create table skus
 (
@@ -17,6 +28,7 @@ create table skus
     goods_id integer, -- 类目ID
     image    text,    -- 商品图片
     goods_no text,    -- 产品编号 (暂时没有)
+    sku_no   text,    -- sku编号
     color    text,    -- 颜色
     notes    text     -- 备注
 );
@@ -42,7 +54,10 @@ create table orders
     delivery_date integer  -- 交货日期
 );
 
-insert into orders (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739), (2, 'order_no_2', 1691558739, 1691568739),(3, 'order_no_3', 1691558739, 1691568739);
+insert into orders (customer_id, order_no, order_date, delivery_date)
+VALUES (1, 'order_no_1', 1691558739, 1691568739),
+       (2, 'order_no_2', 1691558739, 1691568739),
+       (3, 'order_no_3', 1691558739, 1691568739);
 
 -- 订单商品表
 create table order_items
@@ -59,9 +74,9 @@ create table order_items
     notes            text     -- 备注
 );
 
-insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739);
-insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (2, 'order_no_2', 1691558739, 1691568739);
-insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (3, 'order_no_3', 1691558739, 1691568739);
+-- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739);
+-- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (2, 'order_no_2', 1691558739, 1691568739);
+-- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (3, 'order_no_3', 1691558739, 1691568739);
 
 
 -- 订单sku的的材料单 * N

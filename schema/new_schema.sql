@@ -16,6 +16,7 @@ create table skus
     goods_id integer, -- 类目ID
     image    text,    -- 商品图片
     goods_no text,    -- 产品编号 (暂时没有)
+    sku_no text,  -- sku编号
     color    text,    -- 颜色
     notes    text     -- 备注
 );

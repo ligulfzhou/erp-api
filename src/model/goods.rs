@@ -1,15 +1,30 @@
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct GoodsModel {
     // SERIAL,
-    id: i32,
+    pub id: i32,
     // 类目编号
-    goods_no: Option<String>,
+    pub goods_no: Option<String>,
     // 图片
-    image: Option<String>,
+    pub image: Option<String>,
     // 名称
-    name: Option<String>,
+    pub name: Option<String>,
     // 电镀
-    plating: Option<String>,
+    pub plating: Option<String>,
     // 备注
-    notes: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SKU {
+    pub id: i32,
+    // 类目ID
+    pub goods_id: i32,
+    //商品图片
+    pub image: Option<String>,
+    // 产品编号 (暂时没有)
+    pub goods_no: Option<String>,
+    // 颜色
+    pub color: Option<String>,
+    // 备注
+    pub notes: Option<String>,
 }

@@ -1,4 +1,4 @@
-use crate::handler::ListParamTrait;
+use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::GoodsModel;
 use crate::model::order::{OrderItemModel, OrderModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -7,12 +7,14 @@ use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/goods", get(get_orders).post(create_order))
+        .route("/api/goods", get(get_goods).post(create_order))
         .route("/api/goods/update", get(get_order_items))
+        .route("/api/skus", get(get_skus))
         .route("/api/goods/skus", post(update_order))
         .route("/api/goods/sku/update", post(update_order_item))
         .with_state(state)
@@ -29,21 +31,159 @@ struct ListGoodsParam {
     page_size: Option<i32>,
 }
 
-impl ListParamTrait for ListGoodsParam {
+// impl ListParamTrait for ListGoodsParam {
+impl ListParamToSQLTrait for ListGoodsParam {
     fn to_pagination_sql(&self) -> String {
-        todo!()
+        let mut sql = "select * from goods ".to_string();
+        let mut where_clauses = vec![];
+        if let Some(name) = &self.name {
+            where_clauses.push(format!(" name='{}' ", name));
+        }
+        if let Some(goods_no) = &self.goods_no {
+            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(plating) = &self.plating {
+            where_clauses.push(format!(" plating='{}' ", plating));
+        }
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+
+        let page = self.page.unwrap_or(1);
+        let page_size = self.page_size.unwrap_or(50);
+        let offset = (page - 1) * page_size;
+        sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+
+        sql
     }
 
     fn to_count_sql(&self) -> String {
-        todo!()
+        let mut sql = "select count(1) from goods ".to_string();
+        let mut where_clauses = vec![];
+        if let Some(name) = &self.name {
+            where_clauses.push(format!(" name='{}' ", name));
+        }
+        if let Some(goods_no) = &self.goods_no {
+            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(plating) = &self.plating {
+            where_clauses.push(format!(" plating='{}' ", plating));
+        }
+        if where_clauses.len() > 0 {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+            sql.push_str(";");
+        }
+
+        sql
     }
 }
 
-async fn list_goods(
+async fn get_goods(
     State(state): State<Arc<AppState>>,
     Query(list_goods_param): Query<ListGoodsParam>,
 ) -> ERPResult<APIListResponse<GoodsModel>> {
-    todo!()
+    let pagination_sql = list_goods_param.to_pagination_sql();
+    let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
+        .fetch_all(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
+
+    let count_sql = list_goods_param.to_count_sql();
+    let total: (i64,) = sqlx::query_as(&count_sql)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
+
+    Ok(APIListResponse::new(goods, total.0 as i32))
+}
+
+#[derive(Debug, Deserialize)]
+struct ListSKUsParam {
+    name: Option<String>,
+    goods_no: Option<String>,
+    plating: Option<String>,
+    color: Option<String>,
+
+    page: Option<i32>,
+    #[serde(rename(deserialize = "pageSize"))]
+    page_size: Option<i32>,
+}
+
+impl ListParamToSQLTrait for ListSKUsParam {
+    fn to_pagination_sql(&self) -> String {
+        let mut sql = "select * from goods ".to_string();
+        let mut where_clauses = vec![];
+        if let Some(name) = &self.name {
+            where_clauses.push(format!(" name='{}' ", name));
+        }
+        if let Some(goods_no) = &self.goods_no {
+            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(plating) = &self.plating {
+            where_clauses.push(format!(" plating='{}' ", plating));
+        }
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+
+        let page = self.page.unwrap_or(1);
+        let page_size = self.page_size.unwrap_or(50);
+        let offset = (page - 1) * page_size;
+        sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+
+        sql
+    }
+
+    fn to_count_sql(&self) -> String {
+        let mut sql = "select count(1) from goods ".to_string();
+        let mut where_clauses = vec![];
+        if let Some(name) = &self.name {
+            where_clauses.push(format!(" name='{}' ", name));
+        }
+        if let Some(goods_no) = &self.goods_no {
+            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(plating) = &self.plating {
+            where_clauses.push(format!(" plating='{}' ", plating));
+        }
+        if where_clauses.len() > 0 {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+            sql.push_str(";");
+        }
+
+        sql
+    }
+}
+
+async fn get_skus(
+    State(state): State<Arc<AppState>>,
+    Query(list_goods_param): Query<ListGoodsParam>,
+) -> ERPResult<APIListResponse<GoodsModel>> {
+    let pagination_sql = list_goods_param.to_pagination_sql();
+    let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
+        .fetch_all(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
+
+    let count_sql = list_goods_param.to_count_sql();
+    let total: (i64,) = sqlx::query_as(&count_sql)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
+
+    Ok(APIListResponse::new(goods, total.0 as i32))
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CreateGoodsParam {
+    customer_id: i32,
+    order_no: String,
+    order_date: i32,
+    delivery_date: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -284,4 +424,25 @@ async fn update_order_item(
         .map_err(|err| ERPError::DBError(err))?;
 
     Ok(APIEmptyResponse::new())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::handler::routes_goods::ListGoodsParam;
+    use crate::handler::ListParamToSQLTrait;
+
+    #[test]
+    fn test() {
+        let params = ListGoodsParam {
+            name: Some("name".to_string()),
+            goods_no: Some("goods_no".to_string()),
+            plating: None,
+            page: None,
+            page_size: None,
+        };
+        let sql = params.to_pagination_sql();
+        let count_sql = params.to_count_sql();
+        println!("{}", params.to_pagination_sql());
+        println!("{}", count_sql);
+    }
 }
