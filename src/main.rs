@@ -27,6 +27,8 @@ async fn main() {
 
     dotenv::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL");
+    println!("{database_url}");
+
     let pool = match PgPoolOptions::new()
         .max_connections(10)
         .connect(&database_url)
@@ -43,7 +45,6 @@ async fn main() {
         .merge(handler::routes_login::routes(app_state.clone()))
         .merge(handler::routes_order::routes(app_state.clone()))
         .merge(handler::routes_hello::routes())
-        .merge(handler::routes_item::routes(app_state.clone()))
         .fallback_service(handler::routes_static::routes())
         .layer(cors);
 

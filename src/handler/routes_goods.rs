@@ -9,10 +9,10 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/orders", get(get_orders).post(create_order))
-        .route("/api/order/update", post(update_order))
-        .route("/api/order/items", get(get_order_items))
-        .route("/api/order/item/update", post(update_order_item))
+        .route("/api/goods", get(get_orders).post(create_order))
+        .route("/api/goods/update", get(get_order_items))
+        .route("/api/goods/skus", post(update_order))
+        .route("/api/goods/sku/update", post(update_order_item))
         .with_state(state)
 }
 
@@ -34,8 +34,8 @@ async fn create_order(
         "select * from orders where order_no = $1",
         payload.order_no
     )
-    .fetch_one(&state.db)
-    .await
+        .fetch_one(&state.db)
+        .await
     {
         return Err(ERPError::AlreadyExists(format!(
             "Order with order_no: {}",
@@ -50,13 +50,13 @@ async fn create_order(
             values ($1, $2, $3, $4);
         "#,
     )
-    .bind(payload.customer_id)
-    .bind(payload.order_no)
-    .bind(payload.order_date)
-    .bind(payload.delivery_date)
-    .execute(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
+        .bind(payload.customer_id)
+        .bind(payload.order_no)
+        .bind(payload.order_date)
+        .bind(payload.delivery_date)
+        .execute(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -84,9 +84,9 @@ async fn get_orders(
         offset as i64,
         page_size as i64
     )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
+        .fetch_all(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
 
     let count = sqlx::query!("select count(1) from orders")
         .fetch_one(&state.db)
@@ -138,19 +138,19 @@ async fn get_order_items(
         offset as i64,
         page_size as i64
     )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
+        .fetch_all(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
 
     let count = sqlx::query!(
         "select count(1) from order_items where order_id = $1",
         order_items_query.order_id
     )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?
-    .count
-    .unwrap_or(0);
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?
+        .count
+        .unwrap_or(0);
 
     Ok(APIListResponse::new(order_items, count as i32))
 }
@@ -179,9 +179,9 @@ async fn update_order(
         "select * from orders where id = $1",
         update_order_param.id
     )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", update_order_param.id)))?;
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", update_order_param.id)))?;
 
     let _ = sqlx::query(&update_order_param.to_sql())
         .execute(&state.db)
@@ -243,9 +243,9 @@ async fn update_order_item(
         "select * from order_items where id = $1",
         update_order_item_param.id
     )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", update_order_item_param.id)))?;
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", update_order_item_param.id)))?;
 
     sqlx::query(&update_order_item_param.to_sql())
         .execute(&state.db)

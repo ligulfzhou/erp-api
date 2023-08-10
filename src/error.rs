@@ -12,13 +12,13 @@ pub enum ERPError {
     #[error("login failed")]
     LoginFail,
 
-    #[error("sqlx db error")]
+    #[error("sqlx db error: {:?}", .0)]
     DBError(#[from] SqlxError),
 
     #[error("data already exists: {:?}", .0)]
     AlreadyExists(String),
 
-    #[error("{:?} not found", .0)]
+    #[error("Not Found: {:?}", .0)]
     NotFound(String),
 
     #[error("parameter lost: {:?}", .0)]
@@ -29,11 +29,6 @@ impl IntoResponse for ERPError {
     fn into_response(self) -> Response {
         print!("->> {:<12} - {self:?}", "INTO_RES");
 
-        // let msg = match self {
-        //     ERPError::LoginFail => "login failed..".to_string(),
-        //     ERPError::DBError(err) => format!("db failure: {err}"),
-        //     ERPError::ParamNeeded(s) =>
-        // };
         let msg = self.to_string();
 
         (

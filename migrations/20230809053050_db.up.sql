@@ -59,6 +59,11 @@ create table order_items
     notes            text     -- 备注
 );
 
+insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739);
+insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (2, 'order_no_2', 1691558739, 1691568739);
+insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (3, 'order_no_3', 1691558739, 1691568739);
+
+
 -- 订单sku的的材料单 * N
 create table order_item_materials
 (
