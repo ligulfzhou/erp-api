@@ -79,22 +79,26 @@ async fn create_customer(
     State(state): State<Arc<AppState>>,
     Json(create_param): Json<CreateCustomerParam>,
 ) -> ERPResult<APIEmptyResponse> {
-    let customer = sqlx::query_as::<_, CustomerModel>(
-        &format!(
-            "select * from customers where customer_no = '{}'",
-            create_param.customer_no
-        )
-    )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|err| ERPError::DBError(err))?;
+    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customers where customer_no = '{}'",
+        create_param.customer_no
+    ))
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|err| ERPError::DBError(err))?;
 
     if customer.is_some() {
-        return Err(ERPError::AlreadyExists(format!("customer#{}", create_param.customer_no)))
+        return Err(ERPError::AlreadyExists(format!(
+            "customer#{}",
+            create_param.customer_no
+        )));
     }
 
     let sql = create_param.to_sql();
-    sqlx::query(&sql).execute(&state.db).await.map_err(|err|ERPError::DBError(err))?;
+    sqlx::query(&sql)
+        .execute(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -113,7 +117,10 @@ impl UpdateCustomerParams {
     fn to_sql(&self) -> String {
         let mut set_clauses = vec![];
 
-        set_clauses.push(format!(" customer_no='{}', name='{}' ", self.customer_no, self.name));
+        set_clauses.push(format!(
+            " customer_no='{}', name='{}' ",
+            self.customer_no, self.name
+        ));
         if let Some(address) = &self.address {
             set_clauses.push(format!(" address = '{}' ", address))
         }
@@ -136,7 +143,6 @@ async fn update_customer(
     State(state): State<Arc<AppState>>,
     Json(update_param): Json<UpdateCustomerParams>,
 ) -> ERPResult<APIEmptyResponse> {
-
     // todo: check customer_no collision
     sqlx::query(&update_param.to_sql())
         .execute(&state.db)
