@@ -6,6 +6,8 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use crate::model::goods::GoodsModel;
+use crate::handler::ListParamTrait;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -15,6 +17,38 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/goods/sku/update", post(update_order_item))
         .with_state(state)
 }
+
+#[derive(Debug, Deserialize)]
+struct ListGoodsParam {
+    name: Option<String>,
+    goods_no: Option<String>,
+    plating: Option<String>,
+
+    page: Option<i32>,
+    #[serde(rename(deserialize = "pageSize"))]
+    page_size: Option<i32>,
+}
+
+impl ListParamTrait for ListGoodsParam {
+    fn to_pagination_sql(&self) -> String {
+        todo!()
+
+
+    }
+
+    fn to_count_sql(&self) -> String {
+        todo!()
+    }
+}
+
+
+async fn list_goods(
+    State(state): State<Arc<AppState>>,
+    Query(list_goods_param): Query<ListGoodsParam>,
+) -> ERPResult<APIListResponse<GoodsModel>> {
+    todo!()
+}
+
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CreateOrderParam {
@@ -98,6 +132,7 @@ async fn get_orders(
     Ok(APIListResponse::new(orders, count as i32))
 }
 
+/// todo: add more params
 #[derive(Debug, Deserialize)]
 struct OrderItemsQuery {
     order_id: i32,

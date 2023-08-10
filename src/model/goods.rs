@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GoodsModel {
     // SERIAL,
     id: i32,
