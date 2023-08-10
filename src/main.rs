@@ -1,30 +1,25 @@
-use std::{
-    net::SocketAddr,
-    sync::Arc,
-};
-use axum::{
-    Router,
-    response::Response,
-};
-use sqlx::{
-    Pool, Postgres,
-    postgres::PgPoolOptions,
-};
+#[macro_use]
+extern crate serde;
+
+use axum::{response::Response, Router};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use std::{net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 
-mod error;
-mod web;
 mod config;
+mod error;
+mod handler;
 mod model;
+mod repository;
+mod response;
+mod service;
 
-pub use self::error::{Result, Error};
-
+pub use self::error::{ERPError, ERPResult};
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     db: Pool<Postgres>,
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -32,7 +27,11 @@ async fn main() {
 
     dotenv::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL");
-    let pool = match PgPoolOptions::new().max_connections(10).connect(&database_url).await {
+    let pool = match PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await
+    {
         Ok(pool) => pool,
         Err(_err) => std::process::exit(-1),
     };
@@ -41,10 +40,11 @@ async fn main() {
     let cors = CorsLayer::new().allow_origin(Any);
 
     let routes_all = Router::new()
-        .merge(web::routes_login::routes(app_state.clone()))
-        .merge(web::routes_hello::routes())
-        .merge(web::routes_item::routes(app_state.clone()))
-        .fallback_service(web::routes_static::routes())
+        .merge(handler::routes_login::routes(app_state.clone()))
+        .merge(handler::routes_order::routes(app_state.clone()))
+        .merge(handler::routes_hello::routes())
+        .merge(handler::routes_item::routes(app_state.clone()))
+        .fallback_service(handler::routes_static::routes())
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8100));

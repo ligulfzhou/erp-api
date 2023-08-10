@@ -2,19 +2,48 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use sqlx::error::Error as SqlxError;
+use thiserror::Error;
 
-pub type Result<T> = core::result::Result<T, Error>;
+pub type ERPResult<T> = core::result::Result<T, ERPError>;
 
-#[derive(Debug)]
-pub enum Error {
-    LoginFail
+#[derive(Debug, Error)]
+pub enum ERPError {
+    #[error("login failed")]
+    LoginFail,
+
+    #[error("sqlx db error")]
+    DBError(#[from] SqlxError),
+
+    #[error("data already exists: {:?}", .0)]
+    AlreadyExists(String),
+
+    #[error("{:?} not found", .0)]
+    NotFound(String),
+
+    #[error("parameter lost: {:?}", .0)]
+    ParamNeeded(String),
 }
 
-
-impl IntoResponse for Error {
+impl IntoResponse for ERPError {
     fn into_response(self) -> Response {
         print!("->> {:<12} - {self:?}", "INTO_RES");
 
-        (StatusCode::INTERNAL_SERVER_ERROR, "Unauthorized").into_response()
+        // let msg = match self {
+        //     ERPError::LoginFail => "login failed..".to_string(),
+        //     ERPError::DBError(err) => format!("db failure: {err}"),
+        //     ERPError::ParamNeeded(s) =>
+        // };
+        let msg = self.to_string();
+
+        (
+            StatusCode::OK,
+            serde_json::json!({
+                "code": 1, // failed code is always 1
+                "msg": msg
+            })
+            .to_string(),
+        )
+            .into_response()
     }
 }

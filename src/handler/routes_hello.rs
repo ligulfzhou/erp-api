@@ -1,11 +1,10 @@
 use axum::{
     extract::{Path, Query},
     response::{Html, IntoResponse},
+    routing::get,
     Router,
-    routing::get
 };
 use serde::Deserialize;
-
 
 pub fn routes() -> Router {
     Router::new()
@@ -24,7 +23,7 @@ async fn handler_hello2(Path(username): Path<String>) -> impl IntoResponse {
 
 #[derive(Debug, Deserialize)]
 struct Hello {
-    username: String,
+    username: Option<String>,
 }
 
 async fn handler_hello3(Query(hello): Query<Hello>) -> impl IntoResponse {

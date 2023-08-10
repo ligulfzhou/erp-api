@@ -1,25 +1,20 @@
-use std::sync::Arc;
-use axum::{
-    Json, Router,
-    routing::post,
-};
+use crate::{AppState, ERPError, ERPResult};
+use axum::{routing::post, Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{AppState, Error, Result};
-
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 struct LoginPayload {
     username: String,
-    pwd: String,
+    password: String,
 }
 
-
-async fn api_login(payload: Json<LoginPayload>) -> Result<Json<Value>> {
+async fn api_login(payload: Json<LoginPayload>) -> ERPResult<Json<Value>> {
     println!("->> {:<12}, api_login", "handler");
 
-    if payload.username != "demo1" || payload.pwd != "welcome" {
-        return Err(Error::LoginFail);
+    if payload.username != "demo1" || payload.password != "welcome" {
+        return Err(ERPError::LoginFail);
     }
 
     let body = Json(json!({
@@ -30,7 +25,6 @@ async fn api_login(payload: Json<LoginPayload>) -> Result<Json<Value>> {
 
     Ok(body)
 }
-
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
