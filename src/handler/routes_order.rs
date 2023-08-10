@@ -6,6 +6,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use crate::constants::DEFAULT_PAGE_SIZE;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -75,7 +76,7 @@ async fn get_orders(
     Query(list_param): Query<ListParam>,
 ) -> ERPResult<APIListResponse<OrderModel>> {
     let page = list_param.page.unwrap_or(1);
-    let page_size = list_param.page_size.unwrap_or(50);
+    let page_size = list_param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
     let orders = sqlx::query_as!(
@@ -128,7 +129,7 @@ async fn get_order_items(
     }
 
     let page = order_items_query.page.unwrap_or(1);
-    let page_size = order_items_query.page_size.unwrap_or(50);
+    let page_size = order_items_query.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
     let order_items = sqlx::query_as!(

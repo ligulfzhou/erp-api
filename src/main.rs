@@ -13,6 +13,7 @@ mod model;
 mod repository;
 mod response;
 mod service;
+mod constants;
 
 pub use self::error::{ERPError, ERPResult};
 

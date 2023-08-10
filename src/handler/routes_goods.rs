@@ -7,6 +7,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
 use std::sync::Arc;
+use crate::constants::DEFAULT_PAGE_SIZE;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -47,7 +48,7 @@ impl ListParamToSQLTrait for ListGoodsParam {
         }
 
         let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(50);
+        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         sql.push_str(&format!(" offset {} limit {};", offset, page_size));
 
@@ -130,7 +131,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
         }
 
         let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(50);
+        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         sql.push_str(&format!(
             " order by id desc offset {} limit {};",
