@@ -171,12 +171,14 @@ async fn get_skus(
     Query(list_skus_param): Query<ListSKUsParam>,
 ) -> ERPResult<APIListResponse<SKUModel>> {
     let pagination_sql = list_skus_param.to_pagination_sql();
+    println!("{pagination_sql}");
     let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(|err| ERPError::DBError(err))?;
 
     let count_sql = list_skus_param.to_count_sql();
+    println!("{count_sql}");
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
