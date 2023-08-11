@@ -2,7 +2,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
-use crate::{ty, AppState, ERPError, ERPResult};
+use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -32,16 +32,16 @@ struct ListGoodsParam {
 // impl ListParamTrait for ListGoodsParam {
 impl ListParamToSQLTrait for ListGoodsParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from goods ".to_string();
+        let mut sql = "select * from goods".to_string();
         let mut where_clauses = vec![];
         if let Some(name) = &self.name {
-            where_clauses.push(format!(" name='{}' ", name));
+            where_clauses.push(format!("name='{}'", name));
         }
         if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+            where_clauses.push(format!("goods_no='{}'", goods_no));
         }
         if let Some(plating) = &self.plating {
-            where_clauses.push(format!(" plating='{}' ", plating));
+            where_clauses.push(format!("plating='{}'", plating));
         }
         if !where_clauses.is_empty() {
             sql.push_str(" where ");
@@ -57,16 +57,16 @@ impl ListParamToSQLTrait for ListGoodsParam {
     }
 
     fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from goods ".to_string();
+        let mut sql = "select count(1) from goods".to_string();
         let mut where_clauses = vec![];
         if let Some(name) = &self.name {
-            where_clauses.push(format!(" name='{}' ", name));
+            where_clauses.push(format!("name='{}'", name));
         }
         if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+            where_clauses.push(format!("goods_no='{}'", goods_no));
         }
         if let Some(plating) = &self.plating {
-            where_clauses.push(format!(" plating='{}' ", plating));
+            where_clauses.push(format!("plating='{}'", plating));
         }
         if where_clauses.len() > 0 {
             sql.push_str(" where ");
@@ -378,8 +378,14 @@ mod tests {
         };
         let sql = params.to_pagination_sql();
         let count_sql = params.to_count_sql();
-        println!("{}", params.to_pagination_sql());
-        println!("{}", count_sql);
+        assert_eq!(
+            "select * from goods where name='name' and goods_no='goods_no' offset 0 limit 50;",
+            sql.as_str()
+        );
+        assert_eq!(
+            "select count(1) from goods where name='name' and goods_no='goods_no';",
+            count_sql.as_str()
+        );
     }
 
     #[tokio::test]
