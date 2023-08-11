@@ -11,15 +11,15 @@ create table goods
 );
 
 insert into goods (goods_no, image, name, plating, notes)
-values ('goods_no_1', 'http://baidu.com', 'goods_1', 'plating_1', 'notes_1');
+values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_1', 'plating_1', 'notes_1');
 insert into goods (goods_no, image, name, plating, notes)
-values ('goods_no_2', 'http://baidu.com', 'goods_2', 'plating_2', 'notes_2');
+values ('goods_no_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_2', 'plating_2', 'notes_2');
 insert into goods (goods_no, image, name, plating, notes)
-values ('goods_no_3', 'http://baidu.com', 'goods_3', 'plating_3', 'notes_3');
+values ('goods_no_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_3', 'plating_3', 'notes_3');
 insert into goods (goods_no, image, name, plating, notes)
-values ('goods_no_4', 'http://baidu.com', 'goods_4', 'plating_4', 'notes_4');
+values ('goods_no_4', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_4', 'plating_4', 'notes_4');
 insert into goods (goods_no, image, name, plating, notes)
-values ('goods_no_5', 'http://baidu.com', 'goods_5', 'plating_5', 'notes_5');
+values ('goods_no_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_5', 'plating_5', 'notes_5');
 
 -- sku表
 create table skus
@@ -36,18 +36,18 @@ create table skus
 
 insert into skus (goods_id, image, goods_no, sku_no, color, notes)
 values
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_1', 'blue', 'notes....'),
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_2', 'blue', 'notes....'),
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_3', 'blue', 'notes....'),
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_4', 'blue', 'notes....'),
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_5', 'blue', 'notes....'),
-(1, 'http://baidu.com', 'goods_no_1', 'goods_1_sku_6', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_1', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_2', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_3', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_4', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_5', 'blue', 'notes....'),
-(2, 'http://baidu.com', 'goods_no_1', 'goods_2_sku_6', 'blue', 'notes....');
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_1', 'blue', 'notes....'),
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_2', 'blue', 'notes....'),
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_3', 'blue', 'notes....'),
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_4', 'blue', 'notes....'),
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_5', 'blue', 'notes....'),
+(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_6', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_1', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_2', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_3', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_4', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_5', 'blue', 'notes....'),
+(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_6', 'blue', 'notes....');
 
 -- 客户
 create table customers

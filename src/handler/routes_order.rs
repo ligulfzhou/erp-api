@@ -1,5 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::handler::ListParamToSQLTrait;
+use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
@@ -100,11 +101,25 @@ async fn get_orders(
     .await
     .map_err(ERPError::DBError)?;
 
-    let customer_ids = orders
+    let mut customer_ids = orders
         .iter()
         .map(|order| order.customer_id)
         .collect::<Vec<i32>>();
-    println!("{:?}", customer_ids);
+    customer_ids.dedup();
+    println!("customer_ids: {:?}", customer_ids);
+
+    let customer_ids_joined = customer_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+
+    let customers =
+        sqlx::query_as::<_, CustomerModel>(&format!("select * from customers where id in ({customer_ids_joined})"))
+            .fetch_all(&state.db)
+            .await
+            .map_err(ERPError::DBError)?;
+    println!("customers found: {}", customers.len());
 
     let count = sqlx::query!("select count(1) from orders")
         .fetch_one(&state.db)
