@@ -86,13 +86,13 @@ async fn get_goods(
     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     let count_sql = list_goods_param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIListResponse::new(goods, total.0 as i32))
 }
@@ -184,14 +184,14 @@ async fn get_skus(
     let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     let count_sql = list_skus_param.to_count_sql();
     println!("{count_sql}");
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIListResponse::new(goods, total.0 as i32))
 }
@@ -259,7 +259,7 @@ async fn create_sku(
     let existing = sqlx::query_as::<_, SKUModel>(&sku_nos_sql)
         .fetch_all(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
     println!("existing skus: {}", existing.len());
 
     let existing_sku_nos = existing
@@ -306,7 +306,7 @@ async fn create_sku(
     sqlx::query(&sql)
         .execute(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }

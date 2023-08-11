@@ -60,7 +60,7 @@ async fn create_order(
     sqlx::query(&payload.to_sql())
         .execute(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -90,12 +90,12 @@ async fn get_orders(
     )
     .fetch_all(&state.db)
     .await
-    .map_err(|err| ERPError::DBError(err))?;
+    .map_err(ERPError::DBError)?;
 
     let count = sqlx::query!("select count(1) from orders")
         .fetch_one(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?
+        .map_err(ERPError::DBError)?
         .count
         .unwrap_or(0);
 
@@ -144,7 +144,7 @@ async fn get_order_items(
     )
     .fetch_all(&state.db)
     .await
-    .map_err(|err| ERPError::DBError(err))?;
+    .map_err(ERPError::DBError)?;
 
     let count = sqlx::query!(
         "select count(1) from order_items where order_id = $1",
@@ -152,7 +152,7 @@ async fn get_order_items(
     )
     .fetch_one(&state.db)
     .await
-    .map_err(|err| ERPError::DBError(err))?
+    .map_err(ERPError::DBError)?
     .count
     .unwrap_or(0);
 
@@ -190,7 +190,7 @@ async fn update_order(
     let _ = sqlx::query(&update_order_param.to_sql())
         .execute(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -254,7 +254,7 @@ async fn update_order_item(
     sqlx::query(&update_order_item_param.to_sql())
         .execute(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }

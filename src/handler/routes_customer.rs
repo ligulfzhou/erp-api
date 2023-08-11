@@ -47,13 +47,13 @@ async fn get_customers(
     let customers = sqlx::query_as::<_, CustomerModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     let count_sql = list_param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIListResponse::new(customers, total.0 as i32))
 }
@@ -86,7 +86,7 @@ async fn create_customer(
     ))
     .fetch_optional(&state.db)
     .await
-    .map_err(|err| ERPError::DBError(err))?;
+    .map_err(ERPError::DBError)?;
 
     if customer.is_some() {
         return Err(ERPError::AlreadyExists(format!(
@@ -99,7 +99,7 @@ async fn create_customer(
     sqlx::query(&sql)
         .execute(&state.db)
         .await
-        .map_err(|err| ERPError::DBError(err))?;
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
