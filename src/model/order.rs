@@ -1,4 +1,4 @@
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
     pub id: i32,
     pub customer_id: i32,

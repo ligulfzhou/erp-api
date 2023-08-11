@@ -247,7 +247,7 @@ async fn create_skus(
     let sku_nos: Vec<String> = create_sku_param
         .skus
         .iter()
-        .map(|sku| format!("{}", sku.sku_no))
+        .map(|sku| sku.sku_no.to_string())
         .collect();
 
     let sku_nos_sql = format!(

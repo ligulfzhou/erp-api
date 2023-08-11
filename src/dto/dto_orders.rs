@@ -18,11 +18,25 @@ impl OrderDto {
     pub fn from(order: OrderModel, customer: CustomerModel) -> OrderDto {
         Self {
             id: order.id,
-            customer_id: order.id,
+            customer_id: customer.id,
             customer: customer.name,
             customer_address: customer.address.unwrap_or("".to_string()),
             customer_phone: customer.phone.unwrap_or("".to_string()),
             customer_no: customer.customer_no,
+            order_no: order.order_no,
+            order_date: order.order_date,
+            delivery_date: order.delivery_date.unwrap_or(0),
+        }
+    }
+
+    pub fn from_only(order: OrderModel) -> OrderDto {
+        Self {
+            id: order.id,
+            customer_id: order.customer_id,
+            customer: "".to_string(),
+            customer_address: "".to_string(),
+            customer_phone: "".to_string(),
+            customer_no: "".to_string(),
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date.unwrap_or(0),

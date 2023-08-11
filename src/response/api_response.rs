@@ -25,6 +25,19 @@ pub struct APIDataResponse<T: Serialize> {
     pub msg: String,
 }
 
+impl<T> APIDataResponse<T>
+where
+    T: Serialize,
+{
+    pub fn new(data: T) -> Self {
+        Self {
+            data,
+            code: 0,
+            msg: "".to_string(),
+        }
+    }
+}
+
 // empty response
 #[derive(Debug, Serialize)]
 pub struct APIEmptyResponse {

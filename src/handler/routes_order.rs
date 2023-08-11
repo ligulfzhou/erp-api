@@ -1,18 +1,21 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
+use crate::dto::dto_orders::OrderDto;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
-use crate::response::api_response::{APIEmptyResponse, APIListResponse};
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
+        .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
@@ -75,6 +78,32 @@ async fn create_order(
 }
 
 #[derive(Debug, Deserialize)]
+struct DetailParam {
+    id: i32,
+}
+
+async fn order_detail(
+    State(state): State<Arc<AppState>>,
+    Query(param): Query<DetailParam>,
+) -> ERPResult<APIDataResponse<OrderDto>> {
+    let order =
+        sqlx::query_as::<_, OrderModel>(&format!("select * from orders where id={}", param.id))
+            .fetch_one(&state.db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customers where id={}",
+        order.customer_id
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    Ok(APIDataResponse::new(OrderDto::from(order, customer)))
+}
+
+#[derive(Debug, Deserialize)]
 struct ListParam {
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
@@ -86,7 +115,7 @@ struct ListParam {
 async fn get_orders(
     State(state): State<Arc<AppState>>,
     Query(list_param): Query<ListParam>,
-) -> ERPResult<APIListResponse<OrderModel>> {
+) -> ERPResult<APIListResponse<OrderDto>> {
     let page = list_param.page.unwrap_or(1);
     let page_size = list_param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
@@ -114,12 +143,30 @@ async fn get_orders(
         .collect::<Vec<String>>()
         .join(",");
 
-    let customers =
-        sqlx::query_as::<_, CustomerModel>(&format!("select * from customers where id in ({customer_ids_joined})"))
-            .fetch_all(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+    let customers = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customers where id in ({customer_ids_joined})"
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
     println!("customers found: {}", customers.len());
+
+    let id_customer = customers
+        .iter()
+        .map(|customer| (customer.id, customer.clone()))
+        .collect::<HashMap<_, _>>();
+    println!("id_customer: {:?}", id_customer);
+
+    let order_dtos = orders
+        .iter()
+        .map(|order| {
+            if let Some(customer) = id_customer.get(&order.customer_id) {
+                OrderDto::from(order.clone(), customer.clone())
+            } else {
+                OrderDto::from_only(order.clone())
+            }
+        })
+        .collect::<Vec<OrderDto>>();
 
     let count = sqlx::query!("select count(1) from orders")
         .fetch_one(&state.db)
@@ -128,7 +175,7 @@ async fn get_orders(
         .count
         .unwrap_or(0);
 
-    Ok(APIListResponse::new(orders, count as i32))
+    Ok(APIListResponse::new(order_dtos, count as i32))
 }
 
 #[derive(Debug, Deserialize)]
