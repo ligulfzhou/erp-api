@@ -100,6 +100,12 @@ async fn get_orders(
     .await
     .map_err(ERPError::DBError)?;
 
+    let customer_ids = orders
+        .iter()
+        .map(|order| order.customer_id)
+        .collect::<Vec<i32>>();
+    println!("{:?}", customer_ids);
+
     let count = sqlx::query!("select count(1) from orders")
         .fetch_one(&state.db)
         .await
@@ -167,7 +173,7 @@ async fn get_order_items(
     Ok(APIListResponse::new(order_items, count as i32))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct UpdateOrderParam {
     id: i32,
     order_no: String,

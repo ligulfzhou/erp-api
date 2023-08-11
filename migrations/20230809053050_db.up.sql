@@ -69,9 +69,9 @@ insert into customers (customer_no, name, address, phone, notes) values ('custom
 create table orders
 (
     id            serial,
-    customer_id   integer, -- 客户ID
-    order_no      text,    -- 订单编号
-    order_date    integer, -- 订货日期
+    customer_id   integer not null, -- 客户ID
+    order_no      text not null,    -- 订单编号
+    order_date    integer not null, -- 订货日期
     delivery_date integer  -- 交货日期
 );
 
@@ -84,11 +84,11 @@ VALUES (1, 'order_no_1', 1691558739, 1691568739),
 create table order_items
 (
     id               serial,
-    order_id         integer, -- 订单ID
-    sku_id           integer, -- 商品ID
+    order_id         integer not null, -- 订单ID
+    sku_id           integer not null, -- 商品ID
     package_card     text,    -- 包装卡片    （存在大问题）
     package_card_des text,    -- 包装卡片说明 （存在大问题）
-    count            integer, -- 数量
+    count            integer not null, -- 数量
     unit             text,    --单位
     unit_price       integer, -- 单价
     total_price      integer, -- 总价/金额
@@ -99,11 +99,6 @@ insert into order_items (order_id, sku_id, package_card, package_card_des, count
 values (1, 1, '....', 'adsfasdfasdf', 10, '个'),
 (1, 2, '....', 'adsfasdfasdf', 10, '个'),
 (1, 3, '....', 'adsfasdfasdf', 10, '个');
-
-
--- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739);
--- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (2, 'order_no_2', 1691558739, 1691568739);
--- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (3, 'order_no_3', 1691558739, 1691568739);
 
 
 -- 订单sku的的材料单 * N
