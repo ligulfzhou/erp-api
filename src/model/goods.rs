@@ -25,6 +25,8 @@ pub struct SKUModel {
     pub image: Option<String>,
     // 产品编号 (暂时没有)
     pub goods_no: String,
+    // 电镀
+    pub plating: Option<String>,
     // 颜色
     pub color: Option<String>,
     // 备注

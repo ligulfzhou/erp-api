@@ -29,6 +29,7 @@ create table skus
     image    text,    -- 商品图片
     goods_no text not null,    -- 产品编号 (暂时没有)
     sku_no   text not null,    -- sku编号
+    plating  text,    -- 电镀
     color    text,    -- 颜色
     notes    text     -- 备注
 );

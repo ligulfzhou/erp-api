@@ -115,19 +115,19 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let mut sql = "select * from skus ".to_string();
         let mut where_clauses = vec![];
         if let Some(name) = &self.name {
-            where_clauses.push(format!(" name='{}' ", name));
+            where_clauses.push(format!("name='{}'", name));
         }
         if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+            where_clauses.push(format!("goods_no='{}'", goods_no));
         }
         if let Some(sku_no) = &self.sku_no {
-            where_clauses.push(format!(" sku_no='{}' ", sku_no));
+            where_clauses.push(format!("sku_no='{}'", sku_no));
         }
         if let Some(plating) = &self.plating {
-            where_clauses.push(format!(" plating='{}' ", plating));
+            where_clauses.push(format!("plating='{}'", plating));
         }
         if let Some(color) = &self.color {
-            where_clauses.push(format!(" color='{}' ", color));
+            where_clauses.push(format!("color='{}'", color));
         }
 
         if !where_clauses.is_empty() {
