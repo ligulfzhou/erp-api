@@ -100,8 +100,8 @@ create table order_item_materials
     id            serial,
     order_id      integer, -- 订单ID
     order_item_id integer, -- 订单商品ID
-    name          text,    -- 材料名称
-    color         text,    -- 材料颜色
+    name          text not null,    -- 材料名称
+    color         text not null,    -- 材料颜色
 --     material_id   integer, -- 材料ID  (暂时先不用)
     single        integer, -- 单数      ？小数
     count         integer, -- 数量      ？小数

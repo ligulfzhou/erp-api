@@ -13,7 +13,7 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/goods", get(get_goods))
-        .route("/api/skus", get(get_skus).post(create_sku))
+        .route("/api/skus", get(get_skus).post(create_skus))
         .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
@@ -235,7 +235,7 @@ impl CreateSKUsParam {
     }
 }
 
-async fn create_sku(
+async fn create_skus(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(create_sku_param), _): WithRejection<Json<CreateSKUsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {

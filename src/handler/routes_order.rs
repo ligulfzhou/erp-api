@@ -329,12 +329,12 @@ async fn get_order_item_materials(
     Ok(APIListResponse::new(materials, total.0))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct CreateOrderItemMaterialParam {
     pub order_id: i32,
     pub order_item_id: i32,
-    pub name: Option<String>,
-    pub color: Option<String>,
+    pub name: String,
+    pub color: String,
     // material_id   integer, -- 材料ID  (暂时先不用)
     pub single: Option<i32>,
     //  integer, -- 单数      ？小数
@@ -349,7 +349,80 @@ struct CreateOrderItemMaterialParam {
     pub notes: Option<String>, //     text     -- 备注
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct CreateOrderItemMaterialsParam {
+    order_item_id: i32,
     materials: Vec<CreateOrderItemMaterialParam>,
+}
+
+impl CreateOrderItemMaterialsParam {
+    fn to_sql(&self) -> String {
+        let values = self
+            .materials
+            .iter()
+            .map(|material| {
+                format!(
+                    "({}, {}, '{}', '{}', {:?}, {}, {:?}, {:?}, {:?}, '{:?}')",
+                    material.order_id,
+                    material.order_item_id,
+                    material.name,
+                    material.color,
+                    material.single,
+                    material.count,
+                    material.total,
+                    material.stock,
+                    material.debt,
+                    material.notes
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(",");
+
+        format!("insert into order_item_materials (order_id, order_item_id, name, color, single, count, total, stock, debt, notes) values {};", values)
+    }
+}
+
+async fn add_order_item_materials(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateOrderItemMaterialsParam>,
+) -> ERPResult<APIEmptyResponse> {
+    // checking material is empty
+    if payload.materials.is_empty() {
+        return Err(ERPError::ParamNeeded("materials".to_string()));
+    }
+
+    // checking material
+    let existings = sqlx::query_as::<_, OrderItemMaterialModel>(&format!(
+        "select * from order_item_materials where order_item_id={};",
+        payload.order_item_id
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    // if already have some material, then check against it.
+    if !existings.is_empty() {
+        let existing_name_color_tuples: Vec<(String, String)> = existings
+            .iter()
+            .map(|material| (material.name.clone(), material.color.clone()))
+            .collect();
+
+        let duplicates = payload
+            .materials
+            .iter()
+            .filter(|&material| {
+                existing_name_color_tuples
+                    .contains(&(material.name.clone(), material.color.clone()))
+            })
+            .map(|material| format!("({}-{})", material.name, material.color))
+            .collect::<Vec<String>>();
+
+        if !duplicates.is_empty() {
+            return Err(ERPError::AlreadyExists(duplicates.join(",")));
+        }
+    }
+
+    sqlx::query(&payload.to_sql()).execute(&state.db).await.map_err(ERPError::DBError)?;
+
+    Ok(APIEmptyResponse::new())
 }
