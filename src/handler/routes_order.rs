@@ -269,7 +269,7 @@ async fn update_order_item(
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ListOrderItemMaterialsParam {
-    pub order_id: i32,
+    pub order_id: Option<i32>,
     pub order_item_id: i32,
     pub name: Option<String>,
     pub color: Option<String>,
@@ -282,7 +282,9 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from order_item_materials".to_string();
         let mut where_clauses = vec![];
-        where_clauses.push(format!("order_id={}", self.order_id));
+        if let Some(order_id) = &self.order_id {
+            where_clauses.push(format!("order_id='{}'", order_id));
+        }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
         if let Some(name) = &self.name {
             where_clauses.push(format!("name='{}'", name));
@@ -304,7 +306,9 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
     fn to_count_sql(&self) -> String {
         let mut sql = "select count(1) from order_item_materials".to_string();
         let mut where_clauses = vec![];
-        where_clauses.push(format!("order_id={}", self.order_id));
+        if let Some(order_id) = &self.order_id {
+            where_clauses.push(format!("order_id='{}'", order_id));
+        }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
         if let Some(name) = &self.name {
             where_clauses.push(format!("name='{}'", name));

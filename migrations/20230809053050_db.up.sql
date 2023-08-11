@@ -58,6 +58,11 @@ create table customers
     phone       text, -- 电话
     notes       text  -- 备注
 );
+insert into customers (customer_no, name, address, phone, notes) values ('customer_no_1', 'customer_name_1', 'address.....address', '110', '这是客户1');
+insert into customers (customer_no, name, address, phone, notes) values ('customer_no_2', 'customer_name_2', 'address.....address', '220', '这是客户2');
+insert into customers (customer_no, name, address, phone, notes) values ('customer_no_3', 'customer_name_3', 'address.....address', '330', '这是客户3');
+insert into customers (customer_no, name, address, phone, notes) values ('customer_no_4', 'customer_name_4', 'address.....address', '440', '这是客户4');
+insert into customers (customer_no, name, address, phone, notes) values ('customer_no_5', 'customer_name_5', 'address.....address', '550', '这是客户5');
 
 -- 订单表
 create table orders
@@ -88,6 +93,12 @@ create table order_items
     total_price      integer, -- 总价/金额
     notes            text     -- 备注
 );
+
+insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit)
+values (1, 1, '....', 'adsfasdfasdf', 10, '个'),
+(1, 2, '....', 'adsfasdfasdf', 10, '个'),
+(1, 3, '....', 'adsfasdfasdf', 10, '个');
+
 
 -- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (1, 'order_no_1', 1691558739, 1691568739);
 -- insert into order_items (customer_id, order_no, order_date, delivery_date) VALUES (2, 'order_no_2', 1691558739, 1691568739);
