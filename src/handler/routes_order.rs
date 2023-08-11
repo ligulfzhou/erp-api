@@ -15,8 +15,14 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
-        .route("/api/order/item/materials", get(get_order_item_materials).post(add_order_item_materials))
-        .route("/api/order/item/material/update", post(update_order_item_material))
+        .route(
+            "/api/order/item/materials",
+            get(get_order_item_materials).post(add_order_item_materials),
+        )
+        .route(
+            "/api/order/item/material/update",
+            post(update_order_item_material),
+        )
         .with_state(state)
 }
 
@@ -172,7 +178,7 @@ struct UpdateOrderParam {
 
 impl UpdateOrderParam {
     pub fn to_sql(&self) -> String {
-        format!("update orders set order_no = '{}', customer_id = {}, order_date={}, delivery_date={} where id={}", self.order_no, self.customer_id, self.order_date, self.delivery_date, self.id)
+        format!("update orders set order_no='{}', customer_id={}, order_date={}, delivery_date={} where id={};", self.order_no, self.customer_id, self.order_date, self.delivery_date, self.id)
     }
 }
 
@@ -423,12 +429,13 @@ async fn add_order_item_materials(
         }
     }
 
-    sqlx::query(&payload.to_sql()).execute(&state.db).await.map_err(ERPError::DBError)?;
+    sqlx::query(&payload.to_sql())
+        .execute(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
-
-
 
 #[derive(Debug, Deserialize)]
 struct UpdateOrderItemMaterialParam {
@@ -493,4 +500,3 @@ async fn update_order_item_material(
 
     Ok(APIEmptyResponse::new())
 }
-
