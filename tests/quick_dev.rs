@@ -2,7 +2,7 @@ use anyhow::Result;
 
 #[tokio::test]
 async fn quick_dev() -> Result<()> {
-    let client = httpc_test::new_client("http://localhost:8100")?;
+    let client = httpc_test::new_client("http://localhost:9100")?;
 
     client.do_get("/api/hello").await?.print().await?;
 
