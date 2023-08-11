@@ -50,7 +50,7 @@ async fn get_customers(
         .map_err(ERPError::DBError)?;
 
     let count_sql = list_param.to_count_sql();
-    let total: (i64, ) = sqlx::query_as(&count_sql)
+    let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -84,9 +84,9 @@ async fn create_customer(
         "select * from customers where customer_no = '{}'",
         create_param.customer_no
     ))
-        .fetch_optional(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
     if customer.is_some() {
         return Err(ERPError::AlreadyExists(format!(
