@@ -30,6 +30,10 @@ async fn main() {
 
     dotenv::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL");
+    let port = std::env::var("PORT")
+        .expect("run on which port")
+        .parse::<u16>()
+        .expect("port should be number");
     println!("{database_url}");
 
     let pool = match PgPoolOptions::new()
@@ -53,7 +57,7 @@ async fn main() {
         .fallback_service(handler::routes_static::routes())
         .layer(cors);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8100));
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("=> Listen on {addr} \n");
 
     axum::Server::bind(&addr)
