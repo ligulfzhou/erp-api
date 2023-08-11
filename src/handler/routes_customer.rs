@@ -1,4 +1,5 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
+use crate::dto::dto_customer::CustomerDto;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::customer::CustomerModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -42,12 +43,16 @@ impl ListParamToSQLTrait for ListCustomerParam {
 async fn get_customers(
     State(state): State<Arc<AppState>>,
     Query(list_param): Query<ListCustomerParam>,
-) -> ERPResult<APIListResponse<CustomerModel>> {
+) -> ERPResult<APIListResponse<CustomerDto>> {
     let pagination_sql = list_param.to_pagination_sql();
     let customers = sqlx::query_as::<_, CustomerModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
+    let customer_dtos = customers
+        .iter()
+        .map(|customer| CustomerDto::from(customer.clone()))
+        .collect();
 
     let count_sql = list_param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
@@ -55,7 +60,7 @@ async fn get_customers(
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(customers, total.0 as i32))
+    Ok(APIListResponse::new(customer_dtos, total.0 as i32))
 }
 
 #[derive(Debug, Deserialize)]
