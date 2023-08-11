@@ -50,7 +50,7 @@ async fn get_customers(
         .map_err(ERPError::DBError)?;
 
     let count_sql = list_param.to_count_sql();
-    let total: (i64,) = sqlx::query_as(&count_sql)
+    let total: (i64, ) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -84,9 +84,9 @@ async fn create_customer(
         "select * from customers where customer_no = '{}'",
         create_param.customer_no
     ))
-    .fetch_optional(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+        .fetch_optional(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
 
     if customer.is_some() {
         return Err(ERPError::AlreadyExists(format!(
@@ -119,21 +119,21 @@ impl UpdateCustomerParam {
         let mut set_clauses = vec![];
 
         set_clauses.push(format!(
-            " customer_no='{}', name='{}' ",
+            "customer_no='{}',name='{}'",
             self.customer_no, self.name
         ));
         if let Some(address) = &self.address {
-            set_clauses.push(format!(" address = '{}' ", address))
+            set_clauses.push(format!("address='{}'", address))
         }
         if let Some(phone) = &self.phone {
-            set_clauses.push(format!(" phone = '{}' ", phone))
+            set_clauses.push(format!("phone='{}'", phone))
         }
         if let Some(notes) = &self.notes {
-            set_clauses.push(format!(" notes = '{}' ", notes))
+            set_clauses.push(format!("notes='{}'", notes))
         }
 
         format!(
-            "update skus set {} where id = {}",
+            "update skus set {} where id = {};",
             set_clauses.join(","),
             self.id
         )
