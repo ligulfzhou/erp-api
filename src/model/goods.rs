@@ -17,11 +17,11 @@ pub struct GoodsModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SKUModel {
     pub id: i32,
-
+    // sku编号
     pub sku_no: String,
     // 类目ID
     pub goods_id: Option<i32>,
-    //商品图片
+    // 商品图片
     pub image: Option<String>,
     // 产品编号 (暂时没有)
     pub goods_no: String,

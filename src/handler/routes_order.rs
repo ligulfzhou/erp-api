@@ -282,8 +282,8 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from order_item_materials".to_string();
         let mut where_clauses = vec![];
-        if let Some(order_id) = &self.order_id {
-            where_clauses.push(format!("order_id='{}'", order_id));
+        if let Some(order_id) = self.order_id {
+            where_clauses.push(format!("order_id={}", order_id));
         }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
         if let Some(name) = &self.name {
@@ -292,22 +292,24 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
         if let Some(color) = &self.color {
             where_clauses.push(format!("color='{}'", color));
         }
+        sql.push_str(" where ");
         sql.push_str(&where_clauses.join(" and "));
 
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         sql.push_str(&format!(
-            "order by id desc limit {page} offset {page_size};"
+            " order by id desc limit {page} offset {page_size};"
         ));
 
+        println!("{sql}");
         sql
     }
 
     fn to_count_sql(&self) -> String {
         let mut sql = "select count(1) from order_item_materials".to_string();
         let mut where_clauses = vec![];
-        if let Some(order_id) = &self.order_id {
-            where_clauses.push(format!("order_id='{}'", order_id));
+        if let Some(order_id) = self.order_id {
+            where_clauses.push(format!("order_id={}", order_id));
         }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
         if let Some(name) = &self.name {
@@ -316,9 +318,11 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
         if let Some(color) = &self.color {
             where_clauses.push(format!("color='{}'", color));
         }
+        sql.push_str(" where ");
         sql.push_str(&where_clauses.join(" and "));
         sql.push(';');
 
+        println!("{sql}");
         sql
     }
 }
@@ -332,12 +336,12 @@ async fn get_order_item_materials(
         .await
         .map_err(ERPError::DBError)?;
 
-    let total: (i32,) = sqlx::query_as(&query.to_count_sql())
+    let total: (i64,) = sqlx::query_as(&query.to_count_sql())
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(materials, total.0))
+    Ok(APIListResponse::new(materials, total.0 as i32))
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
