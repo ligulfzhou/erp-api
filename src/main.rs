@@ -47,7 +47,8 @@ async fn main() {
     };
 
     let app_state = Arc::new(AppState { db: pool.clone() });
-    let cors = CorsLayer::new().allow_origin(Any);
+    // let cors = CorsLayer::new().allow_origin(Any).allow_methods("*");
+    let cors = CorsLayer::permissive();
 
     let routes_all = Router::new()
         .merge(handler::routes_login::routes(app_state.clone()))
