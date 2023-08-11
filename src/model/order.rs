@@ -21,7 +21,7 @@ pub struct OrderItemModel {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemMaterialModel {
     pub id: i32,
     pub order_id: i32,

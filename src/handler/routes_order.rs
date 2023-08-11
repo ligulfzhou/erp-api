@@ -1,5 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::model::order::{OrderItemModel, OrderModel};
+use crate::handler::ListParamToSQLTrait;
+use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -14,7 +15,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
-        // .route("/api/order/item/materials", get())
+        .route("/api/order/item/materials", get(get_order_item_materials))
         .with_state(state)
 }
 
@@ -259,17 +260,96 @@ async fn update_order_item(
     Ok(APIEmptyResponse::new())
 }
 
-#[derive(Debug, Deserialize)]
-struct OrderItemMaterialParam {
+#[derive(Debug, Deserialize, Serialize)]
+struct ListOrderItemMaterialsParam {
+    pub order_id: i32,
+    pub order_item_id: i32,
+    pub name: Option<String>,
+    pub color: Option<String>,
+    pub page: Option<i32>,
+    #[serde(rename(deserialize = "pageSize"))]
+    pub page_size: Option<i32>,
+}
+
+impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
+    fn to_pagination_sql(&self) -> String {
+        let mut sql = "select * from order_item_materials".to_string();
+        let mut where_clauses = vec![];
+        where_clauses.push(format!("order_id={}", self.order_id));
+        where_clauses.push(format!("order_item_id={}", self.order_item_id));
+        if let Some(name) = &self.name {
+            where_clauses.push(format!("name='{}'", name));
+        }
+        if let Some(color) = &self.color {
+            where_clauses.push(format!("color='{}'", color));
+        }
+        sql.push_str(&where_clauses.join(" and "));
+
+        let page = self.page.unwrap_or(1);
+        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        sql.push_str(&format!(
+            "order by id desc limit {page} offset {page_size};"
+        ));
+
+        sql
+    }
+
+    fn to_count_sql(&self) -> String {
+        let mut sql = "select count(1) from order_item_materials".to_string();
+        let mut where_clauses = vec![];
+        where_clauses.push(format!("order_id={}", self.order_id));
+        where_clauses.push(format!("order_item_id={}", self.order_item_id));
+        if let Some(name) = &self.name {
+            where_clauses.push(format!("name='{}'", name));
+        }
+        if let Some(color) = &self.color {
+            where_clauses.push(format!("color='{}'", color));
+        }
+        sql.push_str(&where_clauses.join(" and "));
+        sql.push(';');
+
+        sql
+    }
+}
+
+async fn get_order_item_materials(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ListOrderItemMaterialsParam>,
+) -> ERPResult<APIListResponse<OrderItemMaterialModel>> {
+    let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&query.to_pagination_sql())
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+    let total: (i32,) = sqlx::query_as(&query.to_count_sql())
+        .fetch_one(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+    Ok(APIListResponse::new(materials, total.0))
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CreateOrderItemMaterialParam {
     pub order_id: i32,
     pub order_item_id: i32,
     pub name: Option<String>,
     pub color: Option<String>,
     // material_id   integer, -- 材料ID  (暂时先不用)
-    pub single: Option<i32>,   //  integer, -- 单数      ？小数
-    pub count: Option<i32>,    //  integer, -- 数量      ？小数
-    pub total: Option<i32>,    //  integer, -- 总数(米)  ? 小数
-    pub stock: Option<i32>,    //  integer, -- 库存 ?
-    pub debt: Option<i32>,     //  integer, -- 欠数
+    pub single: Option<i32>,
+    //  integer, -- 单数      ？小数
+    pub count: i32,
+    //  integer, -- 数量      ？小数
+    pub total: Option<i32>,
+    //  integer, -- 总数(米)  ? 小数
+    pub stock: Option<i32>,
+    //  integer, -- 库存 ?
+    pub debt: Option<i32>,
+    //  integer, -- 欠数
     pub notes: Option<String>, //     text     -- 备注
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CreateOrderItemMaterialsParam {
+    materials: Vec<CreateOrderItemMaterialParam>,
 }
