@@ -1,3 +1,4 @@
+use axum::extract::rejection::JsonRejection;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -23,6 +24,9 @@ pub enum ERPError {
 
     #[error("parameter lost: {:?}", .0)]
     ParamNeeded(String),
+
+    #[error(transparent)]
+    JsonExtractorRejection(#[from] JsonRejection),
 }
 
 impl IntoResponse for ERPError {

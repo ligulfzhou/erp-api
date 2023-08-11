@@ -2,10 +2,11 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
-use crate::{AppState, ERPError, ERPResult};
+use crate::{ty, AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -100,6 +101,7 @@ async fn get_goods(
 struct ListSKUsParam {
     name: Option<String>,
     goods_no: Option<String>,
+    sku_no: Option<String>,
     plating: Option<String>,
     color: Option<String>,
 
@@ -117,6 +119,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         }
         if let Some(goods_no) = &self.goods_no {
             where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(sku_no) = &self.sku_no {
+            where_clauses.push(format!(" sku_no='{}' ", sku_no));
         }
         if let Some(plating) = &self.plating {
             where_clauses.push(format!(" plating='{}' ", plating));
@@ -149,6 +154,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         }
         if let Some(goods_no) = &self.goods_no {
             where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if let Some(sku_no) = &self.sku_no {
+            where_clauses.push(format!(" sku_no='{}' ", sku_no));
         }
         if let Some(plating) = &self.plating {
             where_clauses.push(format!(" plating='{}' ", plating));
@@ -188,16 +196,16 @@ async fn get_skus(
     Ok(APIListResponse::new(goods, total.0 as i32))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct CreateSKUParam {
     image: Option<String>,
-    goods_no: Option<String>,
+    goods_no: String,
     sku_no: String,
     color: Option<String>,
     notes: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct CreateSKUsParam {
     skus: Vec<CreateSKUParam>,
 }
@@ -211,7 +219,7 @@ impl CreateSKUsParam {
                 format!(
                     "('{}', '{}', '{}', '{}', '{}')",
                     sku.image.as_ref().unwrap_or(&"".to_string()),
-                    sku.goods_no.as_ref().unwrap_or(&"".to_string()),
+                    sku.goods_no,
                     sku.sku_no,
                     sku.color.as_ref().unwrap_or(&"".to_string()),
                     sku.notes.as_ref().unwrap_or(&"".to_string())
@@ -229,7 +237,7 @@ impl CreateSKUsParam {
 
 async fn create_sku(
     State(state): State<Arc<AppState>>,
-    Json(create_sku_param): Json<CreateSKUsParam>,
+    WithRejection(Json(create_sku_param), _): WithRejection<Json<CreateSKUsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // let to_insert_sql = String::new();
     if create_sku_param.skus.is_empty() {
@@ -241,27 +249,36 @@ async fn create_sku(
         .iter()
         .map(|sku| format!("{}", sku.sku_no))
         .collect();
-    let sku_nos_sql = sku_nos.join("', '");
 
-    let mut existing = sqlx::query_as!(
-        SKUModel,
-        "select * from skus where sku_no in ($1)",
-        sku_nos_sql
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|err| ERPError::DBError(err))?;
+    let sku_nos_sql = format!(
+        "select * from skus where sku_no in ('{}')",
+        sku_nos.join("', '")
+    );
+    println!("{sku_nos_sql}");
 
-    let existing_sku_nos: Vec<String> = existing
+    let existing = sqlx::query_as::<_, SKUModel>(&sku_nos_sql)
+        .fetch_all(&state.db)
+        .await
+        .map_err(|err| ERPError::DBError(err))?;
+    println!("existing skus: {}", existing.len());
+
+    let existing_sku_nos = existing
         .iter()
-        .map(|sku| format!("{:?}", sku.sku_no))
-        .collect();
+        .map(|sku| sku.sku_no.as_str())
+        .collect::<Vec<&str>>();
+    println!("existing sku nos: {:?}", existing_sku_nos);
+
+    println!(
+        "contains: {:?}",
+        existing_sku_nos.contains(&&create_sku_param.skus[0].sku_no.as_str())
+    );
     let to_insert: Vec<&CreateSKUParam> = create_sku_param
         .skus
         .iter()
-        .filter(|&sku| existing_sku_nos.contains(&sku.sku_no.to_string()))
-        .into_iter()
+        .filter(|&sku| !existing_sku_nos.contains(&sku.sku_no.as_str()))
         .collect();
+    println!(" to insert: {:#?}", to_insert);
+
     if to_insert.is_empty() {
         return Err(ERPError::AlreadyExists("SKU with sku_no".to_string()));
     }
@@ -272,7 +289,7 @@ async fn create_sku(
             format!(
                 "('{}', '{}', '{}', '{}', '{}')",
                 sku.image.as_ref().unwrap_or(&"".to_string()),
-                sku.goods_no.as_ref().unwrap_or(&"".to_string()),
+                sku.goods_no,
                 sku.sku_no,
                 sku.color.as_ref().unwrap_or(&"".to_string()),
                 sku.notes.as_ref().unwrap_or(&"".to_string())
@@ -294,8 +311,8 @@ async fn create_sku(
     Ok(APIEmptyResponse::new())
 }
 
-#[derive(Debug, Deserialize)]
-struct UpdateSKUParams {
+#[derive(Debug, Deserialize, Serialize)]
+struct UpdateSKUParam {
     id: i32,
     image: Option<String>,
     goods_no: Option<String>,
@@ -304,7 +321,7 @@ struct UpdateSKUParams {
     notes: Option<String>,
 }
 
-impl UpdateSKUParams {
+impl UpdateSKUParam {
     fn to_sql(&self) -> String {
         let mut set_clauses = vec![];
         if let Some(image) = &self.image {
@@ -333,7 +350,7 @@ impl UpdateSKUParams {
 
 async fn update_sku(
     State(state): State<Arc<AppState>>,
-    Json(update_sku_param): Json<UpdateSKUParams>,
+    Json(update_sku_param): Json<UpdateSKUParam>,
 ) -> ERPResult<APIEmptyResponse> {
     sqlx::query(&update_sku_param.to_sql())
         .execute(&state.db)
@@ -344,8 +361,11 @@ async fn update_sku(
 
 #[cfg(test)]
 mod tests {
-    use crate::handler::routes_goods::ListGoodsParam;
+    use crate::handler::routes_goods::{
+        CreateSKUParam, CreateSKUsParam, ListGoodsParam, UpdateSKUParam,
+    };
     use crate::handler::ListParamToSQLTrait;
+    use anyhow::Result;
 
     #[test]
     fn test() {
@@ -360,5 +380,59 @@ mod tests {
         let count_sql = params.to_count_sql();
         println!("{}", params.to_pagination_sql());
         println!("{}", count_sql);
+    }
+
+    #[tokio::test]
+    async fn test_sku() -> Result<()> {
+        let param = CreateSKUsParam {
+            skus: vec![
+                CreateSKUParam {
+                    image: Some("http://baidu.com/1".to_string()),
+                    goods_no: "goods_no_100".to_string(),
+                    sku_no: "sku_1".to_string(),
+                    color: Some("red".to_string()),
+                    notes: None,
+                },
+                CreateSKUParam {
+                    image: Some("http://baidu.com/2".to_string()),
+                    goods_no: "goods_no_100".to_string(),
+                    sku_no: "sku_2".to_string(),
+                    color: Some("blue".to_string()),
+                    notes: None,
+                },
+            ],
+        };
+
+        let client = httpc_test::new_client("http://localhost:8100")?;
+
+        client
+            .do_post("/api/skus", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        let update_param = UpdateSKUParam {
+            id: 1,
+            image: Some("http://updated.com".to_string()),
+            goods_no: Some("goods_no_updated".to_string()),
+            sku_no: Some("sku_no_updated".to_string()),
+            color: Some("color".to_string()),
+            notes: Some("Some Notes".to_string()),
+        };
+
+        client
+            .do_post("/api/sku/update", serde_json::json!(update_param))
+            .await?
+            .print()
+            .await?;
+
+        // todo: assert
+        client
+            .do_get("/api/skus?sku_no=sku_no_updated")
+            .await?
+            .print()
+            .await?;
+
+        Ok(())
     }
 }

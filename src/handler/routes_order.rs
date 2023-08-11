@@ -14,7 +14,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
-        .route("/api/order/item/materials", get())
+        // .route("/api/order/item/materials", get())
         .with_state(state)
 }
 

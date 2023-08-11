@@ -11,6 +11,7 @@ mod constants;
 mod error;
 mod excel;
 mod handler;
+mod macros;
 mod model;
 mod repository;
 mod response;

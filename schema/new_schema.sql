@@ -48,11 +48,11 @@ insert into orders (customer_id, order_no, order_date, delivery_date) VALUES (1,
 create table order_items
 (
     id               serial,
-    order_id         integer, -- 订单ID
-    sku_id           integer, -- 商品ID
+    order_id         integer not null, -- 订单ID
+    sku_id           integer not null, -- 商品ID
     package_card     text,    -- 包装卡片    （存在大问题）
     package_card_des text,    -- 包装卡片说明 （存在大问题）
-    count            integer, -- 数量
+    count            integer not null, -- 数量
     unit             text,    --单位
     unit_price       integer, -- 单价
     total_price      integer, -- 总价/金额
@@ -108,7 +108,7 @@ create table order_item_materials
 -- );
 
 -- 部门
-create table department
+create table departments
 (
     id            serial,
     department_id integer,
@@ -117,7 +117,7 @@ create table department
 );
 
 -- 账号
-create table account
+create table accounts
 (
     id            serial,
     name          text,

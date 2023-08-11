@@ -27,8 +27,8 @@ create table skus
     id       SERIAL,
     goods_id integer, -- 类目ID
     image    text,    -- 商品图片
-    goods_no text,    -- 产品编号 (暂时没有)
-    sku_no   text,    -- sku编号
+    goods_no text not null,    -- 产品编号 (暂时没有)
+    sku_no   text not null,    -- sku编号
     color    text,    -- 颜色
     notes    text     -- 备注
 );
@@ -143,7 +143,7 @@ create table order_item_materials
 -- );
 
 -- 部门
-create table department
+create table departments
 (
     id            serial,
     department_id integer,
@@ -152,7 +152,7 @@ create table department
 );
 
 -- 账号
-create table account
+create table accounts
 (
     id            serial,
     name          text,

@@ -18,13 +18,13 @@ pub struct GoodsModel {
 pub struct SKUModel {
     pub id: i32,
 
-    pub sku_no: Option<String>,
+    pub sku_no: String,
     // 类目ID
     pub goods_id: Option<i32>,
     //商品图片
     pub image: Option<String>,
     // 产品编号 (暂时没有)
-    pub goods_no: Option<String>,
+    pub goods_no: String,
     // 颜色
     pub color: Option<String>,
     // 备注
