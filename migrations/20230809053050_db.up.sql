@@ -27,6 +27,7 @@ create table skus
     id       SERIAL,
     goods_id integer, -- 类目ID
     image    text,    -- 商品图片
+    name     text,    -- 商品名称
     goods_no text not null,    -- 产品编号 (暂时没有)
     sku_no   text not null,    -- sku编号
     plating  text,    -- 电镀

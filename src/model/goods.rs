@@ -21,6 +21,8 @@ pub struct SKUModel {
     pub sku_no: String,
     // 类目ID
     pub goods_id: Option<i32>,
+    // 商品名
+    pub name: Option<String>,
     // 商品图片
     pub image: Option<String>,
     // 产品编号 (暂时没有)
