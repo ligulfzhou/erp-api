@@ -68,10 +68,10 @@ impl ListParamToSQLTrait for ListGoodsParam {
         if let Some(plating) = &self.plating {
             where_clauses.push(format!("plating='{}'", plating));
         }
-        if where_clauses.len() > 0 {
+        if !where_clauses.is_empty() {
             sql.push_str(" where ");
             sql.push_str(&where_clauses.join(" and "));
-            sql.push_str(";");
+            sql.push(';');
         }
 
         sql
@@ -165,10 +165,10 @@ impl ListParamToSQLTrait for ListSKUsParam {
             where_clauses.push(format!(" color='{}' ", color));
         }
 
-        if where_clauses.len() > 0 {
+        if !where_clauses.is_empty() {
             sql.push_str(" where ");
             sql.push_str(&where_clauses.join(" and "));
-            sql.push_str(";");
+            sql.push(';');
         }
 
         sql
@@ -270,7 +270,7 @@ async fn create_sku(
 
     println!(
         "contains: {:?}",
-        existing_sku_nos.contains(&&create_sku_param.skus[0].sku_no.as_str())
+        existing_sku_nos.contains(&create_sku_param.skus[0].sku_no.as_str())
     );
     let to_insert: Vec<&CreateSKUParam> = create_sku_param
         .skus

@@ -111,15 +111,15 @@ struct OrderItemsQuery {
     page_size: Option<i32>,
 }
 
-impl OrderItemsQuery {
-    pub(crate) fn to_paginate_sql(&self) -> String {
-        todo!()
-    }
-
-    pub(crate) fn to_count_sql(&self) -> String {
-        todo!()
-    }
-}
+// impl OrderItemsQuery {
+//     pub(crate) fn to_paginate_sql(&self) -> String {
+//         todo!()
+//     }
+//
+//     pub(crate) fn to_count_sql(&self) -> String {
+//         todo!()
+//     }
+// }
 
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
