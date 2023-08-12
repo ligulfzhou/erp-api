@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.6.20"
+axum = {version = "0.6.20", features = ["multipart"]}
 axum-extra = "0.7.7"
 tokio = { version = "1.29.1", features = ["full"] }
 tower = { version = "0.4.13", features = ["util"] }
@@ -29,7 +29,8 @@ clap = {version = "4.3.19", features = ["derive"]}
 dotenv = "0.15.0"
 
 # read excel
-calamine = "0.21.2"
+calamine = {version = "0.21.2", features = ["picture"]}
+umya-spreadsheet = "1.0.0"
 
 [dev-dependencies]
 anyhow = "1.0.72"

@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate serde;
 
+use axum::http::method::Method;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
@@ -47,8 +48,9 @@ async fn main() {
     };
 
     let app_state = Arc::new(AppState { db: pool.clone() });
-    // let cors = CorsLayer::new().allow_origin(Any).allow_methods("*");
-    let cors = CorsLayer::permissive();
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(vec![Method::GET, Method::POST]);
 
     let routes_all = Router::new()
         .merge(handler::routes_login::routes(app_state.clone()))
@@ -71,6 +73,7 @@ async fn main() {
 async fn main_response_mapper(res: Response) -> Response {
     println!("->> {:<12} - main_response_mapper", "res_mapper");
 
+    // sleep(Duration::from_secs(2));
     // println!("");
     res
 }
