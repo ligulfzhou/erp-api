@@ -188,15 +188,24 @@ struct OrderItemsQuery {
     page_size: Option<i32>,
 }
 
-// impl OrderItemsQuery {
-//     pub(crate) fn to_paginate_sql(&self) -> String {
-//         todo!()
-//     }
-//
-//     pub(crate) fn to_count_sql(&self) -> String {
-//         todo!()
-//     }
-// }
+impl ListParamToSQLTrait for OrderItemsQuery {
+    fn to_pagination_sql(&self) -> String {
+        let page = self.page.unwrap_or(1);
+        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+        format!(
+            "select * from order_items where order_id = {} order by id desc offset {} limit {}",
+            self.order_id, offset, page_size
+        )
+    }
+
+    fn to_count_sql(&self) -> String {
+        format!(
+            "select count(1) from order_items where order_id = {}",
+            self.order_id
+        )
+    }
+}
 
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
@@ -206,32 +215,17 @@ async fn get_order_items(
         return Err(ERPError::ParamNeeded(param.order_id.to_string()));
     }
 
-    let page = param.page.unwrap_or(1);
-    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-    let offset = (page - 1) * page_size;
+    let order_items = sqlx::query_as::<_, OrderItemModel>(&param.to_pagination_sql())
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
 
-    let order_items = sqlx::query_as!(
-        OrderItemModel,
-        "select * from order_items where order_id = $1 order by id desc offset $2 limit $3",
-        param.order_id,
-        offset as i64,
-        page_size as i64
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    let count: (i64,) = sqlx::query_as(&param.to_count_sql())
+        .fetch_one(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
 
-    let count = sqlx::query!(
-        "select count(1) from order_items where order_id = $1",
-        param.order_id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?
-    .count
-    .unwrap_or(0);
-
-    Ok(APIListResponse::new(order_items, count as i32))
+    Ok(APIListResponse::new(order_items, count.0 as i32))
 }
 
 #[derive(Debug, Deserialize, Serialize)]

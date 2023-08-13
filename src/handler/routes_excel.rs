@@ -1,15 +1,34 @@
 use crate::AppState;
 use axum::extract::Multipart;
+use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::Router;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/page/upload/excel", get(page_upload_file))
         .route("/api/upload", post(upload_file))
-        // .route("/api/skus", get(get_skus).post(create_skus))
-        // .route("/api/sku/update", post(update_sku))
         .with_state(state)
+}
+
+async fn page_upload_file() -> impl IntoResponse {
+    Html(
+        r#"
+<!DOCTYPE html>
+<html>
+<body>
+
+<form action="/utils/upload" method="post" enctype="multipart/form-data">
+    Select image to upload:
+    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload Image" name="submit">
+</form>
+
+</body>
+</html>
+    "#,
+    )
 }
 
 async fn upload_file(mut multipart: Multipart) {}

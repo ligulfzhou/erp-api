@@ -8,7 +8,7 @@ pub struct OrderModel {
     // todo: 添加一个“返单，加急配送的”状态字段
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
     pub order_id: i32,
