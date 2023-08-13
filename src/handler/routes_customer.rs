@@ -2,7 +2,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_customer::CustomerDto;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::customer::CustomerModel;
-use crate::response::api_response::{APIEmptyResponse, APIListResponse};
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
@@ -14,6 +14,7 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/customers", get(get_customers).post(create_customer))
+        .route("/api/customer/detail", get(detail_customer))
         .route("/api/customer/update", post(update_customer))
         .with_state(state)
 }
@@ -108,6 +109,30 @@ async fn create_customer(
         .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
+}
+
+#[derive(Debug, Deserialize)]
+struct DetailParam {
+    id: i32,
+}
+
+async fn detail_customer(
+    State(state): State<Arc<AppState>>,
+    Query(param): Query<DetailParam>,
+) -> ERPResult<APIDataResponse<CustomerModel>> {
+    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customers where id = {};",
+        param.id
+    ))
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    if customer.is_none() {
+        return Err(ERPError::NotFound(format!("Customer#{}", param.id)));
+    }
+
+    Ok(APIDataResponse::new(customer.unwrap()))
 }
 
 #[derive(Debug, Deserialize)]
