@@ -92,15 +92,11 @@ fn read_excel_with_umya() {
             }
         }
 
-        if goods_image.is_some() {
-            goods_image
-                .unwrap()
-                .download_image(&format!("./{}.png", cur.goods_no));
+        if let Some(real_goods_image) = goods_image {
+            real_goods_image.download_image(&format!("./{}.png", cur.goods_no));
         }
-        if package_image.is_some() {
-            package_image
-                .unwrap()
-                .download_image(&format!("./package_{}.png", cur.goods_no));
+        if let Some(read_package_image) = package_image {
+            read_package_image.download_image(&format!("./package_{}.png", cur.goods_no));
         }
         items.push(cur.clone());
         pre = Some(cur);
