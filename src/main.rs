@@ -2,6 +2,7 @@
 extern crate serde;
 
 use axum::http::method::Method;
+use axum::http::header;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
@@ -50,7 +51,8 @@ async fn main() {
     let app_state = Arc::new(AppState { db: pool.clone() });
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods(vec![Method::GET, Method::POST]);
+        .allow_methods(vec![Method::GET, Method::POST])
+        .allow_headers(vec![header::CONTENT_TYPE]);
 
     let routes_all = Router::new()
         .merge(handler::routes_login::routes(app_state.clone()))
