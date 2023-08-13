@@ -1,12 +1,15 @@
-use crate::AppState;
-use axum::extract::Multipart;
+use crate::response::api_response::APIEmptyResponse;
+use crate::{AppState, ERPError, ERPResult};
+use axum::extract::{Multipart, State};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Json, Router};
+use axum_extra::extract::WithRejection;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/api/import/order/excel", post(import_order_excel))
         .route("/page/upload/excel", get(page_upload_file))
         .route("/api/upload", post(upload_file))
         .with_state(state)
@@ -40,22 +43,17 @@ async fn upload_file(mut multipart: Multipart) {
     }
 }
 
-// async fn get_goods(
-//     State(state): State<Arc<AppState>>,
-//     Query(list_goods_param): Query<ListGoodsParam>,
-// ) -> ERPResult<APIListResponse<GoodsModel>> {
-//     let pagination_sql = list_goods_param.to_pagination_sql();
-//     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
-//         .fetch_all(&state.db)
-//         .await
-//         .map_err(ERPError::DBError)?;
-//
-//     let count_sql = list_goods_param.to_count_sql();
-//     let total: (i64,) = sqlx::query_as(&count_sql)
-//         .fetch_one(&state.db)
-//         .await
-//         .map_err(ERPError::DBError)?;
-//
-//     Ok(APIListResponse::new(goods, total.0 as i32))
-// }
-//
+#[derive(Debug, Deserialize)]
+struct ImportOrderExcel {
+    url: String,
+    itype: i32,
+}
+
+async fn import_order_excel(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Json(payload), _): WithRejection<Json<ImportOrderExcel>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    println!("state: {:?}", state);
+    println!("{:?}", payload);
+    Ok(APIEmptyResponse::new())
+}

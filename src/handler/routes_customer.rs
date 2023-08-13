@@ -176,7 +176,7 @@ impl UpdateCustomerParam {
         )
     }
 
-    fn is_insert(&self)-> bool {
+    fn is_insert(&self) -> bool {
         self.id.is_none()
     }
 }
