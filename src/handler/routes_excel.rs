@@ -19,7 +19,7 @@ async fn page_upload_file() -> impl IntoResponse {
 <html>
 <body>
 
-<form action="/utils/upload" method="post" enctype="multipart/form-data">
+<form action="/api/upload" method="post" enctype="multipart/form-data">
     Select image to upload:
     <input type="file" name="fileToUpload" id="fileToUpload">
     <input type="submit" value="Upload Image" name="submit">
@@ -31,7 +31,14 @@ async fn page_upload_file() -> impl IntoResponse {
     )
 }
 
-async fn upload_file(mut multipart: Multipart) {}
+async fn upload_file(mut multipart: Multipart) {
+    while let Some(mut field) = multipart.next_field().await.unwrap() {
+        let name = field.name().unwrap().to_string();
+        let data = field.bytes().await.unwrap();
+
+        println!("Length of `{}` is {} bytes", name, data.len());
+    }
+}
 
 // async fn get_goods(
 //     State(state): State<Arc<AppState>>,

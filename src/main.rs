@@ -6,6 +6,7 @@ use axum::http::method::Method;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
+use axum::extract::DefaultBodyLimit;
 use tower_http::cors::{Any, CorsLayer};
 
 mod config;
@@ -59,8 +60,10 @@ async fn main() {
         .merge(handler::routes_order::routes(app_state.clone()))
         .merge(handler::routes_customer::routes(app_state.clone()))
         .merge(handler::routes_goods::routes(app_state.clone()))
+        .merge(handler::routes_excel::routes(app_state.clone()))
         .merge(handler::routes_hello::routes())
         .fallback_service(handler::routes_static::routes())
+        .layer(DefaultBodyLimit::max(usize::MAX))
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -74,8 +77,6 @@ async fn main() {
 
 async fn main_response_mapper(res: Response) -> Response {
     println!("->> {:<12} - main_response_mapper", "res_mapper");
-
-    // sleep(Duration::from_secs(2));
-    // println!("");
+    println!("{:?}", res.headers());
     res
 }

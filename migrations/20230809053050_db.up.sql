@@ -75,7 +75,6 @@ create table orders
     order_date    integer not null, -- 订货日期
     delivery_date integer  -- 交货日期
 );
-
 insert into orders (customer_id, order_no, order_date, delivery_date)
 VALUES (1, 'order_no_1', 1691558739, 1691568739),
        (2, 'order_no_2', 1691558739, 1691568739),
