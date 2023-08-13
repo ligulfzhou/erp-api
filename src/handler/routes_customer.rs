@@ -137,7 +137,7 @@ async fn detail_customer(
 
 #[derive(Debug, Deserialize)]
 struct UpdateCustomerParam {
-    pub id: i32,
+    pub id: Option<i32>,
     pub customer_no: String,
     pub name: String,
     pub address: Option<String>,
@@ -147,8 +147,14 @@ struct UpdateCustomerParam {
 
 impl UpdateCustomerParam {
     fn to_sql(&self) -> String {
-        let mut set_clauses = vec![];
+        if self.id.is_none() {
+            return format!(
+                "insert into customers (customer_no, name, address, phone, notes) values ('{}', '{}', '{}', '{}', '{}')",
+                self.customer_no, self.name, self.address.as_ref().unwrap_or(&"".to_string()), self.phone.as_ref().unwrap_or(&"".to_string()), self.notes.as_ref().unwrap_or(&"".to_string())
+            );
+        }
 
+        let mut set_clauses = vec![];
         set_clauses.push(format!(
             "customer_no='{}',name='{}'",
             self.customer_no, self.name
@@ -166,8 +172,12 @@ impl UpdateCustomerParam {
         format!(
             "update skus set {} where id = {};",
             set_clauses.join(","),
-            self.id
+            self.id.unwrap()
         )
+    }
+
+    fn is_insert(&self)-> bool {
+        self.id.is_none()
     }
 }
 
