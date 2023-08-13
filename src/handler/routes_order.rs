@@ -8,6 +8,7 @@ use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use axum_extra::extract::WithRejection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -50,7 +51,7 @@ impl CreateOrderParam {
 
 async fn create_order(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateOrderParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<CreateOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // check order_no exists.
     if sqlx::query_as!(
@@ -114,10 +115,10 @@ struct ListParam {
 
 async fn get_orders(
     State(state): State<Arc<AppState>>,
-    Query(list_param): Query<ListParam>,
+    Query(param): Query<ListParam>,
 ) -> ERPResult<APIListResponse<OrderDto>> {
-    let page = list_param.page.unwrap_or(1);
-    let page_size = list_param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
     let orders = sqlx::query_as!(
@@ -199,22 +200,20 @@ struct OrderItemsQuery {
 
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
-    Query(order_items_query): Query<OrderItemsQuery>,
+    Query(param): Query<OrderItemsQuery>,
 ) -> ERPResult<APIListResponse<OrderItemModel>> {
-    if order_items_query.order_id == 0 {
-        return Err(ERPError::ParamNeeded(
-            order_items_query.order_id.to_string(),
-        ));
+    if param.order_id == 0 {
+        return Err(ERPError::ParamNeeded(param.order_id.to_string()));
     }
 
-    let page = order_items_query.page.unwrap_or(1);
-    let page_size = order_items_query.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
     let order_items = sqlx::query_as!(
         OrderItemModel,
         "select * from order_items where order_id = $1 order by id desc offset $2 limit $3",
-        order_items_query.order_id,
+        param.order_id,
         offset as i64,
         page_size as i64
     )
@@ -224,7 +223,7 @@ async fn get_order_items(
 
     let count = sqlx::query!(
         "select count(1) from order_items where order_id = $1",
-        order_items_query.order_id
+        param.order_id
     )
     .fetch_one(&state.db)
     .await
@@ -252,18 +251,14 @@ impl UpdateOrderParam {
 
 async fn update_order(
     State(state): State<Arc<AppState>>,
-    Json(update_order_param): Json<UpdateOrderParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let order = sqlx::query_as!(
-        OrderModel,
-        "select * from orders where id = $1",
-        update_order_param.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", update_order_param.id)))?;
+    let order = sqlx::query_as!(OrderModel, "select * from orders where id = $1", payload.id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
 
-    let _ = sqlx::query(&update_order_param.to_sql())
+    let _ = sqlx::query(&payload.to_sql())
         .execute(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -316,18 +311,18 @@ impl UpdateOrderItemParam {
 
 async fn update_order_item(
     State(state): State<Arc<AppState>>,
-    Json(update_order_item_param): Json<UpdateOrderItemParam>,
+    WithRejection(Json(param), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     let _ = sqlx::query_as!(
         OrderItemModel,
         "select * from order_items where id = $1",
-        update_order_item_param.id
+        param.id
     )
     .fetch_one(&state.db)
     .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", update_order_item_param.id)))?;
+    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", param.id)))?;
 
-    sqlx::query(&update_order_item_param.to_sql())
+    sqlx::query(&param.to_sql())
         .execute(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -397,14 +392,14 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
 
 async fn get_order_item_materials(
     State(state): State<Arc<AppState>>,
-    Query(query): Query<ListOrderItemMaterialsParam>,
+    Query(param): Query<ListOrderItemMaterialsParam>,
 ) -> ERPResult<APIListResponse<OrderItemMaterialModel>> {
-    let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&query.to_pagination_sql())
+    let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&param.to_pagination_sql())
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    let total: (i64,) = sqlx::query_as(&query.to_count_sql())
+    let total: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -467,7 +462,7 @@ impl CreateOrderItemMaterialsParam {
 
 async fn add_order_item_materials(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateOrderItemMaterialsParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<CreateOrderItemMaterialsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // checking material is empty
     if payload.materials.is_empty() {
@@ -558,21 +553,47 @@ impl UpdateOrderItemMaterialParam {
 
 async fn update_order_item_material(
     State(state): State<Arc<AppState>>,
-    Json(update_order_item_param): Json<UpdateOrderItemParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     let _ = sqlx::query_as!(
         OrderItemModel,
         "select * from order_items where id=$1",
-        update_order_item_param.id
+        payload.id
     )
     .fetch_one(&state.db)
     .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", update_order_item_param.id)))?;
+    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", payload.id)))?;
 
-    sqlx::query(&update_order_item_param.to_sql())
+    sqlx::query(&payload.to_sql())
         .execute(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::handler::routes_order::CreateOrderParam;
+    use anyhow::Result;
+    use tokio;
+
+    #[tokio::test]
+    async fn test() -> Result<()> {
+        let param = CreateOrderParam {
+            customer_id: 12,
+            order_no: "order_no".to_string(),
+            order_date: 0,
+            delivery_date: 0,
+        };
+        let client = httpc_test::new_client("http://localhost:9100")?;
+
+        client
+            .do_post("/api/orders", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        Ok(())
+    }
 }

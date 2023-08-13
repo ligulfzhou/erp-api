@@ -80,15 +80,15 @@ impl ListParamToSQLTrait for ListGoodsParam {
 
 async fn get_goods(
     State(state): State<Arc<AppState>>,
-    Query(list_goods_param): Query<ListGoodsParam>,
+    Query(param): Query<ListGoodsParam>,
 ) -> ERPResult<APIListResponse<GoodsModel>> {
-    let pagination_sql = list_goods_param.to_pagination_sql();
+    let pagination_sql = param.to_pagination_sql();
     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    let count_sql = list_goods_param.to_count_sql();
+    let count_sql = param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
@@ -177,16 +177,16 @@ impl ListParamToSQLTrait for ListSKUsParam {
 
 async fn get_skus(
     State(state): State<Arc<AppState>>,
-    Query(list_skus_param): Query<ListSKUsParam>,
+    Query(param): Query<ListSKUsParam>,
 ) -> ERPResult<APIListResponse<SKUModel>> {
-    let pagination_sql = list_skus_param.to_pagination_sql();
+    let pagination_sql = param.to_pagination_sql();
     println!("{pagination_sql}");
     let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    let count_sql = list_skus_param.to_count_sql();
+    let count_sql = param.to_count_sql();
     println!("{count_sql}");
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
@@ -237,14 +237,14 @@ impl CreateSKUsParam {
 
 async fn create_skus(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(create_sku_param), _): WithRejection<Json<CreateSKUsParam>, ERPError>,
+    WithRejection(Json(param), _): WithRejection<Json<CreateSKUsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // let to_insert_sql = String::new();
-    if create_sku_param.skus.is_empty() {
+    if param.skus.is_empty() {
         return Err(ERPError::ParamNeeded("skus".to_string()));
     }
 
-    let sku_nos: Vec<String> = create_sku_param
+    let sku_nos: Vec<String> = param
         .skus
         .iter()
         .map(|sku| sku.sku_no.to_string())
@@ -270,9 +270,9 @@ async fn create_skus(
 
     println!(
         "contains: {:?}",
-        existing_sku_nos.contains(&create_sku_param.skus[0].sku_no.as_str())
+        existing_sku_nos.contains(&param.skus[0].sku_no.as_str())
     );
-    let to_insert: Vec<&CreateSKUParam> = create_sku_param
+    let to_insert: Vec<&CreateSKUParam> = param
         .skus
         .iter()
         .filter(|&sku| !existing_sku_nos.contains(&sku.sku_no.as_str()))
@@ -350,11 +350,9 @@ impl UpdateSKUParam {
 
 async fn update_sku(
     State(state): State<Arc<AppState>>,
-    Json(update_sku_param): Json<UpdateSKUParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateSKUParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    sqlx::query(&update_sku_param.to_sql())
-        .execute(&state.db)
-        .await?;
+    sqlx::query(&payload.to_sql()).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())
 }

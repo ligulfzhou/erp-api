@@ -7,6 +7,7 @@ use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -42,9 +43,9 @@ impl ListParamToSQLTrait for ListCustomerParam {
 
 async fn get_customers(
     State(state): State<Arc<AppState>>,
-    Query(list_param): Query<ListCustomerParam>,
+    Query(param): Query<ListCustomerParam>,
 ) -> ERPResult<APIListResponse<CustomerDto>> {
-    let pagination_sql = list_param.to_pagination_sql();
+    let pagination_sql = param.to_pagination_sql();
     let customers = sqlx::query_as::<_, CustomerModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
@@ -54,7 +55,7 @@ async fn get_customers(
         .map(|customer| CustomerDto::from(customer.clone()))
         .collect();
 
-    let count_sql = list_param.to_count_sql();
+    let count_sql = param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
@@ -83,11 +84,11 @@ impl CreateCustomerParam {
 
 async fn create_customer(
     State(state): State<Arc<AppState>>,
-    Json(create_param): Json<CreateCustomerParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<CreateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     let customer = sqlx::query_as::<_, CustomerModel>(&format!(
         "select * from customers where customer_no = '{}'",
-        create_param.customer_no
+        payload.customer_no
     ))
     .fetch_optional(&state.db)
     .await
@@ -96,11 +97,11 @@ async fn create_customer(
     if customer.is_some() {
         return Err(ERPError::AlreadyExists(format!(
             "customer#{}",
-            create_param.customer_no
+            payload.customer_no
         )));
     }
 
-    let sql = create_param.to_sql();
+    let sql = payload.to_sql();
     sqlx::query(&sql)
         .execute(&state.db)
         .await
@@ -147,12 +148,10 @@ impl UpdateCustomerParam {
 
 async fn update_customer(
     State(state): State<Arc<AppState>>,
-    Json(update_param): Json<UpdateCustomerParam>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // todo: check customer_no collision
-    sqlx::query(&update_param.to_sql())
-        .execute(&state.db)
-        .await?;
+    sqlx::query(&payload.to_sql()).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())
 }

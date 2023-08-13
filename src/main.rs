@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate serde;
 
-use axum::http::method::Method;
 use axum::http::header;
+use axum::http::method::Method;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
