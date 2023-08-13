@@ -170,7 +170,7 @@ impl UpdateCustomerParam {
         }
 
         format!(
-            "update skus set {} where id = {};",
+            "update customers set {} where id = {};",
             set_clauses.join(","),
             self.id.unwrap()
         )
