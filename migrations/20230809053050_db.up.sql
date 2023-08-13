@@ -35,20 +35,20 @@ create table skus
     notes    text     -- 备注
 );
 
-insert into skus (goods_id, image, goods_no, sku_no, color, notes)
+insert into skus (goods_id, name, image, goods_no, sku_no, color, notes)
 values
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_1', 'blue', 'notes....'),
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_2', 'blue', 'notes....'),
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_3', 'blue', 'notes....'),
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_4', 'blue', 'notes....'),
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_5', 'blue', 'notes....'),
-(1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_6', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_1', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_2', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_3', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_4', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_5', 'blue', 'notes....'),
-(2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_6', 'blue', 'notes....');
+(1, 'name_1',  'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_1', 'blue', 'notes....'),
+(1, 'name_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_2', 'blue', 'notes....'),
+(1, 'name_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_3', 'blue', 'notes....'),
+(1, 'name_4', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_4', 'blue', 'notes....'),
+(1, 'name_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_5', 'blue', 'notes....'),
+(1, 'name_6', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_1_sku_6', 'blue', 'notes....'),
+(2, 'name_7', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_1', 'blue', 'notes....'),
+(2, 'name_8', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_2', 'blue', 'notes....'),
+(2, 'name_9', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_3', 'blue', 'notes....'),
+(2, 'name_10', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_4', 'blue', 'notes....'),
+(2, 'name_11', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_5', 'blue', 'notes....'),
+(2, 'name_12', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_no_1', 'goods_2_sku_6', 'blue', 'notes....');
 
 -- 客户
 create table customers
