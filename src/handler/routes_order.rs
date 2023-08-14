@@ -20,6 +20,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
+        .route("/api/order/item/delete", post(delete_order_item))
         .route(
             "/api/order/item/materials",
             get(get_order_item_materials).post(add_order_item_materials),
@@ -29,6 +30,28 @@ pub fn routes(state: Arc<AppState>) -> Router {
             post(update_order_item_material),
         )
         .with_state(state)
+}
+
+#[derive(Debug, Deserialize)]
+struct DeleteOrderItem {
+    id: i32,
+}
+
+impl DeleteOrderItem {
+    fn to_sql(&self) -> String {
+        format!("delete from order_items where id = {}", self.id)
+    }
+}
+
+async fn delete_order_item(
+    State(state): State<Arc<AppState>>,
+    Query(param): Query<DeleteOrderItem>,
+) -> ERPResult<APIEmptyResponse> {
+    sqlx::query(&param.to_sql())
+        .execute(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+    Ok(APIEmptyResponse::new())
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -308,7 +331,7 @@ async fn update_order(
 
 #[derive(Debug, Deserialize)]
 struct UpdateOrderItemParam {
-    id: i32,
+    id: Option<i32>,
     order_id: i32,
     sku_id: i32,
     package_card: Option<String>,
@@ -322,30 +345,34 @@ struct UpdateOrderItemParam {
 
 impl UpdateOrderItemParam {
     fn to_sql(&self) -> String {
-        let mut sql = format!(
-            "update order_items set order_id = {}, sku_id = {}, count={}",
-            self.order_id, self.sku_id, self.count
-        );
-        if let Some(package_card) = &self.package_card {
-            sql.push_str(&format!(", package_card = '{}'", package_card));
-        }
-        if let Some(package_card_des) = &self.package_card_des {
-            sql.push_str(&format!(", package_card_des = '{}'", package_card_des));
-        }
-        if let Some(unit) = &self.unit {
-            sql.push_str(&format!(", unit = '{}'", unit));
-        }
-        if let Some(unit_price) = &self.unit_price {
-            sql.push_str(&format!(", unit_price = {}", unit_price));
-        }
-        if let Some(total_price) = &self.total_price {
-            sql.push_str(&format!(", total_price = '{}'", total_price));
-        }
-        if let Some(notes) = &self.notes {
-            sql.push_str(&format!(", notes = {}", notes));
+        if let Some(id) = self.id {
+            let mut sql = format!(
+                "update order_items set order_id = {}, sku_id = {}, count={}",
+                self.order_id, self.sku_id, self.count
+            );
+            if let Some(package_card) = &self.package_card {
+                sql.push_str(&format!(", package_card = '{}'", package_card));
+            }
+            if let Some(package_card_des) = &self.package_card_des {
+                sql.push_str(&format!(", package_card_des = '{}'", package_card_des));
+            }
+            if let Some(unit) = &self.unit {
+                sql.push_str(&format!(", unit = '{}'", unit));
+            }
+            if let Some(unit_price) = &self.unit_price {
+                sql.push_str(&format!(", unit_price = {}", unit_price));
+            }
+            if let Some(total_price) = &self.total_price {
+                sql.push_str(&format!(", total_price = '{}'", total_price));
+            }
+            if let Some(notes) = &self.notes {
+                sql.push_str(&format!(", notes = {}", notes));
+            }
+
+            return sql;
         }
 
-        sql
+        format!("insert into order_items (order_id, sku_id, )")
     }
 }
 
@@ -353,19 +380,19 @@ async fn update_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(param), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let _ = sqlx::query_as!(
-        OrderItemModel,
-        "select * from order_items where id = $1",
-        param.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", param.id)))?;
+    // let _ = sqlx::query_as!(
+    //     OrderItemModel,
+    //     "select * from order_items where id = $1",
+    //     param.id
+    // )
+    // .fetch_one(&state.db)
+    // .await
+    // .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", param.id)))?;
 
-    sqlx::query(&param.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    // sqlx::query(&param.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -588,7 +615,7 @@ impl UpdateOrderItemMaterialParam {
 
 async fn update_order_item_material(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemMaterialParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     let _ = sqlx::query_as!(
         OrderItemModel,

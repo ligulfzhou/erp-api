@@ -1,6 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::handler::ListParamToSQLTrait;
-use crate::model::goods::{GoodsModel, SKUModel};
+use crate::model::goods::SKUModel;
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -12,90 +12,139 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/goods", get(get_goods))
+        // .route("/api/goods", get(get_goods))
+        .route("/api/skus/search", get(search_skus))
         .route("/api/skus", get(get_skus).post(create_skus))
         .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
 
 #[derive(Debug, Deserialize)]
-struct ListGoodsParam {
-    name: Option<String>,
-    goods_no: Option<String>,
-    plating: Option<String>,
-
+struct SearchSkusParam {
+    key: String,
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
     page_size: Option<i32>,
 }
 
-// impl ListParamTrait for ListGoodsParam {
-impl ListParamToSQLTrait for ListGoodsParam {
+impl ListParamToSQLTrait for SearchSkusParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from goods".to_string();
-        let mut where_clauses = vec![];
-        if let Some(name) = &self.name {
-            where_clauses.push(format!("name='{}'", name));
-        }
-        if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!("goods_no='{}'", goods_no));
-        }
-        if let Some(plating) = &self.plating {
-            where_clauses.push(format!("plating='{}'", plating));
-        }
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
-        }
-
+        // let mut sql = "select * from skus where goods_no='{}'".to_string();
+        let mut sql = format!("select * from skus where goods_no like '%{:?}%'", self.key);
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
-        sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+        sql.push_str(&format!(
+            " order by id desc offset {} limit {};",
+            offset, page_size
+        ));
 
         sql
     }
 
     fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from goods".to_string();
-        let mut where_clauses = vec![];
-        if let Some(name) = &self.name {
-            where_clauses.push(format!("name='{}'", name));
-        }
-        if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!("goods_no='{}'", goods_no));
-        }
-        if let Some(plating) = &self.plating {
-            where_clauses.push(format!("plating='{}'", plating));
-        }
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
-            sql.push(';');
-        }
-
-        sql
+        format!(
+            "select count(1) from skus where goods_no like '%{:?}%'",
+            self.key
+        )
     }
 }
 
-async fn get_goods(
+async fn search_skus(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListGoodsParam>,
-) -> ERPResult<APIListResponse<GoodsModel>> {
-    let pagination_sql = param.to_pagination_sql();
-    let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
+    Query(param): Query<SearchSkusParam>,
+) -> ERPResult<APIListResponse<SKUModel>> {
+    let skus = sqlx::query_as::<_, SKUModel>(&param.to_pagination_sql())
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    let count_sql = param.to_count_sql();
-    let total: (i64,) = sqlx::query_as(&count_sql)
+    let total: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(goods, total.0 as i32))
+    Ok(APIListResponse::new(skus, total.0 as i32))
 }
+
+// #[derive(Debug, Deserialize)]
+// struct ListGoodsParam {
+//     name: Option<String>,
+//     goods_no: Option<String>,
+//     plating: Option<String>,
+//
+//     page: Option<i32>,
+//     #[serde(rename(deserialize = "pageSize"))]
+//     page_size: Option<i32>,
+// }
+//
+// // impl ListParamTrait for ListGoodsParam {
+// impl ListParamToSQLTrait for ListGoodsParam {
+//     fn to_pagination_sql(&self) -> String {
+//         let mut sql = "select * from goods".to_string();
+//         let mut where_clauses = vec![];
+//         if let Some(name) = &self.name {
+//             where_clauses.push(format!("name='{}'", name));
+//         }
+//         if let Some(goods_no) = &self.goods_no {
+//             where_clauses.push(format!("goods_no='{}'", goods_no));
+//         }
+//         if let Some(plating) = &self.plating {
+//             where_clauses.push(format!("plating='{}'", plating));
+//         }
+//         if !where_clauses.is_empty() {
+//             sql.push_str(" where ");
+//             sql.push_str(&where_clauses.join(" and "));
+//         }
+//
+//         let page = self.page.unwrap_or(1);
+//         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+//         let offset = (page - 1) * page_size;
+//         sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+//
+//         sql
+//     }
+//
+//     fn to_count_sql(&self) -> String {
+//         let mut sql = "select count(1) from goods".to_string();
+//         let mut where_clauses = vec![];
+//         if let Some(name) = &self.name {
+//             where_clauses.push(format!("name='{}'", name));
+//         }
+//         if let Some(goods_no) = &self.goods_no {
+//             where_clauses.push(format!("goods_no='{}'", goods_no));
+//         }
+//         if let Some(plating) = &self.plating {
+//             where_clauses.push(format!("plating='{}'", plating));
+//         }
+//         if !where_clauses.is_empty() {
+//             sql.push_str(" where ");
+//             sql.push_str(&where_clauses.join(" and "));
+//             sql.push(';');
+//         }
+//
+//         sql
+//     }
+// }
+
+// async fn get_goods(
+//     State(state): State<Arc<AppState>>,
+//     Query(param): Query<ListGoodsParam>,
+// ) -> ERPResult<APIListResponse<GoodsModel>> {
+//     let pagination_sql = param.to_pagination_sql();
+//     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
+//         .fetch_all(&state.db)
+//         .await
+//         .map_err(ERPError::DBError)?;
+//
+//     let count_sql = param.to_count_sql();
+//     let total: (i64,) = sqlx::query_as(&count_sql)
+//         .fetch_one(&state.db)
+//         .await
+//         .map_err(ERPError::DBError)?;
+//
+//     Ok(APIListResponse::new(goods, total.0 as i32))
+// }
 
 #[derive(Debug, Deserialize)]
 struct ListSKUsParam {
