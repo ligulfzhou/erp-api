@@ -14,7 +14,7 @@ struct LoginPayload {
 async fn api_login(
     WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
 ) -> ERPResult<Json<Value>> {
-    println!("->> {:<12}, api_login", "handler");
+    tracing::info!("->> {:<12}, api_login", "handler");
 
     if payload.username != "demo1" || payload.password != "welcome" {
         return Err(ERPError::LoginFail);

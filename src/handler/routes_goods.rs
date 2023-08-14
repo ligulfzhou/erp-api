@@ -180,14 +180,14 @@ async fn get_skus(
     Query(param): Query<ListSKUsParam>,
 ) -> ERPResult<APIListResponse<SKUModel>> {
     let pagination_sql = param.to_pagination_sql();
-    println!("{pagination_sql}");
+    tracing::info!("{pagination_sql}");
     let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
     let count_sql = param.to_count_sql();
-    println!("{count_sql}");
+    tracing::info!("{count_sql}");
     let total: (i64,) = sqlx::query_as(&count_sql)
         .fetch_one(&state.db)
         .await
@@ -254,21 +254,21 @@ async fn create_skus(
         "select * from skus where sku_no in ('{}')",
         sku_nos.join("', '")
     );
-    println!("{sku_nos_sql}");
+    tracing::info!("{sku_nos_sql}");
 
     let existing = sqlx::query_as::<_, SKUModel>(&sku_nos_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
-    println!("existing skus: {}", existing.len());
+    tracing::info!("existing skus: {}", existing.len());
 
     let existing_sku_nos = existing
         .iter()
         .map(|sku| sku.sku_no.as_str())
         .collect::<Vec<&str>>();
-    println!("existing sku nos: {:?}", existing_sku_nos);
+    tracing::info!("existing sku nos: {:?}", existing_sku_nos);
 
-    println!(
+    tracing::info!(
         "contains: {:?}",
         existing_sku_nos.contains(&param.skus[0].sku_no.as_str())
     );
@@ -277,7 +277,7 @@ async fn create_skus(
         .iter()
         .filter(|&sku| !existing_sku_nos.contains(&sku.sku_no.as_str()))
         .collect();
-    println!(" to insert: {:#?}", to_insert);
+    tracing::info!(" to insert: {:#?}", to_insert);
 
     if to_insert.is_empty() {
         return Err(ERPError::AlreadyExists("SKU with sku_no".to_string()));

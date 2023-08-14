@@ -49,13 +49,13 @@ async fn import_excel(
         let name = field.name().unwrap().to_string();
         if name != "file" {
             let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
-            println!("value of `{}` is: {}", name, data);
+            tracing::info!("value of `{}` is: {}", name, data);
         } else {
             let data = field.bytes().await.unwrap();
-            println!("Length of `{}` is {} bytes", name, data.len());
+            tracing::info!("Length of `{}` is {} bytes", name, data.len());
         }
     }
 
-    println!("state: {:?}", state);
+    tracing::info!("state: {:?}", state);
     Ok(APIEmptyResponse::new())
 }

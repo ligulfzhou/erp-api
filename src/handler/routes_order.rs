@@ -136,7 +136,7 @@ async fn get_orders(
         .map(|order| order.customer_id)
         .collect::<Vec<i32>>();
     customer_ids.dedup();
-    println!("customer_ids: {:?}", customer_ids);
+    tracing::info!("customer_ids: {:?}", customer_ids);
 
     let customer_ids_joined = customer_ids
         .iter()
@@ -150,13 +150,13 @@ async fn get_orders(
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-    println!("customers found: {}", customers.len());
+    tracing::info!("customers found: {}", customers.len());
 
     let id_customer = customers
         .iter()
         .map(|customer| (customer.id, customer.clone()))
         .collect::<HashMap<_, _>>();
-    println!("id_customer: {:?}", id_customer);
+    tracing::info!("id_customer: {:?}", id_customer);
 
     let order_dtos = orders
         .iter()
@@ -358,7 +358,7 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
             " order by id desc limit {page} offset {page_size};"
         ));
 
-        println!("{sql}");
+        tracing::info!("{sql}");
         sql
     }
 
@@ -379,7 +379,7 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
         sql.push_str(&where_clauses.join(" and "));
         sql.push(';');
 
-        println!("{sql}");
+        tracing::info!("{sql}");
         sql
     }
 }

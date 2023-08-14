@@ -38,7 +38,7 @@ async fn main() {
         .expect("run on which port")
         .parse::<u16>()
         .expect("port should be number");
-    println!("{database_url}");
+    tracing::info!("{database_url}");
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -73,7 +73,7 @@ async fn main() {
         .layer(cors);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    println!("=> Listen on {addr} \n");
+    tracing::info!("=> Listen on {addr} \n");
 
     axum::Server::bind(&addr)
         .serve(routes_all.into_make_service())
@@ -82,7 +82,7 @@ async fn main() {
 }
 
 async fn main_response_mapper(res: Response) -> Response {
-    println!("->> {:<12} - main_response_mapper", "res_mapper");
-    println!("{:?}", res.headers());
+    tracing::info!("->> {:<12} - main_response_mapper", "res_mapper");
+    tracing::info!("{:?}", res.headers());
     res
 }
