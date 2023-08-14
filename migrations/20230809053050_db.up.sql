@@ -96,9 +96,9 @@ create table order_items
 );
 
 insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit)
-values (1, 1, '....', 'adsfasdfasdf', 10, '个'),
-(1, 2, '....', 'adsfasdfasdf', 10, '个'),
-(1, 3, '....', 'adsfasdfasdf', 10, '个');
+values (1, 1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'adsfasdfasdf', 10, '个'),
+(1, 2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'adsfasdfasdf', 10, '个'),
+(1, 3, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'adsfasdfasdf', 10, '个');
 
 
 -- 订单sku的的材料单 * N

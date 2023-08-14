@@ -115,6 +115,6 @@ mod tests {
 
     #[test]
     fn test() {
-        read_excel_with_umya("")
+        read_excel_with_umya("/xyz");
     }
 }
