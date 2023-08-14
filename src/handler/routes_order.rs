@@ -454,17 +454,12 @@ struct CreateOrderItemMaterialParam {
     pub name: String,
     pub color: String,
     // material_id   integer, -- 材料ID  (暂时先不用)
-    pub single: Option<i32>,
-    //  integer, -- 单数      ？小数
-    pub count: i32,
-    //  integer, -- 数量      ？小数
-    pub total: Option<i32>,
-    //  integer, -- 总数(米)  ? 小数
-    pub stock: Option<i32>,
-    //  integer, -- 库存 ?
-    pub debt: Option<i32>,
-    //  integer, -- 欠数
-    pub notes: Option<String>, //     text     -- 备注
+    pub single: Option<i32>,   //  integer, -- 单数      ？小数
+    pub count: i32,            //  integer, -- 数量      ？小数
+    pub total: Option<i32>,    //  integer, -- 总数(米)  ? 小数
+    pub stock: Option<i32>,    //  integer, -- 库存 ?
+    pub debt: Option<i32>,     //  integer, -- 欠数
+    pub notes: Option<String>, //  text     -- 备注
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
