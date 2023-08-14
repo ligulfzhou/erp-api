@@ -114,20 +114,20 @@ impl ListParamToSQLTrait for ListSKUsParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from skus ".to_string();
         let mut where_clauses = vec![];
-        if let Some(name) = &self.name {
-            where_clauses.push(format!("name='{}'", name));
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!("goods_no='{}'", goods_no));
+        if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
         }
-        if let Some(sku_no) = &self.sku_no {
-            where_clauses.push(format!("sku_no='{}'", sku_no));
+        if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         }
-        if let Some(plating) = &self.plating {
-            where_clauses.push(format!("plating='{}'", plating));
+        if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
         }
-        if let Some(color) = &self.color {
-            where_clauses.push(format!("color='{}'", color));
+        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
 
         if !where_clauses.is_empty() {
@@ -149,20 +149,20 @@ impl ListParamToSQLTrait for ListSKUsParam {
     fn to_count_sql(&self) -> String {
         let mut sql = "select count(1) from skus ".to_string();
         let mut where_clauses = vec![];
-        if let Some(name) = &self.name {
-            where_clauses.push(format!(" name='{}' ", name));
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if let Some(goods_no) = &self.goods_no {
-            where_clauses.push(format!(" goods_no='{}' ", goods_no));
+        if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
         }
-        if let Some(sku_no) = &self.sku_no {
-            where_clauses.push(format!(" sku_no='{}' ", sku_no));
+        if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         }
-        if let Some(plating) = &self.plating {
-            where_clauses.push(format!(" plating='{}' ", plating));
+        if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
         }
-        if let Some(color) = &self.color {
-            where_clauses.push(format!(" color='{}' ", color));
+        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
 
         if !where_clauses.is_empty() {
