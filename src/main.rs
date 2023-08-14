@@ -2,10 +2,7 @@
 extern crate serde;
 
 use axum::extract::DefaultBodyLimit;
-use axum::http::header::{
-    ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_TYPE, ORIGIN,
-    X_CONTENT_TYPE_OPTIONS,
-};
+use axum::http::header;
 use axum::http::method::Method;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
@@ -57,12 +54,11 @@ async fn main() {
         .allow_origin(Any)
         .allow_methods(vec![Method::GET, Method::POST])
         .allow_headers(vec![
-            CONTENT_TYPE,
-            ACCEPT,
-            ORIGIN,
-            AUTHORIZATION,
-            X_CONTENT_TYPE_OPTIONS,
-            ACCESS_CONTROL_REQUEST_HEADERS,
+            header::CONTENT_TYPE,
+            header::ACCEPT,
+            header::ORIGIN,
+            header::AUTHORIZATION,
+            header::HeaderName::from_lowercase(b"x-requested-with").unwrap(),
         ]);
 
     let routes_all = Router::new()

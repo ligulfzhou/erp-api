@@ -3,7 +3,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde::Serialize;
 
-// list response
+/// list response
 #[derive(Debug, Serialize)]
 pub struct ListResponse<T> {
     pub list: Vec<T>,
@@ -17,7 +17,7 @@ pub struct APIListResponse<T: Serialize> {
     pub msg: String,
 }
 
-// data response
+/// data response
 #[derive(Debug, Serialize)]
 pub struct APIDataResponse<T: Serialize> {
     pub data: T,
@@ -38,7 +38,7 @@ where
     }
 }
 
-// empty response
+/// empty response
 #[derive(Debug, Serialize)]
 pub struct APIEmptyResponse {
     pub code: i32,

@@ -43,17 +43,19 @@ struct ImportExcel {
 
 async fn import_excel(
     State(state): State<Arc<AppState>>,
-    // WithRejection(Json(payload), _): WithRejection<Json<ImportExcel>, ERPError>,
     mut multipart: Multipart,
 ) -> ERPResult<APIEmptyResponse> {
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
-        let data = field.bytes().await.unwrap();
-
-        println!("Length of `{}` is {} bytes", name, data.len());
+        if name != "file" {
+            let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+            println!("value of `{}` is: {}", name, data);
+        } else {
+            let data = field.bytes().await.unwrap();
+            println!("Length of `{}` is {} bytes", name, data.len());
+        }
     }
 
     println!("state: {:?}", state);
-    // println!("{:?}", payload);
     Ok(APIEmptyResponse::new())
 }
