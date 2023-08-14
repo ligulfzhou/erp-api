@@ -389,11 +389,11 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
             where_clauses.push(format!("order_id={}", order_id));
         }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
-        if let Some(name) = &self.name {
-            where_clauses.push(format!("name='{}'", name));
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if let Some(color) = &self.color {
-            where_clauses.push(format!("color='{}'", color));
+        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
         sql.push_str(" where ");
         sql.push_str(&where_clauses.join(" and "));
@@ -415,11 +415,11 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
             where_clauses.push(format!("order_id={}", order_id));
         }
         where_clauses.push(format!("order_item_id={}", self.order_item_id));
-        if let Some(name) = &self.name {
-            where_clauses.push(format!("name='{}'", name));
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if let Some(color) = &self.color {
-            where_clauses.push(format!("color='{}'", color));
+        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
         sql.push_str(" where ");
         sql.push_str(&where_clauses.join(" and "));
