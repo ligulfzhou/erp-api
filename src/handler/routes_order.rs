@@ -247,7 +247,7 @@ async fn update_order(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let order = sqlx::query_as!(OrderModel, "select * from orders where id = $1", payload.id)
+    let _order = sqlx::query_as!(OrderModel, "select * from orders where id = $1", payload.id)
         .fetch_one(&state.db)
         .await
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;

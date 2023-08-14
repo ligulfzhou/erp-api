@@ -6,7 +6,7 @@ use axum::{
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
-pub type ERPResult<T> = core::result::Result<T, ERPError>;
+pub type ERPResult<T> = Result<T, ERPError>;
 
 #[derive(Debug, Error)]
 pub enum ERPError {
@@ -27,6 +27,15 @@ pub enum ERPError {
 
     #[error(transparent)]
     JsonExtractorRejection(#[from] JsonRejection),
+
+    #[error("{}", .0)]
+    SaveFileFailed(String),
+
+    #[error("Param type conversion Failed: {:?}", .0)]
+    ConvertFailed(String),
+
+    #[error("{}", .0)]
+    Failed(String),
 }
 
 impl IntoResponse for ERPError {

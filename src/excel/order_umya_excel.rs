@@ -19,8 +19,8 @@ pub struct OrderItemExcel {
     pub notes: Option<String>,
 }
 
-fn read_excel_with_umya() {
-    let path = std::path::Path::new("./src/excel/order_template.xlsx");
+pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
+    let path = std::path::Path::new(file_path);
     let mut book = reader::xlsx::read(path).unwrap();
 
     let sheet = book.get_active_sheet();
@@ -105,6 +105,8 @@ fn read_excel_with_umya() {
     for (index, item) in items.iter().enumerate() {
         println!("{index}: {:?}", item);
     }
+
+    items
 }
 
 #[cfg(test)]
@@ -113,6 +115,6 @@ mod tests {
 
     #[test]
     fn test() {
-        read_excel_with_umya()
+        read_excel_with_umya("")
     }
 }
