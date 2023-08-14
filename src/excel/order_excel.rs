@@ -1,5 +1,5 @@
 pub fn read_orders_from_excel() {
-    println!("calamine does not support read image from cell.")
+    println!("calamine does not support reading image from cell.")
 }
 
 // use calamine::{open_workbook, Reader, Xlsx};

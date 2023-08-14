@@ -46,9 +46,6 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
         }
-        // if pre.is_some() {
-        //     cur = pre.unwrap().clone()
-        // }
         let mut package_image: Option<Image> = None;
         let mut goods_image: Option<Image> = None;
 

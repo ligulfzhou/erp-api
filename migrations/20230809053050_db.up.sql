@@ -81,13 +81,24 @@ VALUES (1, 'order_no_1', 1691558739, 1691568739),
        (3, 'order_no_3', 1691558739, 1691568739);
 
 -- 订单商品表
+create table order_goods
+(
+    id  serial,
+    order_id integer not null,
+    goods_no text not null,
+    package_card     text,
+    package_card_des text,
+);
+
+-- 订单sku表
 create table order_items
 (
     id               serial,
     order_id         integer not null, -- 订单ID
     sku_id           integer not null, -- 商品ID
-    package_card     text,    -- 包装卡片    （存在大问题）
-    package_card_des text,    -- 包装卡片说明 （存在大问题）
+    order_goods_id   integer not null,
+--    package_card     text,    -- 包装卡片    （存在大问题）
+--    package_card_des text,    -- 包装卡片说明 （存在大问题）
     count            integer not null, -- 数量
     unit             text,    --单位
     unit_price       integer, -- 单价

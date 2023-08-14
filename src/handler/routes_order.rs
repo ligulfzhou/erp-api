@@ -109,28 +109,76 @@ struct ListParam {
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
     page_size: Option<i32>,
+
+    customer_id: Option<i32>,
+    order_no: Option<String>,
     sort_col: Option<String>,
     sort: Option<String>, // desc/asc: default desc
+}
+
+impl ListParamToSQLTrait for ListParam {
+    fn to_pagination_sql(&self) -> String {
+        let mut sql = "select * from orders ".to_string();
+        let mut where_clauses = vec![];
+        if self.order_no.is_some() && !self.order_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("order_no='{}'", self.order_no.as_ref().unwrap()));
+        }
+        if let Some(customer_id) = &self.customer_id {
+            where_clauses.push(format!("customer_id={}", customer_id));
+        }
+
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+
+        let page = self.page.unwrap_or(1);
+        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let offset = (page - 1) * page_size;
+        sql.push_str(&format!(
+            " order by id desc offset {} limit {};",
+            offset, page_size
+        ));
+
+        tracing::info!("get orders sql: {:?}", sql);
+        sql
+    }
+
+    fn to_count_sql(&self) -> String {
+        let mut sql = "select count(1) from orders ".to_string();
+        let mut where_clauses = vec![];
+        if let Some(order_no) = &self.order_no {
+            where_clauses.push(format!("order_no='{}'", order_no));
+        }
+        if let Some(customer_id) = &self.customer_id {
+            where_clauses.push(format!("customer_id={}", customer_id));
+        }
+
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+        sql.push(';');
+
+        sql
+    }
 }
 
 async fn get_orders(
     State(state): State<Arc<AppState>>,
     Query(param): Query<ListParam>,
 ) -> ERPResult<APIListResponse<OrderDto>> {
-    let page = param.page.unwrap_or(1);
-    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-    let offset = (page - 1) * page_size;
+    tracing::info!("get_orders: ....");
 
-    let orders = sqlx::query_as!(
-        OrderModel,
-        "select * from orders offset $1 limit $2",
-        offset as i64,
-        page_size as i64
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    let orders = sqlx::query_as::<_, OrderModel>(&param.to_pagination_sql())
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+    if orders.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
 
+    tracing::info!("get_orders:{:?}", orders);
     let mut customer_ids = orders
         .iter()
         .map(|order| order.customer_id)
@@ -169,14 +217,12 @@ async fn get_orders(
         })
         .collect::<Vec<OrderDto>>();
 
-    let count = sqlx::query!("select count(1) from orders")
+    let count: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)
         .await
-        .map_err(ERPError::DBError)?
-        .count
-        .unwrap_or(0);
+        .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(order_dtos, count as i32))
+    Ok(APIListResponse::new(order_dtos, count.0 as i32))
 }
 
 #[derive(Debug, Deserialize)]
