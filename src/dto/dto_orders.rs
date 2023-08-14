@@ -5,7 +5,7 @@ use crate::model::order::{OrderItemModel, OrderModel};
 pub struct OrderDto {
     pub id: i32,
     pub customer_id: i32,
-    pub customer: String,
+    pub customer_name: String,
     pub customer_address: String,
     pub customer_phone: String,
     pub customer_no: String,
@@ -19,7 +19,7 @@ impl OrderDto {
         Self {
             id: order.id,
             customer_id: customer.id,
-            customer: customer.name,
+            customer_name: customer.name,
             customer_address: customer.address.unwrap_or("".to_string()),
             customer_phone: customer.phone.unwrap_or("".to_string()),
             customer_no: customer.customer_no,
@@ -33,7 +33,7 @@ impl OrderDto {
         Self {
             id: order.id,
             customer_id: order.customer_id,
-            customer: "".to_string(),
+            customer_name: "".to_string(),
             customer_address: "".to_string(),
             customer_phone: "".to_string(),
             customer_no: "".to_string(),
