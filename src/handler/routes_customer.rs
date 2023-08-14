@@ -21,6 +21,9 @@ pub fn routes(state: Arc<AppState>) -> Router {
 
 #[derive(Debug, Deserialize)]
 struct ListCustomerParam {
+    name: Option<String>,
+    customer_no: Option<String>,
+
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
     page_size: Option<i32>,
@@ -29,16 +32,54 @@ struct ListCustomerParam {
 impl ListParamToSQLTrait for ListCustomerParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from customers ".to_string();
+
+        let mut where_clauses = vec![];
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name like '%{}%'", self.name.as_ref().unwrap()));
+        }
+        if self.customer_no.is_some() && !self.customer_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!(
+                "customer_no='{}'",
+                self.customer_no.as_ref().unwrap()
+            ));
+        }
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         sql.push_str(&format!(" offset {} limit {};", offset, page_size));
 
+        tracing::info!("get_customer_list sql: {sql}");
+
         sql
     }
 
     fn to_count_sql(&self) -> String {
-        "select count(1) from customers;".to_string()
+        let mut sql = "select count(1) from customers ".to_string();
+
+        let mut where_clauses = vec![];
+        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!("name like '%{}%'", self.name.as_ref().unwrap()));
+        }
+        if self.customer_no.is_some() && !self.customer_no.as_ref().unwrap().is_empty() {
+            where_clauses.push(format!(
+                "customer_no='{}'",
+                self.customer_no.as_ref().unwrap()
+            ));
+        };
+
+        if !where_clauses.is_empty() {
+            sql.push_str(" where ");
+            sql.push_str(&where_clauses.join(" and "));
+        }
+        sql.push(';');
+
+        tracing::info!("get_customer_count sql: {sql}");
+        sql
     }
 }
 

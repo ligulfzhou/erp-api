@@ -168,8 +168,8 @@ impl ListParamToSQLTrait for ListSKUsParam {
         if !where_clauses.is_empty() {
             sql.push_str(" where ");
             sql.push_str(&where_clauses.join(" and "));
-            sql.push(';');
         }
+        sql.push(';');
 
         sql
     }
