@@ -1,14 +1,13 @@
 use crate::constants::STORAGE_FILE_PATH;
 use crate::constants::STORAGE_URL_PREFIX;
 use crate::response::api_response::APIDataResponse;
-use crate::{AppState, ERPResult, ERPError};
+use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Multipart, State};
 use axum::routing::post;
 use axum::Router;
 use chrono::{Datelike, Timelike, Utc};
-use std::sync::Arc;
 use std::fs;
-
+use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -30,23 +29,17 @@ async fn upload_image(
         if name == "file" {
             let data = field.bytes().await.unwrap();
             let now = Utc::now();
-            let dir_path = format!(
-                "{}images/{}{:02}{:02}",
-                STORAGE_FILE_PATH,
-                now.year(),
-                now.month(),
-                now.day()
-            );
-            tracing::info!("dir_path: {}", dir_path);
-            let file_name = format!(
-                "{}{:02}{:02}{:02}{:02}{:02}.png",
-                now.year(),
-                now.month(),
-                now.day(),
+            let ymd = format!("{}{:02}{:02}", now.year(), now.month(), now.day());
+            let ymdhms = format!(
+                "{}{:02}{:02}{:02}",
+                ymd,
                 now.hour(),
                 now.minute(),
                 now.second()
             );
+            let dir_path = format!("{}images/{}", STORAGE_FILE_PATH, ymd);
+            tracing::info!("dir_path: {}", dir_path);
+            let file_name = format!("{}.png", ymdhms);
             tracing::info!("filename: {}", file_name);
             fs::create_dir_all(&dir_path)
                 .map_err(|_| ERPError::SaveFileFailed(format!("create {} failed", dir_path)))?;
@@ -56,8 +49,8 @@ async fn upload_image(
                 ERPError::SaveFileFailed(format!("create {} failed", file_path_full))
             })?;
 
-            let url = format!("{}images/{}", STORAGE_URL_PREFIX, file_name);
-            return Ok(APIDataResponse::new(ImageUrlResponse{url}))
+            let url = format!("{}images/{}/{}", STORAGE_URL_PREFIX, ymd, file_name);
+            return Ok(APIDataResponse::new(ImageUrlResponse { url }));
         }
     }
 
