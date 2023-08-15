@@ -1,23 +1,5 @@
 use umya_spreadsheet::*;
-
-#[derive(Debug, Default, Clone)]
-pub struct OrderItemExcel {
-    pub index: i32,
-    pub package_card: Option<String>,
-    pub package_card_des: Option<String>,
-    pub customer_order_no: Option<String>,
-    pub image: Option<String>,
-    pub image_des: Option<String>,
-    pub goods_no: String,
-    pub name: String,
-    pub plating: String,
-    pub color: String,
-    pub count: i32,
-    pub unit: Option<String>,
-    pub unit_price: Option<i32>,
-    pub total_price: Option<i32>,
-    pub notes: Option<String>,
-}
+use crate::dto::dto_orders::OrderItemExcel;
 
 pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
     let path = std::path::Path::new(file_path);
@@ -58,14 +40,6 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
                         goods_image = Some(real_image.clone());
                     }
                 }
-                // let image = sheet.get_image((j, i));
-                // if image.is_some() {
-                //     if j == 2 {
-                //         package_image = Some(image.unwrap().clone());
-                //     } else {
-                //         goods_image = Some(image.unwrap().clone());
-                //     }
-                // }
             }
 
             let cell = sheet.get_cell((j, i));
