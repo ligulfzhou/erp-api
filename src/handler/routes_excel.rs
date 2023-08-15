@@ -1,6 +1,5 @@
 use crate::constants::STORAGE_FILE_PATH;
 use crate::excel::order_umya_excel::read_excel_with_umya;
-use crate::model::goods::GoodsModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Multipart, State};
@@ -8,6 +7,7 @@ use axum::response::{Html, IntoResponse};
 use axum::routing::{get, post};
 use axum::Router;
 use chrono::{Datelike, Timelike, Utc};
+use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
 
@@ -109,18 +109,27 @@ async fn import_excel(
         .map(|item| item.goods_no.clone())
         .collect::<Vec<String>>();
     goods_nos.dedup();
+
     let goods_no_for_sql = goods_nos
         .iter()
         .map(|no| format!("'{}'", no.clone()))
         .collect::<Vec<String>>()
         .join(",");
-    let existing_goods = sqlx::query_as::<_, (i32, String)>(&format!(
+    let existing_goods = sqlx::query_as::<_, (i32, String, String)>(&format!(
         "select id, goods_no, color from skus where goods_no in ({})",
         goods_no_for_sql
     ))
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
+
+    let mut no_to_colors: HashMap<&str, Vec<&str>> = HashMap::new();
+    for (_, goods_no, color) in existing_goods.iter() {
+        let colors = no_to_colors.entry(goods_no).or_default();
+        if !colors.contains(&color.as_str()) {
+            colors.push(color.as_str());
+        }
+    }
 
     println!("existing goods: {:?}", existing_goods);
 

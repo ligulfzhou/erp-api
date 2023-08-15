@@ -65,8 +65,8 @@ struct CreateOrderParam {
 impl CreateOrderParam {
     fn to_sql(&self) -> String {
         format!(
-            "insert into orders (customer_id, order_no, order_date, delivery_date)
-            values ('{}', '{}', {}, {});",
+            r#"insert into orders (customer_id, order_no, order_date, delivery_date)
+               values ('{}', '{}', {}, {});"#,
             self.customer_id, self.order_no, self.order_date, self.delivery_date
         )
     }
@@ -344,42 +344,104 @@ struct UpdateOrderItemParam {
 }
 
 impl UpdateOrderItemParam {
-    fn to_sql(&self) -> String {
-        if let Some(id) = self.id {
-            let mut sql = format!(
-                "update order_items set order_id = {}, sku_id = {}, count={}",
-                self.order_id, self.sku_id, self.count
-            );
-            if let Some(package_card) = &self.package_card {
-                sql.push_str(&format!(", package_card = '{}'", package_card));
-            }
-            if let Some(package_card_des) = &self.package_card_des {
-                sql.push_str(&format!(", package_card_des = '{}'", package_card_des));
-            }
-            if let Some(unit) = &self.unit {
-                sql.push_str(&format!(", unit = '{}'", unit));
-            }
-            if let Some(unit_price) = &self.unit_price {
-                sql.push_str(&format!(", unit_price = {}", unit_price));
-            }
-            if let Some(total_price) = &self.total_price {
-                sql.push_str(&format!(", total_price = '{}'", total_price));
-            }
-            if let Some(notes) = &self.notes {
-                sql.push_str(&format!(", notes = {}", notes));
-            }
-
-            return sql;
+    fn to_insert_sql(&self) -> String {
+        let mut kv_pairs: Vec<(_, _)> = vec![];
+        kv_pairs.push(("order_id", self.order_id.to_string()));
+        kv_pairs.push(("sku_id", self.sku_id.to_string()));
+        kv_pairs.push((
+            "package_card",
+            format!(
+                "'{}'",
+                self.package_card.as_ref().unwrap_or(&"".to_string())
+            ),
+        ));
+        kv_pairs.push((
+            "package_card_des",
+            format!(
+                "'{}'",
+                self.package_card_des.as_ref().unwrap_or(&"".to_string())
+            ),
+        ));
+        kv_pairs.push(("count", self.count.to_string()));
+        kv_pairs.push((
+            "unit",
+            format!("'{}'", self.unit.as_ref().unwrap_or(&"".to_string())),
+        ));
+        kv_pairs.push((
+            "notes",
+            format!("'{}'", self.notes.as_ref().unwrap_or(&"".to_string())),
+        ));
+        if let Some(unit_price) = self.unit_price {
+            kv_pairs.push(("unit_price", unit_price.to_string()))
+        }
+        if let Some(total_price) = self.total_price {
+            kv_pairs.push(("total_price", total_price.to_string()))
         }
 
-        format!("insert into order_items (order_id, sku_id, )")
+        let keys = kv_pairs
+            .iter()
+            .map(|kv| kv.0)
+            .collect::<Vec<&str>>()
+            .join(",");
+        tracing::debug!("keys: {:?}", keys);
+
+        let values = kv_pairs
+            .iter()
+            .map(|kv| kv.1.as_str())
+            .collect::<Vec<&str>>()
+            .join(",");
+        tracing::debug!("values: {:?}", values);
+
+        let sql = format!("insert into order_items ({}) values ({})", keys, values);
+        tracing::debug!("sql: {:?}", sql);
+
+        sql
+    }
+
+    fn to_update_sql(&self) -> String {
+        let mut where_clauses = vec![];
+        where_clauses.push(format!("order_id={}", self.order_id));
+        where_clauses.push(format!("sku_id={}", self.sku_id));
+        where_clauses.push(format!("count={}", self.count));
+        if let Some(package_card) = &self.package_card {
+            where_clauses.push(format!("package_card='{}'", package_card));
+        }
+        if let Some(package_card_des) = &self.package_card_des {
+            where_clauses.push(format!("package_card_des='{}'", package_card_des));
+        }
+        if let Some(unit) = &self.unit {
+            where_clauses.push(format!("unit='{}'", unit));
+        }
+        if let Some(unit_price) = &self.unit_price {
+            where_clauses.push(format!("unit_price={}", unit_price));
+        }
+        if let Some(total_price) = &self.total_price {
+            where_clauses.push(format!("total_price={}", total_price));
+        }
+        if let Some(notes) = &self.notes {
+            where_clauses.push(format!("notes='{}'", notes));
+        }
+
+        let sql = format!(
+            "update order_items set {} where id={}",
+            where_clauses.join(","),
+            self.id.unwrap()
+        );
+
+        sql
     }
 }
 
 async fn update_order_item(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(param), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
+    if let Some(id) = payload.id {
+        // update
+    } else {
+        // insert
+    }
+    tracing::info!("sql: {:?}", payload.to_insert_sql());
     // let _ = sqlx::query_as!(
     //     OrderItemModel,
     //     "select * from order_items where id = $1",
