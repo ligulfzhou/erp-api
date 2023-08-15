@@ -21,6 +21,28 @@ pub struct OrderItemNoIdModel {
     pub notes: Option<String>,
 }
 
+pub fn multi_order_items_no_id_models_to_sql(models: Vec<OrderItemNoIdModel>) -> String {
+    let mut values = vec![];
+    for model in models {
+        // let unit_price: Option<i32> = None;
+        // let total_price: Option<i32> = None;
+        values.push(format!(
+            "({}, {}, '{}', '{}', {}, '{}', {}, {}, '{}')",
+            model.order_id,
+            model.sku_id,
+            model.package_card.as_ref().unwrap_or(&"".to_string()),
+            model.package_card_des.as_ref().unwrap_or(&"".to_string()),
+            model.count,
+            model.unit.as_ref().unwrap_or(&"".to_string()),
+            model.unit_price.as_ref().unwrap_or(&0),
+            model.total_price.as_ref().unwrap_or(&0),
+            model.notes.as_ref().unwrap_or(&"".to_string())
+        ));
+    }
+
+    format!("insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit, unit_price, total_price, notes) values {}", values.join(","))
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
@@ -55,7 +77,7 @@ pub struct OrderItemExcel {
 }
 
 impl OrderItemExcel {
-    fn to_order_item_no_id_model(&self, order_id: i32, sku_id: i32) -> OrderItemNoIdModel {
+    pub fn to_order_item_no_id_model(&self, order_id: i32, sku_id: i32) -> OrderItemNoIdModel {
         OrderItemNoIdModel {
             order_id,
             sku_id,
