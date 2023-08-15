@@ -24,8 +24,6 @@ pub struct OrderItemNoIdModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
-    // #[serde(flatten)]
-    // inner: OrderItemNoIdModel
     pub order_id: i32,
     pub sku_id: i32,
     pub package_card: Option<String>,

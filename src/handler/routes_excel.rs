@@ -37,15 +37,6 @@ async fn page_upload_file() -> impl IntoResponse {
     )
 }
 
-// #[derive(Debug, Deserialize)]
-// struct ImportExcel {
-//     url: String,
-//     #[serde(rename(deserialize = "type"))]
-//     itype: Option<i32>,
-//     if_order: Option<i32>,
-//     id: i32,
-// }
-
 async fn import_excel(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
@@ -102,7 +93,10 @@ async fn import_excel(
     }
 
     let items = read_excel_with_umya(&file_path);
-    tracing::info!("we extract order_items from excel: {:?}", items);
+    tracing::info!("we extract order_items from excel");
+    for (index, item) in items.iter().enumerate() {
+        println!("{index}: {:?}\n", item);
+    }
 
     let mut goods_nos = items
         .iter()

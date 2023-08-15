@@ -88,9 +88,9 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
         pre = Some(cur);
     }
 
-    for (index, item) in items.iter().enumerate() {
-        println!("{index}: {:?}", item);
-    }
+    // for (index, item) in items.iter().enumerate() {
+    //     println!("{index}: {:?}\n", item);
+    // }
 
     items
 }
