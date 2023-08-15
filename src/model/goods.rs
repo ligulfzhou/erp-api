@@ -13,9 +13,9 @@ pub struct SKUModel {
     pub id: i32,
     pub sku_no: String,          // sku编号
     pub goods_id: Option<i32>,   // 类目ID
+    pub goods_no: String,        // 产品编号 (暂时没有)
     pub name: Option<String>,    // 商品名
     pub image: Option<String>,   // 商品图片
-    pub goods_no: String,        // 产品编号 (暂时没有)
     pub plating: Option<String>, // 电镀
     pub color: Option<String>,   // 颜色
     pub notes: Option<String>,   // 备注

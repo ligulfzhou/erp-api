@@ -441,7 +441,8 @@ async fn update_order_item(
     } else {
         // insert
     }
-    tracing::info!("sql: {:?}", payload.to_insert_sql());
+    tracing::info!("insert sql: {:?}", payload.to_insert_sql());
+    tracing::info!("update sql: {:?}", payload.to_insert_sql());
     // let _ = sqlx::query_as!(
     //     OrderItemModel,
     //     "select * from order_items where id = $1",

@@ -30,7 +30,7 @@ struct SearchSkusParam {
 impl ListParamToSQLTrait for SearchSkusParam {
     fn to_pagination_sql(&self) -> String {
         // let mut sql = "select * from skus where goods_no='{}'".to_string();
-        let mut sql = format!("select * from skus where goods_no like '%{:?}%'", self.key);
+        let mut sql = format!("select * from skus where goods_no like '%{}%'", self.key);
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
@@ -39,12 +39,14 @@ impl ListParamToSQLTrait for SearchSkusParam {
             offset, page_size
         ));
 
+        tracing::info!("sql: {}", sql);
+
         sql
     }
 
     fn to_count_sql(&self) -> String {
         format!(
-            "select count(1) from skus where goods_no like '%{:?}%'",
+            "select count(1) from skus where goods_no like '%{}%'",
             self.key
         )
     }
