@@ -436,27 +436,48 @@ async fn update_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
+    // check if sku_id exists
+    let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
+        "select id from order_items where order_id={} and sku_id={}",
+        payload.order_id, payload.sku_id
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .iter()
+    .map(|id| id.0)
+    .collect::<Vec<i32>>();
+    tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
+
     if let Some(id) = payload.id {
         // update
+        let other_ids = ids_with_this_sku_id
+            .iter()
+            .filter(|order_item_id| order_item_id != &&id)
+            .collect::<Vec<&i32>>();
+        if !other_ids.is_empty() {
+            return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
+        }
+        // 修改数据
+        sqlx::query(&payload.to_update_sql())
+            .execute(&state.db)
+            .await
+            .map_err(ERPError::DBError)?;
     } else {
         // insert
+        if !ids_with_this_sku_id.is_empty() {
+            return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
+        }
+
+        // insert
+        sqlx::query(&payload.to_insert_sql())
+            .execute(&state.db)
+            .await
+            .map_err(ERPError::DBError)?;
     }
-    tracing::info!("insert sql: {:?}", payload.to_insert_sql());
-    tracing::info!("update sql: {:?}", payload.to_insert_sql());
-    // let _ = sqlx::query_as!(
-    //     OrderItemModel,
-    //     "select * from order_items where id = $1",
-    //     param.id
-    // )
-    // .fetch_one(&state.db)
-    // .await
-    // .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", param.id)))?;
 
-    // sqlx::query(&param.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
-
+    // tracing::info!("insert sql: {:?}", payload.to_insert_sql());
+    // tracing::info!("update sql: {:?}", payload.to_insert_sql());
     Ok(APIEmptyResponse::new())
 }
 
