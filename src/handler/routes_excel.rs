@@ -1,5 +1,6 @@
 use crate::constants::STORAGE_FILE_PATH;
 use crate::excel::order_umya_excel::read_excel_with_umya;
+use crate::model::goods::GoodsModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Multipart, State};
@@ -102,6 +103,26 @@ async fn import_excel(
 
     let items = read_excel_with_umya(&file_path);
     tracing::info!("we extract order_items from excel: {:?}", items);
+
+    let mut goods_nos = items
+        .iter()
+        .map(|item| item.goods_no.clone())
+        .collect::<Vec<String>>();
+    goods_nos.dedup();
+    let goods_no_for_sql = goods_nos
+        .iter()
+        .map(|no| format!("'{}'", no.clone()))
+        .collect::<Vec<String>>()
+        .join(",");
+    let existing_goods = sqlx::query_as::<_, (i32, String)>(&format!(
+        "select id, goods_no, color from skus where goods_no in ({})",
+        goods_no_for_sql
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    println!("existing goods: {:?}", existing_goods);
 
     Ok(APIEmptyResponse::new())
 }

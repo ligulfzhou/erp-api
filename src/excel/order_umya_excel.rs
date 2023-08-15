@@ -1,5 +1,6 @@
+use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
+use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
-use crate::dto::dto_orders::OrderItemExcel;
 
 pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
     let path = std::path::Path::new(file_path);
@@ -71,10 +72,17 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
         }
 
         if let Some(real_goods_image) = goods_image {
-            real_goods_image.download_image(&format!("./{}.png", cur.goods_no));
+            let goods_image_path = format!("{}/sku/{}.png", STORAGE_FILE_PATH, cur.goods_no);
+            real_goods_image.download_image(&goods_image_path);
+            cur.package_card = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, cur.goods_no));
         }
         if let Some(read_package_image) = package_image {
-            read_package_image.download_image(&format!("./package_{}.png", cur.goods_no));
+            let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, cur.goods_no);
+            read_package_image.download_image(&package_image_path);
+            cur.image = Some(format!(
+                "{}/package/{}.png",
+                STORAGE_URL_PREFIX, cur.goods_no
+            ));
         }
         items.push(cur.clone());
         pre = Some(cur);

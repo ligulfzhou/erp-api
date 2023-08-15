@@ -77,23 +77,3 @@ impl OrderItemDto {
         }
     }
 }
-
-
-#[derive(Debug, Default, Clone)]
-pub struct OrderItemExcel {
-    pub index: i32,
-    pub package_card: Option<String>,
-    pub package_card_des: Option<String>,
-    pub customer_order_no: Option<String>,
-    pub image: Option<String>,
-    pub image_des: Option<String>,
-    pub goods_no: String,
-    pub name: String,
-    pub plating: String,
-    pub color: String,
-    pub count: i32,
-    pub unit: Option<String>,
-    pub unit_price: Option<i32>,
-    pub total_price: Option<i32>,
-    pub notes: Option<String>,
-}

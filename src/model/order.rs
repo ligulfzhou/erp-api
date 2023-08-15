@@ -8,9 +8,8 @@ pub struct OrderModel {
     // todo: 添加一个“返单，加急配送的”状态字段
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct OrderItemModel {
-    pub id: i32,
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct OrderItemNoIdModel {
     pub order_id: i32,
     pub sku_id: i32,
     pub package_card: Option<String>,
@@ -20,6 +19,57 @@ pub struct OrderItemModel {
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
     pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct OrderItemModel {
+    pub id: i32,
+    // #[serde(flatten)]
+    // inner: OrderItemNoIdModel
+    pub order_id: i32,
+    pub sku_id: i32,
+    pub package_card: Option<String>,
+    pub package_card_des: Option<String>,
+    pub count: i32,
+    pub unit: Option<String>,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct OrderItemExcel {
+    pub index: i32,
+    pub package_card: Option<String>,
+    pub package_card_des: Option<String>,
+    pub customer_order_no: Option<String>,
+    pub image: Option<String>,
+    pub image_des: Option<String>,
+    pub goods_no: String,
+    pub name: String,
+    pub plating: String,
+    pub color: String,
+    pub count: i32,
+    pub unit: Option<String>,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: Option<String>,
+}
+
+impl OrderItemExcel {
+    fn to_order_item_no_id_model(&self, order_id: i32, sku_id: i32) -> OrderItemNoIdModel {
+        OrderItemNoIdModel {
+            order_id,
+            sku_id,
+            package_card: self.package_card.clone(),
+            package_card_des: self.package_card_des.clone(),
+            count: self.count,
+            unit: self.unit.clone(),
+            unit_price: self.unit_price,
+            total_price: self.total_price,
+            notes: self.notes.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
