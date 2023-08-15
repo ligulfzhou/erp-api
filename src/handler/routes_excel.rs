@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/page/upload/excel", get(page_upload_file))
+        .route("/page/upload", get(page_upload_file))
         .route("/api/upload/excel", post(import_excel))
         .with_state(state)
 }
@@ -25,9 +25,9 @@ async fn page_upload_file() -> impl IntoResponse {
 <html>
 <body>
 
-<form action="/api/upload" method="post" enctype="multipart/form-data">
+<form action="/api/upload/image" method="post" enctype="multipart/form-data">
     Select image to upload:
-    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="file" name="file" id="fileToUpload">
     <input type="submit" value="Upload Image" name="submit">
 </form>
 
