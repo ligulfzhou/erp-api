@@ -47,9 +47,9 @@ impl OrderDto {
 #[derive(Debug, Serialize)]
 struct OrderItemDto {
     id: i32,
-    order_id: i32, // -- 订单ID
-    sku_id: i32,   // integer not null, -- 商品ID
-    // order_goods_id: i32,      // integer not null,
+    order_id: i32,            // -- 订单ID
+    sku_id: i32,              // integer not null, -- 商品ID
+    // order_goods_id: i32,   // integer not null,
     package_card: String,     // text,    -- 包装卡片    （存在大问题）
     package_card_des: String, //  -- 包装卡片说明 （存在大问题）
     count: i32,               //   integer not null,  - - 数量

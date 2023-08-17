@@ -111,7 +111,6 @@ values (1, 1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZf
 (1, 2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'adsfasdfasdf', 10, '个'),
 (1, 3, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'adsfasdfasdf', 10, '个');
 
-
 -- 订单sku的的材料单 * N
 create table order_item_materials
 (

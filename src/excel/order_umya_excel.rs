@@ -56,17 +56,17 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
             match j {
                 1 => cur.index = cell_value.parse::<i32>().unwrap_or(0),
                 2 => cur.package_card_des = Some(cell_value),
-                3 => cur.customer_order_no = Some(cell_value),
+                3 => cur.goods_no = cell_value,
                 4 => cur.image_des = Some(cell_value),
-                5 => cur.goods_no = cell_value,
-                6 => cur.name = cell_value,
-                7 => cur.plating = cell_value,
-                8 => cur.color = cell_value,
-                9 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
-                10 => cur.unit = Some(cell_value),
-                11 => cur.unit_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
-                12 => cur.total_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
-                13 => cur.notes = Some(cell_value),
+                // 5 => cur.goods_no = cell_value,
+                5 => cur.name = cell_value,
+                6 => cur.plating = cell_value,
+                7 => cur.color = cell_value,
+                8 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
+                9 => cur.unit = Some(cell_value),
+                10 => cur.unit_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
+                11 => cur.total_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
+                12 => cur.notes = Some(cell_value),
                 _ => {}
             }
         }
