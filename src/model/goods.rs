@@ -1,4 +1,4 @@
-#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct GoodsModel {
     pub id: i32,               // SERIAL,
     pub goods_no: String,      // 类目编号

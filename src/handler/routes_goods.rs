@@ -1,4 +1,5 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
+use crate::dto::dto_goods::GoodsDto;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -8,6 +9,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
@@ -117,12 +119,49 @@ impl ListParamToSQLTrait for ListGoodsParam {
 async fn get_goods(
     State(state): State<Arc<AppState>>,
     Query(param): Query<ListGoodsParam>,
-) -> ERPResult<APIListResponse<GoodsModel>> {
+) -> ERPResult<APIListResponse<GoodsDto>> {
     let pagination_sql = param.to_pagination_sql();
     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
+
+    if goods.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let goods_nos = goods
+        .iter()
+        .map(|goods| format!("'{}'", goods.goods_no))
+        .collect::<Vec<String>>()
+        .join(",");
+    let sql = format!("select * from skus where goods_no in ({});", goods_nos);
+    tracing::info!("fetch skus with goods_nos: {} with sql: {}", goods_nos, sql);
+
+    let skus = sqlx::query_as::<_, SKUModel>(&sql)
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+    let mut id_to_skus = HashMap::new();
+    for sku in skus.iter() {
+        id_to_skus
+            .entry(sku.goods_no.clone())
+            .or_insert(vec![])
+            .push(sku.clone());
+    }
+    tracing::info!("id_to_skus: {:#?}", id_to_skus);
+
+    let goods_dtos = goods
+        .iter()
+        .map(|item| {
+            let mut its_skus = vec![];
+            if id_to_skus.get(item.goods_no.as_str()).is_some() {
+                its_skus = id_to_skus.get(item.goods_no.as_str()).unwrap().clone();
+            }
+            GoodsDto::from(item.clone(), its_skus)
+        })
+        .collect::<Vec<GoodsDto>>();
 
     let count_sql = param.to_count_sql();
     let total: (i64,) = sqlx::query_as(&count_sql)
@@ -130,7 +169,7 @@ async fn get_goods(
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(goods, total.0 as i32))
+    Ok(APIListResponse::new(goods_dtos, total.0 as i32))
 }
 
 #[derive(Debug, Deserialize)]

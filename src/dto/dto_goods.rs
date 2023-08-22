@@ -30,6 +30,7 @@ pub struct GoodsDto {
     pub image: String,    // 图片
     pub name: String,     // 名称
     pub notes: String,    // 备注
+    pub count: i32,       // 多少件商品
     pub skus: Vec<SKUModelDto>,
 }
 
@@ -45,6 +46,7 @@ impl GoodsDto {
             image: goods.image,
             name: goods.name,
             notes: goods.notes.unwrap_or("".to_string()),
+            count: skus_dtos.len() as i32,
             skus: skus_dtos,
         }
     }
