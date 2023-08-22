@@ -138,7 +138,7 @@ async fn create_customer(
 
     if customer.is_some() {
         return Err(ERPError::AlreadyExists(format!(
-            "customer#{}",
+            "客户ID#{}已存在",
             payload.customer_no
         )));
     }
