@@ -79,7 +79,6 @@ struct ListGoodsParam {
     page_size: Option<i32>,
 }
 
-// impl ListParamTrait for ListGoodsParam {
 impl ListParamToSQLTrait for ListGoodsParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from goods".to_string();

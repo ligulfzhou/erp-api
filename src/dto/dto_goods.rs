@@ -31,23 +31,23 @@ pub struct GoodsDto {
     pub name: String,     // 名称
     pub notes: String,    // 备注
     pub count: i32,       // 多少件商品
-    pub skus: Vec<SKUModelDto>,
+    pub skus: Vec<SKUModel>,
 }
 
 impl GoodsDto {
     pub fn from(goods: GoodsModel, skus: Vec<SKUModel>) -> GoodsDto {
-        let skus_dtos = skus
-            .iter()
-            .map(|sku| SKUModelDto::from(sku.clone()))
-            .collect::<Vec<SKUModelDto>>();
+        // let skus_dtos = skus
+        //     .iter()
+        //     .map(|sku| SKUModelDto::from(sku.clone()))
+        //     .collect::<Vec<SKUModelDto>>();
         Self {
             id: goods.id,
             goods_no: goods.goods_no,
             image: goods.image,
             name: goods.name,
             notes: goods.notes.unwrap_or("".to_string()),
-            count: skus_dtos.len() as i32,
-            skus: skus_dtos,
+            count: skus.len() as i32,
+            skus,
         }
     }
 }
