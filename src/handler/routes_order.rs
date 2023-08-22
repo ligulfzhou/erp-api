@@ -60,14 +60,21 @@ struct CreateOrderParam {
     order_no: String,
     order_date: i32,
     delivery_date: i32,
+    is_urgent: bool,
+    is_return_order: bool,
 }
 
 impl CreateOrderParam {
     fn to_sql(&self) -> String {
         format!(
-            r#"insert into orders (customer_id, order_no, order_date, delivery_date)
-               values ('{}', '{}', {}, {});"#,
-            self.customer_id, self.order_no, self.order_date, self.delivery_date
+            r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+               values ('{}', '{}', {}, {}, {}, {});"#,
+            self.customer_id,
+            self.order_no,
+            self.order_date,
+            self.delivery_date,
+            self.is_urgent,
+            self.is_return_order
         )
     }
 }
@@ -87,7 +94,7 @@ async fn create_order(
     .is_ok()
     {
         return Err(ERPError::AlreadyExists(format!(
-            "Order with order_no: {}",
+            "订单编号{} 已存在",
             payload.order_no
         )));
     }
@@ -197,6 +204,7 @@ async fn get_orders(
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
+
     if orders.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
@@ -731,6 +739,8 @@ mod tests {
             order_no: "order_no".to_string(),
             order_date: 0,
             delivery_date: 0,
+            is_urgent: false,
+            is_return_order: false,
         };
         let client = httpc_test::new_client("http://localhost:9100")?;
 

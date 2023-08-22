@@ -86,13 +86,13 @@ create table orders
     order_no        text    not null,               -- 订单编号
     order_date      integer not null,               -- 订货日期
     delivery_date   integer,                        -- 交货日期
-    urgent          boolean not null default false, -- 加急
+    is_urgent          boolean not null default false, -- 加急
     is_return_order boolean not null default false  -- 返单
 );
 
 create unique index uniq_orders_order_no on orders (order_no);
 
-insert into orders (customer_id, order_no, order_date, delivery_date, urgent, is_return_order)
+insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
 VALUES (1, 'order_no_1', 1691558739, 1691568739, false, false),
        (2, 'order_no_2', 1691558739, 1691568739, true, false),
        (3, 'order_no_3', 1691558739, 1691568739, true, true);

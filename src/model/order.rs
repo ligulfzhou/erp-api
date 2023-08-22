@@ -6,7 +6,7 @@ pub struct OrderModel {
     pub order_date: i32,
     pub delivery_date: Option<i32>,
     // todo: 添加一个“返单，加急配送的”状态字段
-    pub urgent: bool,          //紧急 ‼️
+    pub is_urgent: bool,       //紧急 ‼️
     pub is_return_order: bool, // 返单
 }
 
