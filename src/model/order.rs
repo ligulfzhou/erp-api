@@ -6,6 +6,8 @@ pub struct OrderModel {
     pub order_date: i32,
     pub delivery_date: Option<i32>,
     // todo: 添加一个“返单，加急配送的”状态字段
+    pub urgent: bool,          //紧急 ‼️
+    pub is_return_order: bool, // 返单
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -44,13 +46,22 @@ pub fn multi_order_items_no_id_models_to_sql(models: Vec<OrderItemNoIdModel>) ->
     format!("insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit, unit_price, total_price, notes) values {}", values.join(","))
 }
 
+// #[derive(De)]
+pub struct OrderGoodsModel {
+    pub id: usize,
+    pub order_id: usize,
+    pub order_no: String,
+    pub goods_no: String,
+    pub package_card: Option<String>,
+    pub package_card_des: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
     pub order_id: i32,
+    pub order_no: String,
     pub sku_id: i32,
-    pub package_card: Option<String>,
-    pub package_card_des: Option<String>,
     pub count: i32,
     pub unit: Option<String>,
     pub unit_price: Option<i32>,
@@ -107,5 +118,5 @@ pub struct OrderItemMaterialModel {
     pub total: Option<i32>,    //  integer, -- 总数(米)  ? 小数
     pub stock: Option<i32>,    //  integer, -- 库存 ?
     pub debt: Option<i32>,     //  integer, -- 欠数
-    pub notes: Option<String>, //     text     -- 备注
+    pub notes: Option<String>, //  text,     -- 备注
 }

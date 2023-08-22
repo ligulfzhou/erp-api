@@ -47,8 +47,8 @@ impl OrderDto {
 #[derive(Debug, Serialize)]
 struct OrderItemDto {
     id: i32,
-    order_id: i32,            // -- 订单ID
-    sku_id: i32,              // integer not null, -- 商品ID
+    order_id: i32, // -- 订单ID
+    sku_id: i32,   // integer not null, -- 商品ID
     // order_goods_id: i32,   // integer not null,
     package_card: String,     // text,    -- 包装卡片    （存在大问题）
     package_card_des: String, //  -- 包装卡片说明 （存在大问题）
@@ -66,9 +66,12 @@ impl OrderItemDto {
             order_id: order_item.order_id,
             sku_id: order_item.sku_id,
             // todo
-            package_card: order_item.package_card.unwrap_or("".to_string()),
+            // package_card: order_item.package_card.unwrap_or("".to_string()),
             // todo
-            package_card_des: order_item.package_card_des.unwrap_or("".to_string()),
+            // package_card_des: order_item.package_card_des.unwrap_or("".to_string()),
+            package_card: "".to_string(),
+            package_card_des: "".to_string(),
+
             count: order_item.count,
             unit: order_item.unit.unwrap_or("".to_string()),
             unit_price: order_item.unit_price,

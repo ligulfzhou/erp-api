@@ -4,6 +4,7 @@ drop table if exists goods;
 drop table if exists skus;
 drop table if exists customers;
 drop table if exists orders;
+drop table if exists order_goods;
 drop table if exists order_items;
 drop table if exists order_item_materials;
 drop table if exists departments;
