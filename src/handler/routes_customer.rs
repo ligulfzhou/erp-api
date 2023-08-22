@@ -216,7 +216,7 @@ async fn update_customer(
     WithRejection(Json(payload), _): WithRejection<Json<UpdateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customer where id = {}",
+        "select * from customers where id = {}",
         payload.id
     ))
     .fetch_one(&state.db)
@@ -225,7 +225,7 @@ async fn update_customer(
 
     if customer.customer_no != payload.customer_no
         && sqlx::query_as::<_, CustomerModel>(&format!(
-            "select * from customer where customer_no='{}'",
+            "select * from customers where customer_no='{}'",
             payload.customer_no
         ))
         .fetch_optional(&state.db)
