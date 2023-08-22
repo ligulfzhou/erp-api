@@ -178,7 +178,7 @@ async fn detail_customer(
 
 #[derive(Debug, Deserialize)]
 struct UpdateCustomerParam {
-    pub id: Option<i32>,
+    pub id: i32,
     pub customer_no: String,
     pub name: String,
     pub address: Option<String>,
@@ -188,13 +188,6 @@ struct UpdateCustomerParam {
 
 impl UpdateCustomerParam {
     fn to_sql(&self) -> String {
-        if self.id.is_none() {
-            return format!(
-                "insert into customers (customer_no, name, address, phone, notes) values ('{}', '{}', '{}', '{}', '{}')",
-                self.customer_no, self.name, self.address.as_ref().unwrap_or(&"".to_string()), self.phone.as_ref().unwrap_or(&"".to_string()), self.notes.as_ref().unwrap_or(&"".to_string())
-            );
-        }
-
         let mut set_clauses = vec![];
         set_clauses.push(format!(
             "customer_no='{}',name='{}'",
@@ -213,12 +206,8 @@ impl UpdateCustomerParam {
         format!(
             "update customers set {} where id = {};",
             set_clauses.join(","),
-            self.id.unwrap()
+            self.id
         )
-    }
-
-    fn is_insert(&self) -> bool {
-        self.id.is_none()
     }
 }
 
@@ -226,7 +215,30 @@ async fn update_customer(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    // todo: check customer_no collision
+    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customer where id = {}",
+        payload.id
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    if customer.customer_no != payload.customer_no
+        && sqlx::query_as::<_, CustomerModel>(&format!(
+            "select * from customer where customer_no='{}'",
+            payload.customer_no
+        ))
+        .fetch_optional(&state.db)
+        .await
+        .map_err(ERPError::DBError)
+        .is_ok()
+    {
+        return Err(ERPError::Collision(format!(
+            "{} 已存在",
+            payload.customer_no
+        )));
+    }
+
     sqlx::query(&payload.to_sql()).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())

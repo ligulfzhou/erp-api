@@ -36,6 +36,9 @@ pub enum ERPError {
 
     #[error("{}", .0)]
     Failed(String),
+
+    #[error("collision: {}", .0)]
+    Collision(String),
 }
 
 impl IntoResponse for ERPError {
