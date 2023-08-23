@@ -13,6 +13,9 @@ pub enum ERPError {
     #[error("login failed")]
     LoginFail,
 
+    #[error("密码错误")]
+    LoginFailForPasswordIsWrong,
+
     #[error("sqlx db error: {:?}", .0)]
     DBError(#[from] SqlxError),
 

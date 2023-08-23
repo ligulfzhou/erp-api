@@ -181,10 +181,13 @@ create table order_item_materials
 create table departments
 (
     id            serial,
-    department_id integer,
+--    department_id integer,
     name          text,   -- 部门名称
     index         integer -- 流程位续
 );
+
+insert into departments (name, index)
+values ('业务部', 0);
 
 -- 账号
 create table accounts
@@ -195,5 +198,7 @@ create table accounts
     password      text,
     department_id integer
 );
+insert into accounts (name, account, password, department_id)
+values ('test', 'test', 'test', 1);
 
 -- create index idx_index on department (`index`);

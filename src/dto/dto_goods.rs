@@ -26,12 +26,12 @@ impl SKUModelDto {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GoodsDto {
     pub id: i32,
-    pub goods_no: String, // 类目编号
-    pub image: String,    // 图片
-    pub name: String,     // 名称
-    pub notes: String,    // 备注
-    pub count: i32,       // 多少件商品
-    pub skus: Vec<SKUModel>,
+    pub goods_no: String,    // 商品编号
+    pub image: String,       // 图片
+    pub name: String,        // 名称
+    pub notes: String,       // 备注
+    pub count: i32,          // 多少件商品
+    pub skus: Vec<SKUModel>, // 该类目下的所有sku
 }
 
 impl GoodsDto {
