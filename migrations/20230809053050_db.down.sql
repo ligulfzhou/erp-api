@@ -11,3 +11,4 @@ drop table if exists departments;
 drop table if exists department;
 drop table if exists accounts;
 drop table if exists account;
+drop table if exists customer_excel_template;

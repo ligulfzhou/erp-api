@@ -36,10 +36,6 @@ pub struct GoodsDto {
 
 impl GoodsDto {
     pub fn from(goods: GoodsModel, skus: Vec<SKUModel>) -> GoodsDto {
-        // let skus_dtos = skus
-        //     .iter()
-        //     .map(|sku| SKUModelDto::from(sku.clone()))
-        //     .collect::<Vec<SKUModelDto>>();
         Self {
             id: goods.id,
             goods_no: goods.goods_no,
