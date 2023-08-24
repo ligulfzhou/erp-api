@@ -2,29 +2,23 @@ use crate::model::account::AccountModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::State;
-use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{routing::post, Json, Router};
+use axum::{routing::post, Json, Router, middleware};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use std::sync::Arc;
 use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
+use crate::middleware::auth::auth;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/login", post(api_login))
-        .route("/api/test", get(api_test))
+        .route("/api/test", get(api_test).route_layer(middleware::from_fn_with_state(state.clone(), auth)))
         .layer(CookieManagerLayer::new())
         .with_state(state)
 }
 
 async fn api_test() -> ERPResult<APIEmptyResponse> {
-    // if let Some(user_id) = jar.get("user_id") {
-    //     tracing::info!("user_id: {}", user_id);
-    // } else {
-    //     tracing::info!("cookie#user_id not found");
-    // }
-
     Ok(APIEmptyResponse::new())
 }
 #[derive(Debug, Deserialize, Serialize)]

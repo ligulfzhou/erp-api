@@ -16,6 +16,7 @@ mod error;
 mod excel;
 mod handler;
 mod macros;
+mod middleware;
 mod model;
 mod repository;
 mod response;

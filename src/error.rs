@@ -16,6 +16,12 @@ pub enum ERPError {
     #[error("密码错误")]
     LoginFailForPasswordIsWrong,
 
+    #[error("未登陆")]
+    NotAuthorized,
+
+    #[error("账号不存在")]
+    AccountNotFound,
+
     #[error("sqlx db error: {:?}", .0)]
     DBError(#[from] SqlxError),
 

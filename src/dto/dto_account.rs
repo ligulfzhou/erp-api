@@ -1,6 +1,6 @@
 use crate::model::account::{AccountModel, DepartmentModel};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AccountDto {
     pub id: i32,
     pub name: String,
