@@ -69,6 +69,22 @@ pub struct OrderItemModel {
     pub notes: Option<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ExcelOrder {
+    pub info: OrderInfo,
+    pub items: Vec<OrderItemExcel>,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct OrderInfo {
+    pub customer_no: String,
+    pub order_no: String,
+    pub order_date: String,
+    pub delivery_date: String,
+    pub is_return_order: bool,
+    pub is_urgent: bool,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct OrderItemExcel {
     pub index: i32,
