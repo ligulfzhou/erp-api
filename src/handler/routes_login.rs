@@ -1,6 +1,5 @@
 use crate::dto::dto_account::AccountDto;
 use crate::model::account::{AccountModel, DepartmentModel};
-use crate::response::api_response::APIEmptyResponse;
 use crate::{AppState, ERPError};
 use axum::extract::State;
 use axum::http::header;
@@ -10,7 +9,6 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use std::sync::Arc;
-use tower_cookies::cookie::time;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -24,7 +22,6 @@ struct LoginPayload {
     password: String,
 }
 
-// #[axum_macros::debug_handler]
 async fn api_login(
     // cookies: Cookies,
     State(state): State<Arc<AppState>>,
