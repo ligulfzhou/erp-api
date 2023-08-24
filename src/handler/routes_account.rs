@@ -9,10 +9,8 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
-        .route(
-            "/api/account/info",
-            get(account_info).route_layer(middleware::from_fn_with_state(state.clone(), auth)),
-        )
+        .route("/api/account/info", get(account_info))
+        .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
 }
 

@@ -18,36 +18,38 @@ pub async fn auth<B>(
     mut req: Request<B>,
     next: Next<B>,
 ) -> Result<impl IntoResponse, ERPError> {
-    let user_id = cookie_jar
-        .get("user_id")
+    let account_id = cookie_jar
+        .get("account_id")
         .map(|cookie| cookie.value().to_string());
-    if user_id.is_none() {
+    if account_id.is_none() {
         return Err(ERPError::NotAuthorized);
     }
 
-    let user_id = user_id.unwrap();
+    let account_id = account_id.unwrap();
 
-    let user =
-        sqlx::query_as::<_, AccountModel>(&format!("select * from accounts where id={}", user_id))
-            .fetch_optional(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+    let account = sqlx::query_as::<_, AccountModel>(&format!(
+        "select * from accounts where id={}",
+        account_id
+    ))
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
-    if user.is_none() {
+    if account.is_none() {
         return Err(ERPError::AccountNotFound);
     }
 
-    let user = user.unwrap();
+    let account = account.unwrap();
     let department = sqlx::query_as::<_, DepartmentModel>(&format!(
         "select * from departments where id={}",
-        user.department_id
+        account.department_id
     ))
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
 
-    let user_dto = AccountDto::from(user, department);
+    let account_dto = AccountDto::from(account, department);
 
-    req.extensions_mut().insert(user_dto);
+    req.extensions_mut().insert(account_dto);
     Ok(next.run(req).await)
 }

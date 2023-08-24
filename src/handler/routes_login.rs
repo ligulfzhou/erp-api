@@ -1,26 +1,23 @@
-use crate::model::account::AccountModel;
+use crate::dto::dto_account::AccountDto;
+use crate::model::account::{AccountModel, DepartmentModel};
 use crate::response::api_response::APIEmptyResponse;
-use crate::{AppState, ERPError, ERPResult};
+use crate::{AppState, ERPError};
 use axum::extract::State;
-use axum::routing::get;
-use axum::{routing::post, Json, Router, middleware};
+use axum::http::header;
+use axum::response::{IntoResponse, Response};
+use axum::{routing::post, Json, Router};
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::WithRejection;
 use serde::Deserialize;
 use std::sync::Arc;
-use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
-use crate::middleware::auth::auth;
+use tower_cookies::cookie::time;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/login", post(api_login))
-        .route("/api/test", get(api_test).route_layer(middleware::from_fn_with_state(state.clone(), auth)))
-        .layer(CookieManagerLayer::new())
         .with_state(state)
 }
 
-async fn api_test() -> ERPResult<APIEmptyResponse> {
-    Ok(APIEmptyResponse::new())
-}
 #[derive(Debug, Deserialize, Serialize)]
 struct LoginPayload {
     account: String,
@@ -29,10 +26,10 @@ struct LoginPayload {
 
 // #[axum_macros::debug_handler]
 async fn api_login(
-    cookies: Cookies,
+    // cookies: Cookies,
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
-) -> ERPResult<APIEmptyResponse> {
+) -> Result<impl IntoResponse, ERPError> {
     tracing::info!("->> {:<12}, api_login", "handler");
     let account = sqlx::query_as::<_, AccountModel>(&format!(
         "select * from accounts where account='{}'",
@@ -52,10 +49,30 @@ async fn api_login(
         return Err(ERPError::LoginFailForPasswordIsWrong);
     }
 
-    let user_id = account_unwrap.id;
-    cookies.add(Cookie::new("user_id", user_id.to_string()));
+    let account_id = account_unwrap.id;
+    let department = sqlx::query_as::<_, DepartmentModel>(&format!(
+        "select * from departments where id={}",
+        account_unwrap.department_id
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
-    Ok(APIEmptyResponse::new())
+    let account_dto = AccountDto::from(account_unwrap, department);
+
+    let cookie = Cookie::build("account_id", account_id.to_string())
+        .path("/")
+        .max_age(time::Duration::days(7))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    let mut response = Response::new(serde_json::json!(account_dto).to_string());
+    response
+        .headers_mut()
+        .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+
+    Ok(response)
 }
 
 #[cfg(test)]
@@ -74,8 +91,6 @@ mod tests {
             .await?
             .print()
             .await?;
-
-        client.do_get("/api/test").await?.print().await?;
 
         client.do_get("/api/account/info").await?.print().await?;
         Ok(())
