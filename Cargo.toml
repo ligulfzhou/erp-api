@@ -29,7 +29,9 @@ clap = { version = "4.3.19", features = ["derive"] }
 dotenv = "0.15.0"
 
 # read excel
-#calamine = {version = "0.21.2", features = ["picture"]}
+# calamine = {version = "0.21.2", features = ["picture"]}
+# calamine does not support reading image from cell
+# and then i choose umya-spreadsheet
 umya-spreadsheet = "1.0.0"
 
 [dev-dependencies]

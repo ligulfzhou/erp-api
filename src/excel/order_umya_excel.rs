@@ -58,7 +58,6 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
                 2 => cur.package_card_des = Some(cell_value),
                 3 => cur.goods_no = cell_value,
                 4 => cur.image_des = Some(cell_value),
-                // 5 => cur.goods_no = cell_value,
                 5 => cur.name = cell_value,
                 6 => cur.plating = cell_value,
                 7 => cur.color = cell_value,
@@ -76,6 +75,7 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
             real_goods_image.download_image(&goods_image_path);
             cur.package_card = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, cur.goods_no));
         }
+
         if let Some(read_package_image) = package_image {
             let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, cur.goods_no);
             read_package_image.download_image(&package_image_path);
@@ -84,6 +84,7 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
                 STORAGE_URL_PREFIX, cur.goods_no
             ));
         }
+
         items.push(cur.clone());
         pre = Some(cur);
     }
