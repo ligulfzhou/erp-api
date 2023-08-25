@@ -23,12 +23,12 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 }
                 order_info.customer_no = customer_no.to_owned();
             }
+
             if cell_value.contains("供应商") {
                 let mut customer_no = cell_value.strip_prefix("供应商:").unwrap_or("");
                 if customer_no.is_empty() {
                     customer_no = cell_value.strip_prefix("供应商：").unwrap_or("");
                 }
-
                 order_info.customer_no = customer_no.to_owned();
             }
 
@@ -37,7 +37,6 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if order_no.is_empty() {
                     order_no = cell_value.strip_prefix("单号：").unwrap_or("");
                 }
-
                 order_info.order_no = order_no.to_owned();
             }
 
@@ -46,15 +45,14 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if order_date.is_empty() {
                     order_date = cell_value.strip_prefix("订货日期：").unwrap_or("");
                 }
-
                 order_info.order_date = order_date.to_owned();
             }
+
             if cell_value.contains("交货日期") {
                 let mut delivery_date = cell_value.strip_prefix("交货日期:").unwrap_or("");
                 if delivery_date.is_empty() {
                     delivery_date = cell_value.strip_prefix("交货日期：").unwrap_or("");
                 }
-
                 order_info.delivery_date = delivery_date.to_owned();
 
                 if delivery_date.contains("返单") {

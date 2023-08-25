@@ -89,10 +89,25 @@ values ('L1007', '', '', '', '');
 
 create table customer_excel_template(
     id serial,
-    customer_id integer not null,
+--    customer_id integer not null,
     customer_no text not null,
     template_id integer not null
 );
+
+insert into customer_excel_template (customer_no, template_id)
+values ('L1001', 1);
+insert into customer_excel_template (customer_no, template_id)
+values ('L1003', 1);
+insert into customer_excel_template (customer_no, template_id)
+values ('L1006', 1);
+-- 虽然和上面不太一样
+insert into customer_excel_template (customer_no, template_id)
+values ('L1005', 1);
+
+insert into customer_excel_template (customer_no, template_id)
+values ('L1012', 2);
+
+
 
 -- 订单表
 create table orders

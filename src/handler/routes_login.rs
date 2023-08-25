@@ -23,7 +23,6 @@ struct LoginPayload {
 }
 
 async fn api_login(
-    // cookies: Cookies,
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
 ) -> Result<impl IntoResponse, ERPError> {

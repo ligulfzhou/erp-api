@@ -51,7 +51,10 @@ impl ListParamToSQLTrait for ListCustomerParam {
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
-        sql.push_str(&format!(" offset {} limit {};", offset, page_size));
+        sql.push_str(&format!(
+            " order by id desc offset {} limit {};",
+            offset, page_size
+        ));
 
         tracing::info!("get_customer_list sql: {sql}");
 
@@ -109,7 +112,7 @@ async fn get_customers(
 #[derive(Debug, Deserialize)]
 struct CreateCustomerParam {
     pub customer_no: String,
-    pub name: String,
+    pub name: Option<String>,
     pub address: Option<String>,
     pub phone: Option<String>,
     pub notes: Option<String>,
@@ -119,7 +122,7 @@ impl CreateCustomerParam {
     fn to_sql(&self) -> String {
         format!(
             "insert into customers (customer_no, name, address, phone, notes) values ('{}', '{}', '{}', '{}', '{}')",
-            self.customer_no, self.name, self.address.as_ref().unwrap_or(&"".to_string()), self.phone.as_ref().unwrap_or(&"".to_string()), self.notes.as_ref().unwrap_or(&"".to_string())
+            self.customer_no, self.name.as_ref().unwrap_or(&"".to_string()), self.address.as_ref().unwrap_or(&"".to_string()), self.phone.as_ref().unwrap_or(&"".to_string()), self.notes.as_ref().unwrap_or(&"".to_string())
         )
     }
 }
