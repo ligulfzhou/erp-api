@@ -2,7 +2,7 @@ use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
+pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     let (cols, rows) = sheet.get_highest_column_and_row();
     let mut items = vec![];
 
@@ -12,7 +12,6 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
         }
-
         let mut package_image: Option<Image> = None;
         let mut goods_image: Option<Image> = None;
 
@@ -78,16 +77,16 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
 
 #[cfg(test)]
 mod tests {
-    use crate::excel::order_template_1::parse_order_excel_t1;
+    use crate::excel::order_template_2::parse_order_excel_t2;
     use umya_spreadsheet::*;
 
     #[test]
-    fn test()-> anyhow::Result<()> {
+    fn test()-> anyhow::Result<()>  {
         let path =
             std::path::Path::new("/Users/ligangzhou/Money/rust/erp-api/excel_templates/test2.xlsx");
         let book = reader::xlsx::read(path)?;
         let sheet = book.get_active_sheet();
-        let order_info = parse_order_excel_t1(sheet);
+        let order_info = parse_order_excel_t2(sheet);
         println!("order_info: {:#?}", order_info);
         Ok(())
     }

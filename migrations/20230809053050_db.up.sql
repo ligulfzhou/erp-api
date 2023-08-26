@@ -89,7 +89,6 @@ values ('L1007', '', '', '', '');
 
 create table customer_excel_template(
     id serial,
---    customer_id integer not null,
     customer_no text not null,
     template_id integer not null
 );
