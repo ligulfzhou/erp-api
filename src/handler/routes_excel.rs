@@ -1,5 +1,7 @@
 use crate::constants::STORAGE_FILE_PATH;
 // use crate::model::order::{multi_order_items_no_id_models_to_sql, OrderItemNoIdModel};
+use crate::excel::excel_order_parser::ExcelOrderParser;
+use crate::model::order::OrderModel;
 use crate::response::api_response::APIEmptyResponse;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Multipart, State};
@@ -9,7 +11,6 @@ use axum::Router;
 use chrono::{Datelike, Timelike, Utc};
 use std::fs;
 use std::sync::Arc;
-use crate::excel::excel_order_parser::ExcelOrderParser;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -25,7 +26,7 @@ async fn page_upload_file() -> impl IntoResponse {
 <html>
 <body>
 
-<form action="/api/upload/image" method="post" enctype="multipart/form-data">
+<form action="/api/upload/excel" method="post" enctype="multipart/form-data">
     Select image to upload:
     <input type="file" name="file" id="fileToUpload">
     <input type="submit" value="Upload Image" name="submit">
@@ -97,9 +98,28 @@ async fn import_excel(
         return Err(ERPError::Failed("save excel file failed".to_string()));
     }
 
+    // 解析excel文件
     let parser = ExcelOrderParser::new(&file_path, state.db.clone());
     let order_info = parser.parse().await?;
     tracing::info!("order_info: {:?}", order_info);
+
+    // 判断order_no是否已经存在
+    let order = sqlx::query_as::<_, OrderModel>(&format!(
+        "select * from orders where order_no='{}'",
+        order_info.info.order_no
+    ))
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    if order.is_some()  {
+        return Err(ERPError::AlreadyExists(format!("订单号{}已存在", order_info.info.order_no)))
+    }
+
+    // 将订单内的产品信息存表 (goods, skus)
+
+    //
+
 
     // 从excel文件里读 订单信息
     // let items = read_excel_with_umya(&file_path);
@@ -116,7 +136,6 @@ async fn import_excel(
     // let sql = multi_order_items_no_id_models_to_sql(items_to_insert);
     // tracing::info!("import sql: {}", sql);
     // sqlx::query(&sql).execute(&state.db).await?;
-
 
     // for item in items_to_insert {
     //     sqlx::query(
