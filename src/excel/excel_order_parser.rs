@@ -50,10 +50,10 @@ impl<'a> ExcelOrderParser<'a> {
         }
 
         let order_items = match customer_excel_template_model.unwrap().template_id {
-            1 => parse_order_excel_t1(self.path),
-            2 => parse_order_excel_t1(self.path),
-            3 => parse_order_excel_t1(self.path),
-            _ => parse_order_excel_t1(self.path),
+            1 => parse_order_excel_t1(sheet),
+            2 => parse_order_excel_t1(sheet),
+            3 => parse_order_excel_t1(sheet),
+            _ => parse_order_excel_t1(sheet),
         };
 
         let excel_order = ExcelOrder {

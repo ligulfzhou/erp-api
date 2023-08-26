@@ -2,11 +2,7 @@ use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t1(file_path: &str) -> Vec<OrderItemExcel> {
-    let path = std::path::Path::new(file_path);
-    let mut book = reader::xlsx::read(path).unwrap();
-
-    let sheet = book.get_active_sheet();
+pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     let (cols, rows) = sheet.get_highest_column_and_row();
     let mut items = vec![];
 
