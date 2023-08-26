@@ -10,7 +10,7 @@ pub type ERPResult<T> = Result<T, ERPError>;
 
 #[derive(Debug, Error)]
 pub enum ERPError {
-    #[error("login failed")]
+    #[error("登陆失败")]
     LoginFail,
 
     #[error("密码错误")]
@@ -25,13 +25,13 @@ pub enum ERPError {
     #[error("sqlx db error: {:?}", .0)]
     DBError(#[from] SqlxError),
 
-    #[error("data already exists: {:?}", .0)]
+    #[error("数据已存在: {:?}", .0)]
     AlreadyExists(String),
 
-    #[error("Not Found: {:?}", .0)]
+    #[error("数据未找到: {:?}", .0)]
     NotFound(String),
 
-    #[error("parameter lost: {:?}", .0)]
+    #[error("参数缺失: {:?}", .0)]
     ParamNeeded(String),
 
     #[error(transparent)]

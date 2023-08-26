@@ -90,15 +90,26 @@ pub struct OrderItemExcel {
     pub index: i32,
     pub package_card: Option<String>,
     pub package_card_des: Option<String>,
-    // pub customer_order_no: Option<String>,
     pub goods_no: String,
+    pub goods_no_2: Option<String>, // 反正用处并不大
+    /// 商品图片
     pub image: Option<String>,
+    /// 商品的图片描述
     pub image_des: Option<String>,
-    // pub goods_no: String,
+    /// 商品名
     pub name: String,
+    /// 电镀
     pub plating: String,
+    /// 色号/颜色
     pub color: String,
+    /// 颜色
+    pub color_2: Option<String>,
+    /// 条码
+    pub barcode: Option<String>,
+    /// 数量
     pub count: i32,
+    pub purchase_price: Option<i32>,
+    /// 单位
     pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,

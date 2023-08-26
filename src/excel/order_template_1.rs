@@ -2,7 +2,7 @@ use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
 
-pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
+pub fn parse_order_excel_t1(file_path: &str) -> Vec<OrderItemExcel> {
     let path = std::path::Path::new(file_path);
     let mut book = reader::xlsx::read(path).unwrap();
 
@@ -81,10 +81,10 @@ pub fn read_excel_with_umya(file_path: &str) -> Vec<OrderItemExcel> {
 
 #[cfg(test)]
 mod tests {
-    use crate::excel::order_umya_excel::read_excel_with_umya;
+    use crate::excel::order_template_1::parse_order_excel_t1;
 
     #[test]
     fn test() {
-        read_excel_with_umya("/xyz");
+        parse_order_excel_t1("/xyz");
     }
 }
