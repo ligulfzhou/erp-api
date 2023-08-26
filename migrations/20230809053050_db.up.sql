@@ -101,6 +101,7 @@ values ('L1003', 1);
 insert into customer_excel_template (customer_no, template_id)
 values ('L1006', 1);
 -- 虽然和上面不太一样
+
 insert into customer_excel_template (customer_no, template_id)
 values ('L1005', 1);
 

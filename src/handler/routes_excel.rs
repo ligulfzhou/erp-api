@@ -10,6 +10,7 @@ use axum::Router;
 use chrono::{Datelike, Timelike, Utc};
 use std::fs;
 use std::sync::Arc;
+use crate::excel::excel_order_parser::ExcelOrderParser;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
@@ -97,21 +98,26 @@ async fn import_excel(
         return Err(ERPError::Failed("save excel file failed".to_string()));
     }
 
+    let parser = ExcelOrderParser::new(&file_path, state.db.clone());
+    let order_info = parser.parse().await?;
+    tracing::info!("order_info: {:?}", order_info);
+
     // 从excel文件里读 订单信息
-    let items = read_excel_with_umya(&file_path);
-    tracing::info!("we extract order_items from excel");
-    for (index, item) in items.iter().enumerate() {
-        println!("{index}: {:?}\n", item);
-    }
+    // let items = read_excel_with_umya(&file_path);
+    // tracing::info!("we extract order_items from excel");
+    // for (index, item) in items.iter().enumerate() {
+    //     println!("{index}: {:?}\n", item);
+    // }
+    //
+    // let items_to_insert = items
+    //     .iter()
+    //     .map(|item| item.to_order_item_no_id_model(id, 1))
+    //     .collect::<Vec<OrderItemNoIdModel>>();
+    //
+    // let sql = multi_order_items_no_id_models_to_sql(items_to_insert);
+    // tracing::info!("import sql: {}", sql);
+    // sqlx::query(&sql).execute(&state.db).await?;
 
-    let items_to_insert = items
-        .iter()
-        .map(|item| item.to_order_item_no_id_model(id, 1))
-        .collect::<Vec<OrderItemNoIdModel>>();
-
-    let sql = multi_order_items_no_id_models_to_sql(items_to_insert);
-    tracing::info!("import sql: {}", sql);
-    sqlx::query(&sql).execute(&state.db).await?;
 
     // for item in items_to_insert {
     //     sqlx::query(

@@ -4,7 +4,6 @@ use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::order::ExcelOrder;
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
-use std::fs::read;
 use umya_spreadsheet::reader;
 
 #[derive(Debug)]
@@ -33,6 +32,7 @@ impl<'a> ExcelOrderParser<'a> {
             ));
         }
 
+        tracing::info!("customer_no: {}", order_info.customer_no);
         let customer_excel_template_model =
             sqlx::query_as::<_, CustomerExcelTemplateModel>(&format!(
                 "select * from customer_excel_template where customer_no='{}';",
