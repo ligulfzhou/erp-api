@@ -82,7 +82,7 @@ mod tests {
     use umya_spreadsheet::*;
 
     #[test]
-    fn test()-> anyhow::Result<()> {
+    fn test() -> anyhow::Result<()> {
         let path =
             std::path::Path::new("/Users/ligangzhou/Money/rust/erp-api/excel_templates/test2.xlsx");
         let book = reader::xlsx::read(path)?;

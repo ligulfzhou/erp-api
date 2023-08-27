@@ -22,7 +22,7 @@ pub enum ERPError {
     #[error("账号不存在")]
     AccountNotFound,
 
-    #[error("sqlx db error: {:?}", .0)]
+    #[error("sqlx数据库错误: {:?}", .0)]
     DBError(#[from] SqlxError),
 
     #[error("数据已存在: {:?}", .0)]
@@ -40,13 +40,13 @@ pub enum ERPError {
     #[error("{}", .0)]
     SaveFileFailed(String),
 
-    #[error("Param type conversion Failed: {:?}", .0)]
+    #[error("参数错误: {:?}", .0)]
     ConvertFailed(String),
 
     #[error("{}", .0)]
     Failed(String),
 
-    #[error("collision: {}", .0)]
+    #[error("数据冲突: {}", .0)]
     Collision(String),
 }
 

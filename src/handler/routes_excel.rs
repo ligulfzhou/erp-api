@@ -112,15 +112,16 @@ async fn import_excel(
     .await
     .map_err(ERPError::DBError)?;
 
-    if order.is_some()  {
-        return Err(ERPError::AlreadyExists(format!("订单号{}已存在", order_info.info.order_no)))
+    if order.is_some() {
+        return Err(ERPError::AlreadyExists(format!(
+            "订单号{}已存在",
+            order_info.info.order_no
+        )));
     }
 
     // 将订单内的产品信息存表 (goods, skus)
 
-
     //
-
 
     // 从excel文件里读 订单信息
     // let items = read_excel_with_umya(&file_path);
