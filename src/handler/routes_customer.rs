@@ -246,3 +246,13 @@ async fn update_customer(
 
     Ok(APIEmptyResponse::new())
 }
+
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test () {
+
+    }
+}
