@@ -444,11 +444,11 @@ mod tests {
         let sql = params.to_pagination_sql();
         let count_sql = params.to_count_sql();
         assert_eq!(
-            "select * from goods where name='name' and goods_no='goods_no' offset 0 limit 50;",
+            "select * from goods where goods_no='goods_no' offset 0 limit 50;",
             sql.as_str()
         );
         assert_eq!(
-            "select count(1) from goods where name='name' and goods_no='goods_no';",
+            "select count(1) from goods where goods_no='goods_no';",
             count_sql.as_str()
         );
     }
