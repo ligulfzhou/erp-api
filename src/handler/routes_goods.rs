@@ -129,13 +129,13 @@ async fn get_goods(
         return Ok(APIListResponse::new(vec![], 0));
     }
 
-    let goods_nos = goods
+    let goods_ids = goods
         .iter()
-        .map(|goods| format!("'{}'", goods.goods_no))
+        .map(|goods| format!("{}", goods.id))
         .collect::<Vec<String>>()
         .join(",");
-    let sql = format!("select * from skus where goods_no in ({});", goods_nos);
-    tracing::info!("fetch skus with goods_nos: {} with sql: {}", goods_nos, sql);
+    let sql = format!("select * from skus where goods_id in ({});", goods_ids);
+    tracing::info!("fetch skus with goods_nos: {} with sql: {}", goods_ids, sql);
 
     let skus = sqlx::query_as::<_, SKUModel>(&sql)
         .fetch_all(&state.db)
@@ -145,7 +145,7 @@ async fn get_goods(
     let mut id_to_skus = HashMap::new();
     for sku in skus.iter() {
         id_to_skus
-            .entry(sku.goods_no.clone())
+            .entry(sku.goods_id)
             .or_insert(vec![])
             .push(sku.clone());
     }
@@ -154,10 +154,7 @@ async fn get_goods(
     let goods_dtos = goods
         .iter()
         .map(|item| {
-            let mut its_skus = vec![];
-            if id_to_skus.get(item.goods_no.as_str()).is_some() {
-                its_skus = id_to_skus.get(item.goods_no.as_str()).unwrap().clone();
-            }
+            let its_skus = id_to_skus.get(&item.id).unwrap_or(&vec![]).to_owned();
             GoodsDto::from(item.clone(), its_skus)
         })
         .collect::<Vec<GoodsDto>>();
@@ -174,7 +171,7 @@ async fn get_goods(
 #[derive(Debug, Deserialize)]
 struct ListSKUsParam {
     name: Option<String>,
-    goods_no: Option<String>,
+    // goods_no: Option<String>,
     sku_no: Option<String>,
     plating: Option<String>,
     color: Option<String>,
@@ -191,9 +188,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
-        }
+        // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
+        // }
         if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         }
@@ -226,9 +223,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
         }
-        if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
-        }
+        // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
+        // }
         if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         }

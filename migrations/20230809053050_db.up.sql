@@ -2,7 +2,7 @@
 create table goods
 (
     id       SERIAL,
-    goods_no text not null default '', -- 类目编号
+    goods_no text not null default '', -- 类目编号(可以为空，主要来自L1005)
     image    text not null default '', -- 图片
     name     text not null default '', -- 名称
     notes    text                      -- 备注
@@ -11,56 +11,53 @@ create unique index uniq_goods_goods_no on goods (goods_no);
 
 insert into goods (goods_no, image, name, notes)
 values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_1',
-        'notes_1'),
-       ('goods_no_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_2',
-        'notes_2'),
-       ('goods_no_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_3',
-        'notes_3'),
-       ('goods_no_4', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_4',
-        'notes_4'),
-       ('goods_no_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_5',
+        'notes_1');
+insert into goods (goods_no, image, name, notes)
+values ('goods_no_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_2',
+        'notes_2');
+insert into goods (goods_no, image, name, notes)
+values ('goods_no_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_3',
+        'notes_3');
+insert into goods (goods_no, image, name, notes)
+values ('goods_no_4', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_4',
+        'notes_4');
+insert into goods (goods_no, image, name, notes)
+values ('goods_no_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_5',
         'notes_5');
 
 -- sku表
 create table skus
 (
-    id       SERIAL,                   -- ID
-    goods_no text not null default '', -- 类目编号
-    image    text,                     -- 商品图片  // todo: 感觉可有可无
-    plating  text not null default '', -- 电镀
-    color    text not null default '', -- 颜色
-    notes    text                      -- 备注
+    id       SERIAL,                      -- ID
+--     goods_no text    not null default '', -- 类目编号
+    goods_id integer not null default 0,  -- 类目ID
+    image    text,                        -- 商品图片  // todo: 感觉可有可无
+    plating  text    not null default '', -- 电镀
+    color    text    not null default '', -- 颜色
+    color2   text    not null default '', -- 颜色（只记录，只会用上面的color）
+    notes    text                         -- 备注
 );
-create unique index uniq_skus_goods_no_and_color on skus (goods_no, color);
+create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 
 
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '绿色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '红色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '粉红',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '白色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黑色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黄色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '橙色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '青色',
-        'notes....');
-insert into skus (goods_no, image, plating, color, notes)
-values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '紫色',
-        'notes....');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '绿色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '红色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '粉红', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '白色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黑色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黄色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '橙色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '青色', 'notes');
+insert into skus (goods_id, image, plating, color, notes)
+values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '紫色', 'notes');
 
 -- 客户
 create table customers
@@ -87,9 +84,10 @@ values ('L1006', '', '', '', '');
 insert into customers (customer_no, name, address, phone, notes)
 values ('L1007', '', '', '', '');
 
-create table customer_excel_template(
-    id serial,
-    customer_no text not null,
+create table customer_excel_template
+(
+    id          serial,
+    customer_no text    not null,
     template_id integer not null
 );
 
@@ -99,14 +97,16 @@ insert into customer_excel_template (customer_no, template_id)
 values ('L1003', 1);
 insert into customer_excel_template (customer_no, template_id)
 values ('L1006', 1);
+
 -- 虽然和上面不太一样
+insert into customer_excel_template (customer_no, template_id)
+values ('L1005', 2);
 
 insert into customer_excel_template (customer_no, template_id)
-values ('L1005', 1);
+values ('L1012', 3);
 
 insert into customer_excel_template (customer_no, template_id)
-values ('L1012', 2);
-
+values ('L1004', 4);
 
 
 -- 订单表
@@ -133,30 +133,29 @@ create table order_goods
 (
     id               serial,
     order_id         integer not null, -- 订单ID
-    order_no         text    not null, -- 订单编号
-    goods_no         text    not null, -- 商品编号
+--     order_no         text    not null, -- 订单编号
+--     goods_no         text    not null, -- 商品编号
+    goods_id         integer not null, -- 商品ID
     package_card     text,             -- 标签图片
     package_card_des text              -- 标签说明
 );
 create index idx_order_goods_order_id on order_goods (order_id);
-create unique index uniq_order_goods_order_no_and_goods_no on order_goods (order_no, goods_no);
+create unique index uniq_order_goods_order_id_and_goods_id on order_goods (order_id, goods_id);
 
-insert into order_goods (order_id, order_no, goods_no, package_card, package_card_des)
-VALUES (1, 'order_no_1', 'goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-        '');
-insert into order_goods (order_id, order_no, goods_no, package_card, package_card_des)
-values (1, 'order_no_1', 'goods_no_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-        '');
-insert into order_goods (order_id, order_no, goods_no, package_card, package_card_des)
-values (1, 'order_no_1', 'goods_no_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-        '');
+insert into order_goods (order_id, goods_id, package_card, package_card_des)
+VALUES (1, 1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
+insert into order_goods (order_id, goods_id, package_card, package_card_des)
+values (1, 2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
+insert into order_goods (order_id, goods_id, package_card, package_card_des)
+values (1, 3, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
 
 -- 订单sku表
 create table order_items
 (
     id          serial,
     order_id    integer not null, -- 订单ID
-    order_no    text    not null, -- 商品编号
+--     order_no    text    not null, -- 商品编号
+    goods_id    integer not null, -- 商品ID
     sku_id      integer not null, -- sku id
     count       integer not null, -- 数量
     unit        text,             -- 单位
@@ -165,14 +164,16 @@ create table order_items
     notes       text              -- 备注
 );
 create index idx_order_items_order_id on order_items (order_id);
-create unique index uniq_order_goods_order_no_and_sku_id on order_items (order_no, sku_id);
+create index idx_order_items_goods_id on order_items (goods_id);
+create index idx_order_items_sku_id on order_items (sku_id);
+create unique index uniq_order_goods_order_id_and_sku_id on order_items (order_id, sku_id);
 
-insert into order_items (order_id, order_no, sku_id, count, unit)
-values (1, 'order_no_1', 1, 10, '个');
-insert into order_items (order_id, order_no, sku_id, count, unit)
-values (1, 'order_no_1', 2, 10, '个');
-insert into order_items (order_id, order_no, sku_id, count, unit)
-values (1, 'order_no_1', 3, 10, '个');
+insert into order_items (order_id, goods_id, sku_id, count, unit)
+values (1, 1, 1, 10, '个');
+insert into order_items (order_id, goods_id, sku_id, count, unit)
+values (1, 1, 2, 10, '个');
+insert into order_items (order_id, goods_id, sku_id, count, unit)
+values (1, 1, 3, 10, '个');
 
 -- 订单sku的的材料单 * N
 create table order_item_materials
@@ -195,10 +196,10 @@ create table order_item_materials
 -- 部门
 create table departments
 (
-    id            serial,
+    id    serial,
 --    department_id integer,
-    name          text,   -- 部门名称
-    index         integer -- 流程位续
+    name  text,   -- 部门名称
+    index integer -- 流程位续
 );
 
 insert into departments (name, index)

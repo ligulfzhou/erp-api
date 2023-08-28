@@ -46,12 +46,13 @@ pub fn multi_order_items_no_id_models_to_sql(models: Vec<OrderItemNoIdModel>) ->
     format!("insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit, unit_price, total_price, notes) values {}", values.join(","))
 }
 
-// #[derive(De)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderGoodsModel {
-    pub id: usize,
-    pub order_id: usize,
-    pub order_no: String,
-    pub goods_no: String,
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    // pub order_no: String,
+    // pub goods_no: String,
     pub package_card: Option<String>,
     pub package_card_des: Option<String>,
 }
@@ -60,7 +61,8 @@ pub struct OrderGoodsModel {
 pub struct OrderItemModel {
     pub id: i32,
     pub order_id: i32,
-    pub order_no: String,
+    pub goods_id: i32,
+    // pub order_no: String,
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,

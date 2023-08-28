@@ -4,6 +4,7 @@ use crate::model::goods::{GoodsModel, SKUModel};
 pub struct SKUModelDto {
     pub id: i32,
     pub goods_no: String,        // 产品编号 (暂时没有)
+    pub goods_id: i32,           // 产品ID
     pub image: Option<String>,   // 商品图片
     pub plating: Option<String>, // 电镀
     pub color: Option<String>,   // 颜色
@@ -14,7 +15,8 @@ impl SKUModelDto {
     pub fn from(sku: SKUModel) -> SKUModelDto {
         Self {
             id: sku.id,
-            goods_no: sku.goods_no,
+            goods_id: sku.goods_id,
+            goods_no: "todo".to_owned(),
             image: sku.image,
             plating: sku.plating,
             color: sku.color,
