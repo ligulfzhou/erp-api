@@ -32,9 +32,10 @@ create table skus
 --     goods_no text    not null default '', -- 类目编号
     goods_id integer not null default 0,  -- 类目ID
     image    text,                        -- 商品图片  // todo: 感觉可有可无
-    plating  text    not null default '', -- 电镀
+    plating  text,                        -- 电镀
+    sku_no   text,
     color    text    not null default '', -- 颜色
-    color2   text    not null default '', -- 颜色（只记录，只会用上面的color）
+    color2   text,                        -- 颜色（只记录，只会用上面的color）
     notes    text                         -- 备注
 );
 create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);

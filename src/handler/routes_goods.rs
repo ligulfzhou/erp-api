@@ -1,5 +1,5 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_goods::GoodsDto;
+use crate::dto::dto_goods::{GoodsDto, SKUModelDto};
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::response::api_response::{APIEmptyResponse, APIListResponse};
@@ -249,13 +249,44 @@ impl ListParamToSQLTrait for ListSKUsParam {
 async fn get_skus(
     State(state): State<Arc<AppState>>,
     Query(param): Query<ListSKUsParam>,
-) -> ERPResult<APIListResponse<SKUModel>> {
+) -> ERPResult<APIListResponse<SKUModelDto>> {
     let pagination_sql = param.to_pagination_sql();
     tracing::info!("{pagination_sql}");
-    let goods = sqlx::query_as::<_, SKUModel>(&pagination_sql)
+    let skus = sqlx::query_as::<_, SKUModel>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
+
+    if skus.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let goods_ids = skus.iter().map(|sku| sku.goods_id).collect::<Vec<i32>>();
+    let goods_ids_str = goods_ids
+        .iter()
+        .map(|goods_id| format!("{}", goods_id))
+        .collect::<Vec<String>>()
+        .join(",");
+
+    let goods = sqlx::query_as::<_, (i32, String)>(&format!(
+        "select id, goods_no from goods where id in ({})",
+        goods_ids_str
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+    tracing::info!("{:?}", goods);
+
+    let id_to_goods_no = goods.into_iter().collect::<HashMap<i32, String>>();
+
+    let empty_str = "".to_string();
+    let sku_dtos = skus
+        .iter()
+        .map(|sku| {
+            let goods_no = id_to_goods_no.get(&sku.goods_id).unwrap_or(&empty_str);
+            SKUModelDto::from_sku_goods_no(sku, goods_no)
+        })
+        .collect::<Vec<SKUModelDto>>();
 
     let count_sql = param.to_count_sql();
     tracing::info!("{count_sql}");
@@ -264,7 +295,7 @@ async fn get_skus(
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(goods, total.0 as i32))
+    Ok(APIListResponse::new(sku_dtos, total.0 as i32))
 }
 
 #[derive(Debug, Deserialize, Serialize)]

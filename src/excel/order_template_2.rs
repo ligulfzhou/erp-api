@@ -56,13 +56,13 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
         if let Some(real_goods_image) = goods_image {
             let goods_image_path = format!("{}/sku/{}.png", STORAGE_FILE_PATH, cur.goods_no);
             real_goods_image.download_image(&goods_image_path);
-            cur.package_card = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, cur.goods_no));
+            cur.image = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, cur.goods_no));
         }
 
         if let Some(read_package_image) = package_image {
             let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, cur.goods_no);
             read_package_image.download_image(&package_image_path);
-            cur.image = Some(format!(
+            cur.package_card = Some(format!(
                 "{}/package/{}.png",
                 STORAGE_URL_PREFIX, cur.goods_no
             ));
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test() -> anyhow::Result<()> {
         let path =
-            std::path::Path::new("/Users/ligangzhou/Money/rust/erp-api/excel_templates/test2.xlsx");
+            std::path::Path::new("/Users/ligangzhou/Money/rust/erp-api/excel_templates/L1005.xlsx");
         let book = reader::xlsx::read(path)?;
         let sheet = book.get_active_sheet();
         let order_info = parse_order_excel_t2(sheet);

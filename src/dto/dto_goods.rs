@@ -7,20 +7,32 @@ pub struct SKUModelDto {
     pub goods_id: i32,           // 产品ID
     pub image: Option<String>,   // 商品图片
     pub plating: Option<String>, // 电镀
-    pub color: Option<String>,   // 颜色
+    pub color: String,           // 颜色
     pub notes: Option<String>,   // 备注
 }
 
 impl SKUModelDto {
-    pub fn from(sku: SKUModel) -> SKUModelDto {
+    pub fn from(sku: &SKUModel, goods: &GoodsModel) -> SKUModelDto {
         Self {
             id: sku.id,
             goods_id: sku.goods_id,
-            goods_no: "todo".to_owned(),
-            image: sku.image,
-            plating: sku.plating,
-            color: sku.color,
-            notes: sku.notes,
+            goods_no: goods.goods_no.to_string(),
+            image: sku.image.to_owned(),
+            plating: sku.plating.to_owned(),
+            color: sku.color.to_string(),
+            notes: sku.notes.to_owned(),
+        }
+    }
+
+    pub fn from_sku_goods_no(sku: &SKUModel, goods_no: &str) -> SKUModelDto {
+        Self {
+            id: sku.id,
+            goods_id: sku.goods_id,
+            goods_no: goods_no.to_string(),
+            image: sku.image.to_owned(),
+            plating: sku.plating.to_owned(),
+            color: sku.color.to_string(),
+            notes: sku.notes.to_owned(),
         }
     }
 }

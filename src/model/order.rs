@@ -92,7 +92,9 @@ pub struct OrderItemExcel {
     pub index: i32,
     pub package_card: Option<String>,
     pub package_card_des: Option<String>,
+    /// 商品唯一编号
     pub goods_no: String,
+    /// 商品编号
     pub goods_no_2: Option<String>, // 反正用处并不大
     /// 商品图片
     pub image: Option<String>,
@@ -110,11 +112,15 @@ pub struct OrderItemExcel {
     pub barcode: Option<String>,
     /// 数量
     pub count: i32,
+    /// 进货价
     pub purchase_price: Option<i32>,
     /// 单位
     pub unit: Option<String>,
+    /// 单价
     pub unit_price: Option<i32>,
+    /// 金额
     pub total_price: Option<i32>,
+    /// 备注
     pub notes: Option<String>,
 }
 
