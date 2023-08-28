@@ -484,8 +484,7 @@ async fn update_order_item(
             .map_err(ERPError::DBError)?;
     }
 
-    // tracing::info!("insert sql: {:?}", payload.to_insert_sql());
-    // tracing::info!("update sql: {:?}", payload.to_insert_sql());
+    tracing::info!("insert/update sql: {:?}", payload.to_insert_sql());
     Ok(APIEmptyResponse::new())
 }
 
