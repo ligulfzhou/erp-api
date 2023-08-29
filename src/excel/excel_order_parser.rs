@@ -144,8 +144,6 @@ impl<'a> ExcelOrderParser<'a> {
             }
         }
 
-
-
         // check goods/skus exists.
         // check order_items
         Ok(excel_order)
