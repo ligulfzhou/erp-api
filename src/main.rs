@@ -9,6 +9,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 
+mod common;
 mod config;
 mod constants;
 mod dto;
@@ -21,7 +22,6 @@ mod model;
 mod repository;
 mod response;
 mod service;
-mod common;
 
 pub use self::error::{ERPError, ERPResult};
 

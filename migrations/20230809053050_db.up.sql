@@ -43,21 +43,21 @@ create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 insert into skus (goods_id, plating, color, notes)
 values (1, 'plating', '绿色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '红色', 'notes');
+values (1, 'plating', '红色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '粉红', 'notes');
+values (1, 'plating', '粉红', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '白色', 'notes');
+values (1, 'plating', '白色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '黑色', 'notes');
+values (1, 'plating', '黑色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '黄色', 'notes');
+values (1, 'plating', '黄色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '橙色', 'notes');
+values (1, 'plating', '橙色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '青色', 'notes');
+values (1, 'plating', '青色', 'notes');
 insert into skus (goods_id, plating, color, notes)
-values (1,  'plating', '紫色', 'notes');
+values (1, 'plating', '紫色', 'notes');
 
 -- 客户
 create table customers
@@ -117,8 +117,8 @@ create table orders
     id              serial,
     customer_id     integer not null,               -- 客户ID
     order_no        text    not null,               -- 订单编号
-    order_date      integer not null,               -- 订货日期
-    delivery_date   integer,                        -- 交货日期
+    order_date      date    not null,               -- 订货日期
+    delivery_date   date,                           -- 交货日期
     is_urgent       boolean not null default false, -- 加急
     is_return_order boolean not null default false  -- 返单
 );
@@ -126,11 +126,11 @@ create table orders
 create unique index uniq_orders_order_no on orders (order_no);
 
 insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-VALUES (1, 'order_no_1', 1691558739, 1691568739, false, false);
+VALUES (1, 'order_no_1', '2023-01-02', '2023-06-01', false, false);
 insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-VALUES (2, 'order_no_2', 1691558739, 1691568739, true, false);
+VALUES (2, 'order_no_2', '2023/01/02', '2023/06/01', true, false);
 insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-VALUES (3, 'order_no_3', 1691558739, 1691568739, true, true);
+VALUES (3, 'order_no_3', '2023-01-02', '2023-06-01', true, true);
 
 -- 订单商品表
 create table order_goods

@@ -1,5 +1,6 @@
 use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemModel, OrderModel};
+use chrono::NaiveDate;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OrderDto {
@@ -10,8 +11,8 @@ pub struct OrderDto {
     pub customer_phone: String,
     pub customer_no: String,
     pub order_no: String,
-    pub order_date: i32,
-    pub delivery_date: i32,
+    pub order_date: NaiveDate,
+    pub delivery_date: Option<NaiveDate>,
 }
 
 impl OrderDto {
@@ -25,7 +26,7 @@ impl OrderDto {
             customer_no: customer.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
-            delivery_date: order.delivery_date.unwrap_or(0),
+            delivery_date: order.delivery_date,
         }
     }
 
@@ -39,7 +40,7 @@ impl OrderDto {
             customer_no: "".to_string(),
             order_no: order.order_no,
             order_date: order.order_date,
-            delivery_date: order.delivery_date.unwrap_or(0),
+            delivery_date: order.delivery_date,
         }
     }
 }

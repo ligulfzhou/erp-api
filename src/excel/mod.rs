@@ -1,3 +1,4 @@
+use crate::common::datetime::parse_date;
 use crate::model::order::{OrderInfo, OrderItemExcel};
 use umya_spreadsheet::Worksheet;
 
@@ -53,7 +54,7 @@ pub trait OrderExcelHandler {
                     if order_date.is_empty() {
                         order_date = cell_value.strip_prefix("订货日期：").unwrap_or("");
                     }
-                    order_info.order_date = order_date.to_owned();
+                    order_info.order_date = parse_date(order_date).unwrap();
                 }
 
                 if cell_value.contains("交货日期") {
@@ -61,7 +62,7 @@ pub trait OrderExcelHandler {
                     if delivery_date.is_empty() {
                         delivery_date = cell_value.strip_prefix("交货日期：").unwrap_or("");
                     }
-                    order_info.delivery_date = delivery_date.to_owned();
+                    order_info.delivery_date = parse_date(delivery_date);
 
                     if delivery_date.contains("返单") {
                         order_info.is_return_order = true;

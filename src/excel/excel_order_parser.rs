@@ -67,6 +67,8 @@ impl<'a> ExcelOrderParser<'a> {
             items: order_items,
         };
 
+        tracing::info!("excel_order: {:?}", excel_order);
+
         // 判断order_no是否已经存在
         let order = sqlx::query_as::<_, OrderModel>(&format!(
             "select * from orders where order_no='{}'",
@@ -81,6 +83,10 @@ impl<'a> ExcelOrderParser<'a> {
         match order {
             None => {
                 // save order
+                tracing::info!(
+                    "order#{} not exists, we will save",
+                    excel_order.info.order_no
+                );
                 let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
                     "select id from customers where customer_no='{}'",
                     excel_order.info.customer_no
@@ -89,16 +95,22 @@ impl<'a> ExcelOrderParser<'a> {
                 .await
                 .map_err(ERPError::DBError)?;
 
+                let delivery_date = match excel_order.info.delivery_date {
+                    None => "null".to_string(),
+                    Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
+                };
+
                 let insert_sql = format!(
                     r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-                    values ({}, '{}', {}, {}, {}, {}) returning id;"#,
+                    values ({}, '{}', '{:?}', {}, {}, {}) returning id;"#,
                     customer_id,
                     excel_order.info.order_no,
                     excel_order.info.order_date,
-                    excel_order.info.delivery_date,
+                    delivery_date,
                     excel_order.info.is_urgent,
                     excel_order.info.is_return_order
                 );
+                tracing::info!("insert order sql: {}", insert_sql);
                 let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
                     .fetch_one(&self.db)
                     .await

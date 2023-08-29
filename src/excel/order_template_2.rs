@@ -1,7 +1,7 @@
+use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
-use crate::common::string::remove_whitespace_str;
 
 pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     let (cols, rows) = sheet.get_highest_column_and_row();

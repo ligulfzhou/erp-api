@@ -1,10 +1,11 @@
+use chrono::NaiveDate;
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
     pub id: i32,
     pub customer_id: i32,
     pub order_no: String,
-    pub order_date: i32,
-    pub delivery_date: Option<i32>,
+    pub order_date: NaiveDate,
+    pub delivery_date: Option<NaiveDate>,
     // todo: 添加一个“返单，加急配送的”状态字段
     pub is_urgent: bool,       //紧急 ‼️
     pub is_return_order: bool, // 返单
@@ -81,8 +82,8 @@ pub struct ExcelOrder {
 pub struct OrderInfo {
     pub customer_no: String,
     pub order_no: String,
-    pub order_date: String,
-    pub delivery_date: String,
+    pub order_date: NaiveDate,
+    pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
 }
