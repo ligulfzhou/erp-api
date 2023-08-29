@@ -46,8 +46,9 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if order_date.is_empty() {
                     order_date = cell_value.strip_prefix("订货日期：").unwrap_or("");
                 }
-                // let ymd = chrono::NaiveDate::parse_from_str(&order_date, "%Y-%m-%d");
-                order_info.order_date = parse_date(order_date).unwrap();
+                if !order_date.is_empty() {
+                    order_info.order_date = parse_date(order_date).unwrap();
+                }
             }
 
             if cell_value.contains("交货日期") {
@@ -55,14 +56,17 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if delivery_date.is_empty() {
                     delivery_date = cell_value.strip_prefix("交货日期：").unwrap_or("");
                 }
-                order_info.delivery_date = parse_date(delivery_date);
+                if delivery_date.is_empty() {
+                    order_info.delivery_date = parse_date(delivery_date);
+                }
+            }
 
-                if delivery_date.contains("返单") {
-                    order_info.is_return_order = true;
-                }
-                if delivery_date.contains("加急") {
-                    order_info.is_urgent = true;
-                }
+            if cell_value.contains("返单") {
+                order_info.is_return_order = true;
+            }
+
+            if cell_value.contains("加急") {
+                order_info.is_urgent = true;
             }
         }
     }

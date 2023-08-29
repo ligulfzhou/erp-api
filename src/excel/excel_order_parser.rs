@@ -120,6 +120,7 @@ impl<'a> ExcelOrderParser<'a> {
             }
             Some(existing_order) => {
                 // maybe update order
+                tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
             }
         }
 
