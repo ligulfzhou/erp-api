@@ -1,7 +1,9 @@
 use crate::common::hashmap::key_of_max_value;
 use crate::common::string::common_prefix;
 use crate::model::goods::GoodsModel;
+use crate::{ERPError, ERPResult};
 use chrono::NaiveDate;
+use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
@@ -91,6 +93,68 @@ pub struct OrderInfo {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
+}
+
+impl OrderInfo {
+    pub async fn insert_to_orders(
+        db: &Pool<Postgres>,
+        order_info: &OrderInfo,
+        customer_id: i32,
+    ) -> ERPResult<i32> {
+        let delivery_date = match order_info.delivery_date {
+            None => "null".to_string(),
+            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
+        };
+
+        let insert_sql = format!(
+            r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+                    values ({}, '{}', '{:?}', {}, {}, {}) returning id;"#,
+            customer_id,
+            order_info.order_no,
+            order_info.order_date,
+            delivery_date,
+            order_info.is_urgent,
+            order_info.is_return_order
+        );
+        tracing::info!("insert order sql: {}", insert_sql);
+        let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
+            .fetch_one(db)
+            .await
+            .map_err(ERPError::DBError)?; // &self.db)
+
+        Ok(order_id)
+    }
+
+    pub async fn update_to_orders(
+        db: &Pool<Postgres>,
+        order_info: &OrderInfo,
+        customer_id: i32,
+        order_id: i32,
+    ) -> ERPResult<()> {
+        let delivery_date = match order_info.delivery_date {
+            None => "null".to_string(),
+            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
+        };
+
+        let update_sql = format!(
+            r#"update orders set customer_id={}, order_no='{}', order_date='{:?}', delivery_date={}, is_urgent={}, is_return_order={}
+               where id = {};"#,
+            customer_id,
+            order_info.order_no,
+            order_info.order_date,
+            delivery_date,
+            order_info.is_urgent,
+            order_info.is_return_order,
+            order_id
+        );
+        tracing::info!("update sql: {}", update_sql);
+
+        sqlx::query(&update_sql)
+            .execute(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default, Clone)]

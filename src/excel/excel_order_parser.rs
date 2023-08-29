@@ -5,7 +5,7 @@ use crate::excel::order_template_3::parse_order_excel_t3;
 use crate::excel::order_template_4::parse_order_excel_t4;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::goods::GoodsModel;
-use crate::model::order::{ExcelOrder, OrderItemExcel, OrderModel};
+use crate::model::order::{ExcelOrder, OrderInfo, OrderItemExcel, OrderModel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
@@ -104,44 +104,20 @@ impl<'a> ExcelOrderParser<'a> {
                     excel_order.info.order_no
                 );
 
-                let insert_sql = format!(
-                    r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-                    values ({}, '{}', '{:?}', {}, {}, {}) returning id;"#,
-                    customer_id,
-                    excel_order.info.order_no,
-                    excel_order.info.order_date,
-                    delivery_date,
-                    excel_order.info.is_urgent,
-                    excel_order.info.is_return_order
-                );
-                tracing::info!("insert order sql: {}", insert_sql);
-                (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
-                    .fetch_one(&self.db)
-                    .await
-                    .map_err(ERPError::DBError)?; // &self.db)
-
+                order_id =
+                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer_id).await?;
                 tracing::info!("order_id: {}", order_id);
             }
             Some(existing_order) => {
                 // maybe update order
                 tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
-                let update_sql = format!(
-                    r#" update orders set customer_id={}, order_no='{}', order_date='{:?}', delivery_date={}, is_urgent={}, is_return_order={}
-                    where id = {};"#,
+                OrderInfo::update_to_orders(
+                    &self.db,
+                    &excel_order.info,
                     customer_id,
-                    excel_order.info.order_no,
-                    excel_order.info.order_date,
-                    delivery_date,
-                    excel_order.info.is_urgent,
-                    excel_order.info.is_return_order,
-                    existing_order.id
-                );
-                tracing::info!("update sql: {}", update_sql);
-
-                sqlx::query(&update_sql)
-                    .execute(&self.db)
-                    .await
-                    .map_err(ERPError::DBError)?;
+                    existing_order.id,
+                )
+                .await?;
                 order_id = existing_order.id;
             }
         }
@@ -165,11 +141,12 @@ impl<'a> ExcelOrderParser<'a> {
                 None => {
                     // insert goods
                     let goods = OrderItemExcel::pick_up_goods(items);
-                    GoodsModel::insert_goods_to_db(&self.db, &goods).await.unwrap()
+                    GoodsModel::insert_goods_to_db(&self.db, &goods)
+                        .await
+                        .unwrap()
                 }
                 Some(some_goods) => some_goods.id,
             };
-
         }
 
         // check order_items
