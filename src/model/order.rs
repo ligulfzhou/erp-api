@@ -96,6 +96,8 @@ pub struct OrderItemExcel {
     pub goods_no: String,
     /// 商品编号
     pub goods_no_2: Option<String>, // 反正用处并不大
+    /// sku编号 //只有L1005有这个字段
+    pub sku_no: Option<String>,
     /// 商品图片
     pub image: Option<String>,
     /// 商品的图片描述

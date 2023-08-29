@@ -4,7 +4,7 @@ use crate::excel::order_template_2::parse_order_excel_t2;
 use crate::excel::order_template_3::parse_order_excel_t3;
 use crate::excel::order_template_4::parse_order_excel_t4;
 use crate::model::excel::CustomerExcelTemplateModel;
-use crate::model::order::ExcelOrder;
+use crate::model::order::{ExcelOrder, OrderModel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use umya_spreadsheet::reader;
@@ -52,7 +52,9 @@ impl<'a> ExcelOrderParser<'a> {
             )));
         }
 
-        let order_items = match customer_excel_template_model.unwrap().template_id {
+        let template_id = customer_excel_template_model.unwrap().template_id;
+
+        let order_items = match template_id {
             1 => parse_order_excel_t1(sheet),
             2 => parse_order_excel_t2(sheet),
             3 => parse_order_excel_t3(sheet),
@@ -64,6 +66,50 @@ impl<'a> ExcelOrderParser<'a> {
             info: order_info,
             items: order_items,
         };
+
+        // 判断order_no是否已经存在
+        let order = sqlx::query_as::<_, OrderModel>(&format!(
+            "select * from orders where order_no='{}'",
+            excel_order.info.order_no
+        ))
+        .fetch_optional(&self.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        // 订单是否已经存在
+        // 如果已经存在，则更新一下，如果不存在则 保存
+        match order {
+            None => {
+                // save order
+                let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
+                    "select id from customers where customer_no='{}'",
+                    excel_order.info.customer_no
+                ))
+                .fetch_one(&self.db)
+                .await
+                .map_err(ERPError::DBError)?;
+
+                let insert_sql = format!(
+                    r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+                    values ({}, '{}', {}, {}, {}, {}) returning id;"#,
+                    customer_id,
+                    excel_order.info.order_no,
+                    excel_order.info.order_date,
+                    excel_order.info.delivery_date,
+                    excel_order.info.is_urgent,
+                    excel_order.info.is_return_order
+                );
+                let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
+                    .fetch_one(&self.db)
+                    .await
+                    .map_err(ERPError::DBError)?; // &self.db)
+
+                tracing::info!("order_id: {}", order_id);
+            }
+            Some(existing_order) => {
+                // maybe update order
+            }
+        }
 
         Ok(excel_order)
     }

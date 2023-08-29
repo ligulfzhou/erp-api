@@ -21,6 +21,7 @@ mod model;
 mod repository;
 mod response;
 mod service;
+mod common;
 
 pub use self::error::{ERPError, ERPResult};
 
