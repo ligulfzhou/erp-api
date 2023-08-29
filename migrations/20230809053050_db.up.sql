@@ -29,9 +29,8 @@ values ('goods_no_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUI
 create table skus
 (
     id       SERIAL,                      -- ID
---     goods_no text    not null default '', -- 类目编号
     goods_id integer not null default 0,  -- 类目ID
-    image    text,                        -- 商品图片  // todo: 感觉可有可无
+--    image    text,                        -- 商品图片  // todo: 感觉可有可无
     plating  text,                        -- 电镀
     sku_no   text,
     color    text    not null default '', -- 颜色
@@ -41,24 +40,24 @@ create table skus
 create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 
 
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '绿色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '红色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '粉红', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '白色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黑色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '黄色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '橙色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '青色', 'notes');
-insert into skus (goods_id, image, plating, color, notes)
-values (1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'plating', '紫色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1, 'plating', '绿色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '红色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '粉红', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '白色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '黑色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '黄色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '橙色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '青色', 'notes');
+insert into skus (goods_id, plating, color, notes)
+values (1,  'plating', '紫色', 'notes');
 
 -- 客户
 create table customers
@@ -125,9 +124,11 @@ create table orders
 create unique index uniq_orders_order_no on orders (order_no);
 
 insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-VALUES (1, 'order_no_1', 1691558739, 1691568739, false, false),
-       (2, 'order_no_2', 1691558739, 1691568739, true, false),
-       (3, 'order_no_3', 1691558739, 1691568739, true, true);
+VALUES (1, 'order_no_1', 1691558739, 1691568739, false, false);
+insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+VALUES (2, 'order_no_2', 1691558739, 1691568739, true, false);
+insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+VALUES (3, 'order_no_3', 1691558739, 1691568739, true, true);
 
 -- 订单商品表
 create table order_goods

@@ -17,19 +17,23 @@ impl SKUModelDto {
             id: sku.id,
             goods_id: sku.goods_id,
             goods_no: goods.goods_no.to_string(),
-            image: sku.image.to_owned(),
+            image: Some(goods.image.to_owned()),
             plating: sku.plating.to_owned(),
             color: sku.color.to_string(),
             notes: sku.notes.to_owned(),
         }
     }
 
-    pub fn from_sku_goods_no(sku: &SKUModel, goods_no: &str) -> SKUModelDto {
+    pub fn from_sku_goods_no_and_image(
+        sku: &SKUModel,
+        goods_no: &str,
+        goods_image: &str,
+    ) -> SKUModelDto {
         Self {
             id: sku.id,
             goods_id: sku.goods_id,
             goods_no: goods_no.to_string(),
-            image: sku.image.to_owned(),
+            image: Some(goods_image.to_string()),
             plating: sku.plating.to_owned(),
             color: sku.color.to_string(),
             notes: sku.notes.to_owned(),

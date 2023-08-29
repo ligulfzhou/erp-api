@@ -16,7 +16,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/goods", get(get_goods))
         .route("/api/skus/search", get(search_skus))
-        .route("/api/skus", get(get_skus)) //.post(create_skus))
+        .route("/api/skus", get(get_skus).post(create_sku)) //.post(create_skus))
         .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
@@ -268,8 +268,8 @@ async fn get_skus(
         .collect::<Vec<String>>()
         .join(",");
 
-    let goods = sqlx::query_as::<_, (i32, String)>(&format!(
-        "select id, goods_no from goods where id in ({})",
+    let goods = sqlx::query_as::<_, (i32, String, String)>(&format!(
+        "select id, goods_no, image from goods where id in ({})",
         goods_ids_str
     ))
     .fetch_all(&state.db)
@@ -277,14 +277,23 @@ async fn get_skus(
     .map_err(ERPError::DBError)?;
     tracing::info!("{:?}", goods);
 
-    let id_to_goods_no = goods.into_iter().collect::<HashMap<i32, String>>();
+    let id_to_goods_no = goods
+        .clone()
+        .into_iter()
+        .map(|i| (i.0, i.1))
+        .collect::<HashMap<i32, String>>();
+    let id_to_goods_image = goods
+        .into_iter()
+        .map(|i| (i.0, i.2))
+        .collect::<HashMap<i32, String>>();
 
     let empty_str = "".to_string();
     let sku_dtos = skus
         .iter()
         .map(|sku| {
             let goods_no = id_to_goods_no.get(&sku.goods_id).unwrap_or(&empty_str);
-            SKUModelDto::from_sku_goods_no(sku, goods_no)
+            let goods_image = id_to_goods_image.get(&sku.goods_id).unwrap_or(&empty_str);
+            SKUModelDto::from_sku_goods_no_and_image(sku, goods_no, goods_image)
         })
         .collect::<Vec<SKUModelDto>>();
 
@@ -300,118 +309,46 @@ async fn get_skus(
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CreateSKUParam {
-    image: Option<String>,
-    goods_no: String,
-    sku_no: String,
-    color: Option<String>,
+    goods_id: i32,
+    plating: Option<String>,
+    color: String,
     notes: Option<String>,
 }
 
-// #[derive(Debug, Deserialize, Serialize)]
-// struct CreateSKUsParam {
-//     skus: Vec<CreateSKUParam>,
-// }
-//
-// impl CreateSKUsParam {
-//     fn to_sql(&self) -> String {
-//         let values = self
-//             .skus
-//             .iter()
-//             .map(|sku| {
-//                 format!(
-//                     "('{}', '{}', '{}', '{}', '{}')",
-//                     sku.image.as_ref().unwrap_or(&"".to_string()),
-//                     sku.goods_no,
-//                     sku.sku_no,
-//                     sku.color.as_ref().unwrap_or(&"".to_string()),
-//                     sku.notes.as_ref().unwrap_or(&"".to_string())
-//                 )
-//             })
-//             .collect::<Vec<String>>()
-//             .join(", ");
-//
-//         format!(
-//             "insert into skus (image, goods_no, sku_no, color, notes) values {}",
-//             values
-//         )
-//     }
-// }
+impl CreateSKUParam {
+    fn to_sql(&self) -> String {
+        format!(
+            r#"insert into skus (goods_id, plating, color, notes) values ({}, {}, {}, {})"#,
+            self.goods_id,
+            self.plating.as_ref().unwrap_or(&"".to_string()),
+            self.color,
+            self.notes.as_ref().unwrap_or(&"".to_string())
+        )
+    }
+}
 
-// async fn create_skus(
-//     State(state): State<Arc<AppState>>,
-//     WithRejection(Json(param), _): WithRejection<Json<CreateSKUsParam>, ERPError>,
-// ) -> ERPResult<APIEmptyResponse> {
-//     // let to_insert_sql = String::new();
-//     if param.skus.is_empty() {
-//         return Err(ERPError::ParamNeeded("skus".to_string()));
-//     }
-//
-//     let sku_nos: Vec<String> = param
-//         .skus
-//         .iter()
-//         .map(|sku| sku.sku_no.to_string())
-//         .collect();
-//
-//     let sku_nos_sql = format!(
-//         "select * from skus where sku_no in ('{}')",
-//         sku_nos.join("', '")
-//     );
-//     tracing::info!("{sku_nos_sql}");
-//
-//     let existing = sqlx::query_as::<_, SKUModel>(&sku_nos_sql)
-//         .fetch_all(&state.db)
-//         .await
-//         .map_err(ERPError::DBError)?;
-//     tracing::info!("existing skus: {}", existing.len());
-//
-//     let existing_sku_nos = existing
-//         .iter()
-//         .map(|sku| sku.sku_no.as_str())
-//         .collect::<Vec<&str>>();
-//     tracing::info!("existing sku nos: {:?}", existing_sku_nos);
-//
-//     tracing::info!(
-//         "contains: {:?}",
-//         existing_sku_nos.contains(&param.skus[0].sku_no.as_str())
-//     );
-//     let to_insert: Vec<&CreateSKUParam> = param
-//         .skus
-//         .iter()
-//         .filter(|&sku| !existing_sku_nos.contains(&sku.sku_no.as_str()))
-//         .collect();
-//     tracing::info!(" to insert: {:#?}", to_insert);
-//
-//     if to_insert.is_empty() {
-//         return Err(ERPError::AlreadyExists("SKU with sku_no".to_string()));
-//     }
-//
-//     let values = to_insert
-//         .iter()
-//         .map(|sku| {
-//             format!(
-//                 "('{}', '{}', '{}', '{}', '{}')",
-//                 sku.image.as_ref().unwrap_or(&"".to_string()),
-//                 sku.goods_no,
-//                 sku.sku_no,
-//                 sku.color.as_ref().unwrap_or(&"".to_string()),
-//                 sku.notes.as_ref().unwrap_or(&"".to_string())
-//             )
-//         })
-//         .collect::<Vec<String>>()
-//         .join(", ");
-//
-//     let sql = format!(
-//         "insert into skus (image, goods_no, sku_no, color, notes) values {}",
-//         values
-//     );
-//
-//     sqlx::query(&sql)
-//         .execute(&state.db)
-//         .await
-//         .map_err(ERPError::DBError)?;
-//
-//     Ok(APIEmptyResponse::new())
-// }
+async fn create_sku(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Json(param), _): WithRejection<Json<CreateSKUParam>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    // 查重
+    let sku_id = sqlx::query_as::<_, (i32, )>(&format!(
+        "select id from skus where goods_id={} and color='{}'",
+        param.goods_id, param.color
+    ))
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    if sku_id.is_some() {
+        return Err(ERPError::Collision(format!("已经有了ID为{},颜色为:'{}'的产品了", param.goods_id, param.color)))
+    }
+
+    // 插入
+    let insert_sql = param.to_sql();
+    sqlx::query(&insert_sql).execute(&state.db).await.map_err(ERPError::DBError)?;
+    Ok(APIEmptyResponse::new())
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct UpdateSKUParam {
