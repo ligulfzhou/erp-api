@@ -1,6 +1,7 @@
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use umya_spreadsheet::*;
+use crate::common::string::remove_whitespace_str;
 
 pub fn parse_order_excel_t3(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     let (cols, rows) = sheet.get_highest_column_and_row();
@@ -33,10 +34,10 @@ pub fn parse_order_excel_t3(sheet: &Worksheet) -> Vec<OrderItemExcel> {
 
             match j {
                 1 => cur.index = cell_value.parse::<i32>().unwrap_or(0),
-                3 => cur.goods_no = cell_value,
+                3 => cur.goods_no = remove_whitespace_str(&cell_value),
                 4 => cur.name = cell_value,
                 5 => cur.plating = cell_value,
-                6 => cur.color = cell_value,
+                6 => cur.color = remove_whitespace_str(&cell_value),
                 7 => cur.color_2 = Some(cell_value),
                 8 => cur.barcode = Some(cell_value),
                 9 => cur.purchase_price = Some(cell_value.parse::<i32>().unwrap_or(0)),

@@ -110,6 +110,8 @@ pub struct OrderItemExcel {
     pub color: String,
     /// 颜色
     pub color_2: Option<String>,
+    /// 尺寸
+    pub size: Option<String>,
     /// 条码
     pub barcode: Option<String>,
     /// 数量
