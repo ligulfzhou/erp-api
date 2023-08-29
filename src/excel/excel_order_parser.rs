@@ -4,9 +4,11 @@ use crate::excel::order_template_2::parse_order_excel_t2;
 use crate::excel::order_template_3::parse_order_excel_t3;
 use crate::excel::order_template_4::parse_order_excel_t4;
 use crate::model::excel::CustomerExcelTemplateModel;
-use crate::model::order::{ExcelOrder, OrderModel};
+use crate::model::goods::GoodsModel;
+use crate::model::order::{ExcelOrder, OrderItemExcel, OrderModel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
+use std::collections::HashMap;
 use umya_spreadsheet::reader;
 
 #[derive(Debug)]
@@ -145,6 +147,31 @@ impl<'a> ExcelOrderParser<'a> {
         }
 
         // check goods/skus exists.
+        let mut id_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
+        let _ = excel_order
+            .items
+            .clone()
+            .into_iter()
+            .map(|item| id_order_item.entry(item.index).or_default().push(item));
+
+        // 循环检查 商品是否已经入库
+        for (index, items) in id_order_item.iter() {
+            let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
+            let goods = GoodsModel::get_goods_with_goods_no(&self.db, &goods_no)
+                .await
+                .unwrap();
+
+            let goods_id = match goods {
+                None => {
+                    // insert goods
+                    let goods = OrderItemExcel::pick_up_goods(items);
+                    GoodsModel::insert_goods_to_db(&self.db, &goods).await.unwrap()
+                }
+                Some(some_goods) => some_goods.id,
+            };
+
+        }
+
         // check order_items
         Ok(excel_order)
     }

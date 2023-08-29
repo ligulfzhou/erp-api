@@ -1,4 +1,9 @@
+use crate::common::hashmap::key_of_max_value;
+use crate::common::string::common_prefix;
+use crate::model::goods::GoodsModel;
 use chrono::NaiveDate;
+use std::collections::HashMap;
+
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
     pub id: i32,
@@ -142,6 +147,50 @@ impl OrderItemExcel {
             total_price: self.total_price,
             notes: self.notes.clone(),
         }
+    }
+
+    pub fn pick_up_goods_no(items: &Vec<OrderItemExcel>) -> Option<String> {
+        let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
+
+        let _ = items.iter().map(|item| {
+            *goods_no_cnt.entry(&item.goods_no).or_default() + 1;
+        });
+
+        let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
+        let empty_string = "".to_string();
+        if key.is_empty() {
+            // 如果找不到goods_no,怎从sku_no里获取(最大的prefix)
+            let sku_nos = items
+                .iter()
+                .map(|item| item.sku_no.as_ref().unwrap_or(&empty_string).clone())
+                .collect::<Vec<_>>();
+
+            return common_prefix(sku_nos);
+        }
+
+        Some(key)
+    }
+
+    pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
+        let mut goods = GoodsModel {
+            id: 0,
+            goods_no: "".to_string(),
+            image: "".to_string(),
+            name: "".to_string(),
+            notes: None,
+        };
+
+        goods.goods_no = OrderItemExcel::pick_up_goods_no(&items).unwrap();
+        for item in items {
+            if goods.image.is_empty() && item.image.is_some() {
+                goods.image = item.image.as_ref().unwrap().to_string();
+            }
+            if goods.name.is_empty() && !item.name.is_empty() {
+                goods.name = item.name.clone();
+            }
+        }
+
+        goods
     }
 }
 
