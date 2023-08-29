@@ -1,5 +1,8 @@
 use crate::excel::excel_order_info::parse_order_info;
 use crate::excel::order_template_1::parse_order_excel_t1;
+use crate::excel::order_template_2::parse_order_excel_t2;
+use crate::excel::order_template_3::parse_order_excel_t3;
+use crate::excel::order_template_4::parse_order_excel_t4;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::order::ExcelOrder;
 use crate::{ERPError, ERPResult};
@@ -51,8 +54,9 @@ impl<'a> ExcelOrderParser<'a> {
 
         let order_items = match customer_excel_template_model.unwrap().template_id {
             1 => parse_order_excel_t1(sheet),
-            2 => parse_order_excel_t1(sheet),
-            3 => parse_order_excel_t1(sheet),
+            2 => parse_order_excel_t2(sheet),
+            3 => parse_order_excel_t3(sheet),
+            4 => parse_order_excel_t4(sheet),
             _ => parse_order_excel_t1(sheet),
         };
 
