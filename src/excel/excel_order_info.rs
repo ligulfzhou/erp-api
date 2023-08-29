@@ -56,7 +56,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if delivery_date.is_empty() {
                     delivery_date = cell_value.strip_prefix("交货日期：").unwrap_or("");
                 }
-                if delivery_date.is_empty() {
+                if !delivery_date.is_empty() {
                     order_info.delivery_date = parse_date(delivery_date);
                 }
             }

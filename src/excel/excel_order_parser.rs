@@ -78,6 +78,20 @@ impl<'a> ExcelOrderParser<'a> {
         .await
         .map_err(ERPError::DBError)?;
 
+        let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
+            "select id from customers where customer_no='{}'",
+            excel_order.info.customer_no
+        ))
+        .fetch_one(&self.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        let delivery_date = match excel_order.info.delivery_date {
+            None => "null".to_string(),
+            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
+        };
+
+        let mut order_id = 0;
         // 订单是否已经存在
         // 如果已经存在，则更新一下，如果不存在则 保存
         match order {
@@ -87,18 +101,6 @@ impl<'a> ExcelOrderParser<'a> {
                     "order#{} not exists, we will save",
                     excel_order.info.order_no
                 );
-                let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
-                    "select id from customers where customer_no='{}'",
-                    excel_order.info.customer_no
-                ))
-                .fetch_one(&self.db)
-                .await
-                .map_err(ERPError::DBError)?;
-
-                let delivery_date = match excel_order.info.delivery_date {
-                    None => "null".to_string(),
-                    Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
-                };
 
                 let insert_sql = format!(
                     r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
@@ -111,7 +113,7 @@ impl<'a> ExcelOrderParser<'a> {
                     excel_order.info.is_return_order
                 );
                 tracing::info!("insert order sql: {}", insert_sql);
-                let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
+                (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
                     .fetch_one(&self.db)
                     .await
                     .map_err(ERPError::DBError)?; // &self.db)
@@ -121,9 +123,31 @@ impl<'a> ExcelOrderParser<'a> {
             Some(existing_order) => {
                 // maybe update order
                 tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
+                let update_sql = format!(
+                    r#" update orders set customer_id={}, order_no='{}', order_date='{:?}', delivery_date={}, is_urgent={}, is_return_order={}
+                    where id = {};"#,
+                    customer_id,
+                    excel_order.info.order_no,
+                    excel_order.info.order_date,
+                    delivery_date,
+                    excel_order.info.is_urgent,
+                    excel_order.info.is_return_order,
+                    existing_order.id
+                );
+                tracing::info!("update sql: {}", update_sql);
+
+                sqlx::query(&update_sql)
+                    .execute(&self.db)
+                    .await
+                    .map_err(ERPError::DBError)?;
+                order_id = existing_order.id;
             }
         }
 
+
+
+        // check goods/skus exists.
+        // check order_items
         Ok(excel_order)
     }
 }
