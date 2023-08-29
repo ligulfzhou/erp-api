@@ -170,9 +170,9 @@ async fn get_goods(
 
 #[derive(Debug, Deserialize)]
 struct ListSKUsParam {
-    name: Option<String>,
+    // name: Option<String>,
     // goods_no: Option<String>,
-    sku_no: Option<String>,
+    // sku_no: Option<String>,
     plating: Option<String>,
     color: Option<String>,
 
@@ -185,15 +185,16 @@ impl ListParamToSQLTrait for ListSKUsParam {
     fn to_pagination_sql(&self) -> String {
         let mut sql = "select * from skus ".to_string();
         let mut where_clauses = vec![];
-        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        }
+        // if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
+        // }
+
         // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
         //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
         // }
-        if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
-        }
+        // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
+        // }
         if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
         }
@@ -220,15 +221,15 @@ impl ListParamToSQLTrait for ListSKUsParam {
     fn to_count_sql(&self) -> String {
         let mut sql = "select count(1) from skus ".to_string();
         let mut where_clauses = vec![];
-        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        }
+        // if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
+        // }
         // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
         //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
         // }
-        if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
-        }
+        // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
+        // }
         if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
         }
@@ -332,7 +333,7 @@ async fn create_sku(
     WithRejection(Json(param), _): WithRejection<Json<CreateSKUParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     // 查重
-    let sku_id = sqlx::query_as::<_, (i32, )>(&format!(
+    let sku_id = sqlx::query_as::<_, (i32,)>(&format!(
         "select id from skus where goods_id={} and color='{}'",
         param.goods_id, param.color
     ))
@@ -341,12 +342,18 @@ async fn create_sku(
     .map_err(ERPError::DBError)?;
 
     if sku_id.is_some() {
-        return Err(ERPError::Collision(format!("已经有了ID为{},颜色为:'{}'的产品了", param.goods_id, param.color)))
+        return Err(ERPError::Collision(format!(
+            "已经有了ID为{},颜色为:'{}'的产品了",
+            param.goods_id, param.color
+        )));
     }
 
     // 插入
     let insert_sql = param.to_sql();
-    sqlx::query(&insert_sql).execute(&state.db).await.map_err(ERPError::DBError)?;
+    sqlx::query(&insert_sql)
+        .execute(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
     Ok(APIEmptyResponse::new())
 }
 
