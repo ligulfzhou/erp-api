@@ -39,20 +39,20 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> Vec<OrderItemExcel> {
 
             match j {
                 1 => cur.index = cell_value.parse::<i32>().unwrap_or(0),
-                2 => cur.package_card_des = Some(cell_value),
+                2 => cur.package_card_des = Some(cell_value.trim().to_string()),
                 3 => cur.sku_no = Some(remove_whitespace_str(&cell_value)),
                 4 => cur.goods_no = remove_whitespace_str(&cell_value),
                 5 => cur.color = remove_whitespace_str(&cell_value),
-                6 => cur.size = Some(cell_value),
-                7 => cur.image_des = Some(cell_value),
-                8 => cur.name = cell_value,
-                9 => cur.plating = cell_value,
-                10 => cur.color_2 = Some(cell_value),
+                6 => cur.size = Some(cell_value.trim().to_string()),
+                7 => cur.image_des = Some(cell_value.trim().to_string()),
+                8 => cur.name = cell_value.trim().to_string(),
+                9 => cur.plating = cell_value.trim().to_string(),
+                10 => cur.color_2 = Some(cell_value.trim().to_string()),
                 11 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
-                12 => cur.unit = Some(cell_value),
+                12 => cur.unit = Some(cell_value.trim().to_string()),
                 13 => cur.unit_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
                 14 => cur.total_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
-                15 => cur.notes = Some(cell_value),
+                15 => cur.notes = Some(cell_value.trim().to_string()),
                 _ => {}
             }
         }

@@ -35,15 +35,15 @@ pub fn parse_order_excel_t3(sheet: &Worksheet) -> Vec<OrderItemExcel> {
             match j {
                 1 => cur.index = cell_value.parse::<i32>().unwrap_or(0),
                 3 => cur.goods_no = remove_whitespace_str(&cell_value),
-                4 => cur.name = cell_value,
-                5 => cur.plating = cell_value,
+                4 => cur.name = cell_value.trim().to_string(),
+                5 => cur.plating = cell_value.trim().to_string(),
                 6 => cur.color = remove_whitespace_str(&cell_value),
-                7 => cur.color_2 = Some(cell_value),
-                8 => cur.barcode = Some(cell_value),
+                7 => cur.color_2 = Some(cell_value.trim().to_string()),
+                8 => cur.barcode = Some(cell_value.trim().to_string()),
                 9 => cur.purchase_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
                 10 => cur.count = cell_value.parse::<i32>().unwrap_or(0),
                 11 => cur.total_price = Some(cell_value.parse::<i32>().unwrap_or(0)),
-                12 => cur.notes = Some(cell_value),
+                12 => cur.notes = Some(cell_value.trim().to_string()),
                 _ => {}
             }
         }
