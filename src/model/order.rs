@@ -34,42 +34,6 @@ impl OrderModel {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct OrderItemNoIdModel {
-    pub order_id: i32,
-    pub sku_id: i32,
-    // pub goods_id: i32,
-    pub package_card: Option<String>,
-    pub package_card_des: Option<String>,
-    pub count: i32,
-    pub unit: Option<String>,
-    pub unit_price: Option<i32>,
-    pub total_price: Option<i32>,
-    pub notes: Option<String>,
-}
-
-pub fn multi_order_items_no_id_models_to_sql(models: Vec<OrderItemNoIdModel>) -> String {
-    let mut values = vec![];
-    for model in models {
-        // let unit_price: Option<i32> = None;
-        // let total_price: Option<i32> = None;
-        values.push(format!(
-            "({}, {}, '{}', '{}', {}, '{}', {}, {}, '{}')",
-            model.order_id,
-            model.sku_id,
-            model.package_card.as_ref().unwrap_or(&"".to_string()),
-            model.package_card_des.as_ref().unwrap_or(&"".to_string()),
-            model.count,
-            model.unit.as_ref().unwrap_or(&"".to_string()),
-            model.unit_price.as_ref().unwrap_or(&0),
-            model.total_price.as_ref().unwrap_or(&0),
-            model.notes.as_ref().unwrap_or(&"".to_string())
-        ));
-    }
-
-    format!("insert into order_items (order_id, sku_id, package_card, package_card_des, count, unit, unit_price, total_price, notes) values {}", values.join(","))
-}
-
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderGoodsModel {
     pub id: i32,
@@ -108,6 +72,7 @@ pub struct OrderItemModel {
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,
+    // pub purchase_price: Option<i32>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
     pub notes: Option<String>,
@@ -251,20 +216,6 @@ pub struct OrderItemExcel {
 }
 
 impl OrderItemExcel {
-    pub fn to_order_item_no_id_model(&self, order_id: i32, sku_id: i32) -> OrderItemNoIdModel {
-        OrderItemNoIdModel {
-            order_id,
-            sku_id,
-            package_card: self.package_card.clone(),
-            package_card_des: self.package_card_des.clone(),
-            count: self.count,
-            unit: self.unit.clone(),
-            unit_price: self.unit_price,
-            total_price: self.total_price,
-            notes: self.notes.clone(),
-        }
-    }
-
     pub fn pick_up_goods_no(items: &Vec<OrderItemExcel>) -> Option<String> {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
@@ -329,6 +280,55 @@ impl OrderItemExcel {
             package_card.unwrap_or("".to_string()),
             package_card_des.unwrap_or("".to_string()),
         )
+    }
+
+    pub async fn save_to_sku(&self, db: &Pool<Postgres>, goods_id: i32) -> ERPResult<i32> {
+        let sql = format!(
+            r#"insert into skus (goods_id, plating, sku_no, color, color2)
+            values ({}, '{}', '{}', '{}', '{}')
+            returning id;"#,
+            goods_id,
+            self.plating,
+            self.sku_no.as_deref().unwrap_or(""),
+            self.color,
+            self.color_2.as_deref().unwrap_or("")
+        );
+
+        let (sku_id,) = sqlx::query_as::<_, (i32,)>(&sql)
+            .fetch_one(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(sku_id)
+    }
+
+    pub async fn save_to_order_item(
+        &self,
+        db: &Pool<Postgres>,
+        order_id: i32,
+        goods_id: i32,
+        sku_id: i32,
+    ) -> ERPResult<i32> {
+        let sql = format!(
+            r#"
+            insert into order_items (order_id, goods_id, sku_id, count, unit, unit_price, total_price, notes)
+            values ({}, {}, {}, {}, '{}', {}, {}, '{}')
+            returning id;
+        "#,
+            order_id,
+            goods_id,
+            sku_id,
+            self.count,
+            self.unit.as_deref().unwrap_or(""),
+            self.unit_price.as_ref().unwrap_or(&0),
+            self.total_price.as_ref().unwrap_or(&0),
+            self.notes.as_deref().unwrap_or("")
+        );
+        let (id,) = sqlx::query_as::<_, (i32,)>(&sql)
+            .fetch_one(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(id)
     }
 }
 

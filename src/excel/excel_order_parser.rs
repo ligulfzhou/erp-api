@@ -124,7 +124,7 @@ impl<'a> ExcelOrderParser<'a> {
         tracing::info!("id_order_items: {:?}", id_order_item);
 
         // 循环检查 商品是否已经入库
-        for (index, items) in id_order_item.iter() {
+        for (_, items) in id_order_item.iter() {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
             tracing::info!("picked up goods_no: {}", goods_no);
 
@@ -159,18 +159,43 @@ impl<'a> ExcelOrderParser<'a> {
 
             // 处理items
             let skus = SKUModel::get_skus_with_goods_id(&self.db, goods_id).await?;
-            let color_to_id = skus
+            let mut color_to_id = skus
                 .iter()
                 .map(|sku| (sku.color.clone(), sku.id))
                 .collect::<HashMap<String, i32>>();
-            for item in items {}
 
             // 处理order_items
             let order_items =
                 OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
                     .await?;
+
+            let sku_id_to_order_item_id = order_items
+                .iter()
+                .map(|item| (item.sku_id, item.id))
+                .collect::<HashMap<i32, i32>>();
+
+            for item in items.iter() {
+                let sku_id = match color_to_id.get(&item.color) {
+                    None => {
+                        // insert to table items
+                        let id = item.save_to_sku(&self.db, goods_id).await?;
+                        color_to_id.insert(item.color.to_owned(), id);
+                        id
+                    }
+                    Some(sku_id) => sku_id.to_owned(),
+                };
+                if sku_id_to_order_item_id.contains_key(&sku_id) {
+                    // 更新数据
+                    // todo,感觉可以不做
+                } else {
+                    // 插入数据
+                    let order_item_id = item.save_to_order_item(&self.db, order_id, goods_id, sku_id)
+                        .await?;
+                    tracing::info!("save to order_items#{order_item_id}");
+                }
+            }
         }
-        // check order_items
+
         Ok(excel_order)
     }
 }
