@@ -103,25 +103,7 @@ async fn import_excel(
     let order_info = parser.parse().await?;
     tracing::info!("order_info: {:?}", order_info);
 
-    // 判断order_no是否已经存在
-    // let order = sqlx::query_as::<_, OrderModel>(&format!(
-    //     "select * from orders where order_no='{}'",
-    //     order_info.info.order_no
-    // ))
-    // .fetch_optional(&state.db)
-    // .await
-    // .map_err(ERPError::DBError)?;
-    //
-    // if order.is_some() {
-    //     return Err(ERPError::AlreadyExists(format!(
-    //         "订单号{}已存在",
-    //         order_info.info.order_no
-    //     )));
-    // }
-
     // 将订单内的产品信息存表 (goods, skus)
-
-    //
 
     // 从excel文件里读 订单信息
     // let items = read_excel_with_umya(&file_path);
