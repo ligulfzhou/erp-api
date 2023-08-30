@@ -136,7 +136,7 @@ impl OrderInfo {
         let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
             .fetch_one(db)
             .await
-            .map_err(ERPError::DBError)?; // &self.db)
+            .map_err(ERPError::DBError)?;
 
         Ok(order_id)
     }
