@@ -1,5 +1,5 @@
-use sqlx::{Pool, Postgres};
 use crate::{ERPError, ERPResult};
+use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct CustomerModel {
@@ -12,9 +12,12 @@ pub struct CustomerModel {
 }
 
 impl CustomerModel {
-    pub async fn get_customer_with_customer_no(db: &Pool<Postgres>, customer_no: &str)-> ERPResult<CustomerModel> {
+    pub async fn get_customer_with_customer_no(
+        db: &Pool<Postgres>,
+        customer_no: &str,
+    ) -> ERPResult<CustomerModel> {
         let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-            "select id from customers where customer_no='{}'",
+            "select * from customers where customer_no='{}'",
             customer_no
         ))
         .fetch_one(db)

@@ -17,6 +17,22 @@ pub struct OrderModel {
     pub is_urgent: bool,       //紧急 ‼️
     pub is_return_order: bool, // 返单
 }
+impl OrderModel {
+    pub async fn get_order_with_order_no(
+        db: &Pool<Postgres>,
+        order_no: &str,
+    ) -> ERPResult<Option<OrderModel>> {
+        let order = sqlx::query_as::<_, OrderModel>(&format!(
+            "select * from orders where order_no='{}'",
+            order_no
+        ))
+        .fetch_optional(db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        Ok(order)
+    }
+}
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct OrderItemNoIdModel {
@@ -222,6 +238,7 @@ impl OrderItemExcel {
         println!("goods_no_cnt: {:?}", goods_no_cnt);
 
         let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
+        println!("goods_no_cnt key: {}", key);
         let empty_string = "".to_string();
         if key.is_empty() {
             // 如果找不到goods_no,怎从sku_no里获取(最大的prefix)
@@ -230,6 +247,7 @@ impl OrderItemExcel {
                 .map(|item| item.sku_no.as_ref().unwrap_or(&empty_string).clone())
                 .collect::<Vec<_>>();
 
+            println!("sku_nos: {:?}", sku_nos);
             return common_prefix(sku_nos);
         }
 
