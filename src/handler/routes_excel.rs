@@ -104,20 +104,20 @@ async fn import_excel(
     tracing::info!("order_info: {:?}", order_info);
 
     // 判断order_no是否已经存在
-    let order = sqlx::query_as::<_, OrderModel>(&format!(
-        "select * from orders where order_no='{}'",
-        order_info.info.order_no
-    ))
-    .fetch_optional(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    if order.is_some() {
-        return Err(ERPError::AlreadyExists(format!(
-            "订单号{}已存在",
-            order_info.info.order_no
-        )));
-    }
+    // let order = sqlx::query_as::<_, OrderModel>(&format!(
+    //     "select * from orders where order_no='{}'",
+    //     order_info.info.order_no
+    // ))
+    // .fetch_optional(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?;
+    //
+    // if order.is_some() {
+    //     return Err(ERPError::AlreadyExists(format!(
+    //         "订单号{}已存在",
+    //         order_info.info.order_no
+    //     )));
+    // }
 
     // 将订单内的产品信息存表 (goods, skus)
 

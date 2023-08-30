@@ -10,6 +10,7 @@ use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 use umya_spreadsheet::reader;
+use crate::model::customer::CustomerModel;
 
 #[derive(Debug)]
 pub struct ExcelOrderParser<'a> {
@@ -80,20 +81,9 @@ impl<'a> ExcelOrderParser<'a> {
         .await
         .map_err(ERPError::DBError)?;
 
-        let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
-            "select id from customers where customer_no='{}'",
-            excel_order.info.customer_no
-        ))
-        .fetch_one(&self.db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-        let delivery_date = match excel_order.info.delivery_date {
-            None => "null".to_string(),
-            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
-        };
-
+        let customer = CustomerModel::get_customer_with_customer_no(&self.db, &excel_order.info.customer_no).await?;
         let mut order_id = 0;
+
         // 订单是否已经存在
         // 如果已经存在，则更新一下，如果不存在则 保存
         match order {
@@ -105,7 +95,7 @@ impl<'a> ExcelOrderParser<'a> {
                 );
 
                 order_id =
-                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer_id).await?;
+                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer.id).await?;
                 tracing::info!("order_id: {}", order_id);
             }
             Some(existing_order) => {
@@ -114,7 +104,7 @@ impl<'a> ExcelOrderParser<'a> {
                 OrderInfo::update_to_orders(
                     &self.db,
                     &excel_order.info,
-                    customer_id,
+                    customer.id,
                     existing_order.id,
                 )
                 .await?;
@@ -124,11 +114,11 @@ impl<'a> ExcelOrderParser<'a> {
 
         // check goods/skus exists.
         let mut id_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
-        let _ = excel_order
-            .items
-            .clone()
-            .into_iter()
-            .map(|item| id_order_item.entry(item.index).or_default().push(item));
+        for item in excel_order.items.iter() {
+            id_order_item.entry(item.index).or_insert(vec![]).push(item.clone())
+        }
+
+        tracing::info!("id_order_items: {:?}", id_order_item);
 
         // 循环检查 商品是否已经入库
         for (index, items) in id_order_item.iter() {
@@ -147,6 +137,7 @@ impl<'a> ExcelOrderParser<'a> {
                 }
                 Some(some_goods) => some_goods.id,
             };
+
         }
 
         // check order_items

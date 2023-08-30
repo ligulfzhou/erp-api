@@ -219,6 +219,7 @@ impl OrderItemExcel {
         let _ = items.iter().map(|item| {
             *goods_no_cnt.entry(&item.goods_no).or_default() + 1;
         });
+        println!("goods_no_cnt: {:?}", goods_no_cnt);
 
         let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
         let empty_string = "".to_string();
