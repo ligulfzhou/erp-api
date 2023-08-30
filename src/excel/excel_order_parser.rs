@@ -5,8 +5,10 @@ use crate::excel::order_template_3::parse_order_excel_t3;
 use crate::excel::order_template_4::parse_order_excel_t4;
 use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
-use crate::model::goods::GoodsModel;
-use crate::model::order::{ExcelOrder, OrderInfo, OrderItemExcel, OrderModel};
+use crate::model::goods::{GoodsModel, SKUModel};
+use crate::model::order::{
+    ExcelOrder, OrderGoodsModel, OrderInfo, OrderItemExcel, OrderItemModel, OrderModel,
+};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
@@ -139,8 +141,35 @@ impl<'a> ExcelOrderParser<'a> {
                 }
                 Some(some_goods) => some_goods.id,
             };
-        }
 
+            // 处理order_goods
+            let order_goods = OrderGoodsModel::get_row(&self.db, order_id, goods_id).await?;
+            if order_goods.is_none() {
+                let (package_card, package_card_des) = OrderItemExcel::pick_up_package(&items);
+                /// insert order_goods data
+                sqlx::query(&format!(
+                    r#"insert into order_goods(order_id, goods_id, package_card, package_card_des)
+                    values ({}, {}, {}, {});"#,
+                    order_id, goods_id, package_card, package_card_des
+                ))
+                .execute(&self.db)
+                .await
+                .map_err(ERPError::DBError)?;
+            }
+
+            // 处理items
+            let skus = SKUModel::get_skus_with_goods_id(&self.db, goods_id).await?;
+            let color_to_id = skus
+                .iter()
+                .map(|sku| (sku.color.clone(), sku.id))
+                .collect::<HashMap<String, i32>>();
+            for item in items {}
+
+            // 处理order_items
+            let order_items =
+                OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
+                    .await?;
+        }
         // check order_items
         Ok(excel_order)
     }

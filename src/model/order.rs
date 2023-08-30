@@ -81,6 +81,24 @@ pub struct OrderGoodsModel {
     pub package_card_des: Option<String>,
 }
 
+impl OrderGoodsModel {
+    pub async fn get_row(
+        db: &Pool<Postgres>,
+        order_id: i32,
+        goods_id: i32,
+    ) -> ERPResult<Option<OrderGoodsModel>> {
+        let sql = format!(
+            "select * from order_goods where order_id={} and goods_id={};",
+            order_id, goods_id
+        );
+        let row = sqlx::query_as::<_, OrderGoodsModel>(&sql)
+            .fetch_optional(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(row)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
@@ -93,6 +111,24 @@ pub struct OrderItemModel {
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
     pub notes: Option<String>,
+}
+
+impl OrderItemModel {
+    pub async fn get_rows_with_order_id_and_goods_id(
+        db: &Pool<Postgres>,
+        order_id: i32,
+        goods_id: i32,
+    ) -> ERPResult<Vec<OrderItemModel>> {
+        let sql = format!(
+            "select * from order_items where order_id={} and goods_id={}",
+            order_id, goods_id
+        );
+        let items = sqlx::query_as::<_, OrderItemModel>(&sql)
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(items)
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -274,6 +310,25 @@ impl OrderItemExcel {
         }
 
         goods
+    }
+
+    pub fn pick_up_package(items: &Vec<OrderItemExcel>) -> (String, String) {
+        let mut package_card: Option<String> = None;
+        let mut package_card_des: Option<String> = None;
+
+        for item in items {
+            if package_card.is_none() && item.package_card.is_some() {
+                package_card = item.package_card.clone();
+            }
+            if package_card_des.is_none() && !item.package_card_des.is_some() {
+                package_card_des = item.package_card_des.clone();
+            }
+        }
+
+        (
+            package_card.unwrap_or("".to_string()),
+            package_card_des.unwrap_or("".to_string()),
+        )
     }
 }
 

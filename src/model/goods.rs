@@ -54,7 +54,31 @@ pub struct SKUModel {
 }
 
 impl SKUModel {
-    pub async fn get_sku_with_goods_id_and_color() -> SKUModel {
-        todo!()
+    pub async fn get_skus_with_goods_id(
+        db: &Pool<Postgres>,
+        goods_id: i32,
+    ) -> ERPResult<Vec<SKUModel>> {
+        let sql = format!("select * from skus where goods_id={}", goods_id);
+        let skus = sqlx::query_as::<_, SKUModel>(&sql)
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(skus)
+    }
+
+    pub async fn get_sku_with_goods_id_and_color(
+        db: &Pool<Postgres>,
+        goods_id: i32,
+        color: &str,
+    ) -> ERPResult<Option<SKUModel>> {
+        let sql = format!(
+            "select * from skus where goods_id={} and color='{}';",
+            goods_id, color
+        );
+        let sku = sqlx::query_as::<_, SKUModel>(&sql)
+            .fetch_optional(db)
+            .await
+            .map_err(ERPError::DBError)?;
+        Ok(sku)
     }
 }
