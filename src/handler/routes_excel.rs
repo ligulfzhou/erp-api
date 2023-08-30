@@ -101,7 +101,7 @@ async fn import_excel(
     // 解析excel文件
     let parser = ExcelOrderParser::new(&file_path, state.db.clone());
     let order_info = parser.parse().await?;
-    tracing::info!("order_info: {:?}", order_info);
+    tracing::info!("order_info: {:#?}", order_info);
 
     Ok(APIEmptyResponse::new())
 }

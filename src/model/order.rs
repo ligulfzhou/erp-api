@@ -219,9 +219,11 @@ impl OrderItemExcel {
     pub fn pick_up_goods_no(items: &Vec<OrderItemExcel>) -> Option<String> {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
-        let _ = items.iter().map(|item| {
-            *goods_no_cnt.entry(&item.goods_no).or_default() + 1;
-        });
+        for item in items.iter() {
+            // *goods_no_cnt.entry(&item.goods_no).or_default() + 1;
+            let count = goods_no_cnt.entry(&item.goods_no).or_insert(0);
+            *count += 1;
+        }
         println!("goods_no_cnt: {:?}", goods_no_cnt);
 
         let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
