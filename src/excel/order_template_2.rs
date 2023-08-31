@@ -54,18 +54,23 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
             }
         }
 
+        let mut identifier = cur.goods_no.clone();
+        if identifier.is_empty() {
+            identifier = cur.sku_no.as_ref().unwrap().clone();
+        }
+
         if let Some(real_goods_image) = goods_image {
-            let goods_image_path = format!("{}/sku/{}.png", STORAGE_FILE_PATH, cur.goods_no);
+            let goods_image_path = format!("{}/sku/{}.png", STORAGE_FILE_PATH, identifier);
             real_goods_image.download_image(&goods_image_path);
-            cur.image = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, cur.goods_no));
+            cur.image = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, identifier));
         }
 
         if let Some(read_package_image) = package_image {
-            let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, cur.goods_no);
+            let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, identifier);
             read_package_image.download_image(&package_image_path);
             cur.package_card = Some(format!(
                 "{}/package/{}.png",
-                STORAGE_URL_PREFIX, cur.goods_no
+                STORAGE_URL_PREFIX, identifier
             ));
         }
 
