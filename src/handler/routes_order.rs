@@ -115,10 +115,6 @@ async fn create_order(
 
     // insert into table
     state.execute_sql(&payload.to_sql()).await?;
-    // sqlx::query(&payload.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -442,10 +438,12 @@ async fn update_order(
         .await
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
 
-    let _ = sqlx::query(&payload.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&payload.to_sql()).await?;
+
+    // let _ = sqlx::query(&payload.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -580,10 +578,12 @@ async fn update_order_item(
             return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
         }
         // 修改数据
-        sqlx::query(&payload.to_update_sql())
-            .execute(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+        state.execute_sql(&payload.to_update_sql()).await?;
+
+        // sqlx::query(&payload.to_update_sql())
+        //     .execute(&state.db)
+        //     .await
+        //     .map_err(ERPError::DBError)?;
     } else {
         // insert
         if !ids_with_this_sku_id.is_empty() {
@@ -591,10 +591,12 @@ async fn update_order_item(
         }
 
         // insert
-        sqlx::query(&payload.to_insert_sql())
-            .execute(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+        state.execute_sql(&payload.to_insert_sql()).await?;
+
+        // sqlx::query(&payload.to_insert_sql())
+        //     .execute(&state.db)
+        //     .await
+        //     .map_err(ERPError::DBError)?;
     }
 
     tracing::info!("insert/update sql: {:?}", payload.to_insert_sql());
@@ -766,10 +768,12 @@ async fn add_order_item_materials(
         }
     }
 
-    sqlx::query(&payload.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&payload.to_sql()).await?;
+
+    // sqlx::query(&payload.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -830,10 +834,11 @@ async fn update_order_item_material(
     .await
     .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", payload.id)))?;
 
-    sqlx::query(&payload.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&payload.to_sql()).await?;
+    // sqlx::query(&payload.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }

@@ -347,11 +347,12 @@ async fn create_sku(
     }
 
     // 插入
-    let insert_sql = param.to_sql();
-    sqlx::query(&insert_sql)
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&param.to_sql()).await?;
+    // let insert_sql = param.to_sql();
+    // sqlx::query(&insert_sql)
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
     Ok(APIEmptyResponse::new())
 }
 

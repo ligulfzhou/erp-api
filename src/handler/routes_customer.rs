@@ -147,10 +147,11 @@ async fn create_customer(
     }
 
     let sql = payload.to_sql();
-    sqlx::query(&sql)
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&sql).await?;
+    // sqlx::query(&sql)
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
