@@ -1,6 +1,7 @@
 use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemModel, OrderModel};
 use chrono::NaiveDate;
+use sqlx::FromRow;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OrderDto {
@@ -43,6 +44,37 @@ impl OrderDto {
             delivery_date: order.delivery_date,
         }
     }
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct OrderGoodsItemDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub sku_id: i32,
+    pub sku_no: Option<String>,
+    pub count: i32,
+    pub unit: String,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, FromRow)]
+pub struct OrderGoodsDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub goods_no: String,
+    pub name: String,
+    pub plating: String,
+    pub package_card: String,
+    pub package_card_des: String,
+}
+
+struct OrderGoodsWithItemDto {
+    pub goods: OrderGoodsDto,
+    pub items: Vec<OrderGoodsItemDto>,
 }
 
 #[derive(Debug, Serialize)]

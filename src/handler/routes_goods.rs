@@ -269,8 +269,8 @@ async fn get_skus(
         .collect::<Vec<String>>()
         .join(",");
 
-    let goods = sqlx::query_as::<_, (i32, String, String)>(&format!(
-        "select id, goods_no, image from goods where id in ({})",
+    let goods = sqlx::query_as::<_, GoodsModel>(&format!(
+        "select * from goods where id in ({})",
         goods_ids_str
     ))
     .fetch_all(&state.db)
@@ -278,23 +278,21 @@ async fn get_skus(
     .map_err(ERPError::DBError)?;
     tracing::info!("{:?}", goods);
 
-    let id_to_goods_no = goods
-        .clone()
+    let id_to_goods = goods
         .into_iter()
-        .map(|i| (i.0, i.1))
-        .collect::<HashMap<i32, String>>();
-    let id_to_goods_image = goods
-        .into_iter()
-        .map(|i| (i.0, i.2))
-        .collect::<HashMap<i32, String>>();
+        .map(|good| (good.id, good))
+        .collect::<HashMap<i32, GoodsModel>>();
 
-    let empty_str = "".to_string();
     let sku_dtos = skus
         .iter()
         .map(|sku| {
-            let goods_no = id_to_goods_no.get(&sku.goods_id).unwrap_or(&empty_str);
-            let goods_image = id_to_goods_image.get(&sku.goods_id).unwrap_or(&empty_str);
-            SKUModelDto::from_sku_goods_no_and_image(sku, goods_no, goods_image)
+            let goods = id_to_goods.get(&sku.goods_id).unwrap();
+            SKUModelDto::from_sku_goods_no_and_image(
+                sku,
+                &goods.goods_no,
+                &goods.image,
+                &goods.plating,
+            )
         })
         .collect::<Vec<SKUModelDto>>();
 

@@ -3,12 +3,12 @@ use crate::model::goods::{GoodsModel, SKUModel};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SKUModelDto {
     pub id: i32,
-    pub goods_no: String,        // 产品编号 (暂时没有)
-    pub goods_id: i32,           // 产品ID
-    pub image: Option<String>,   // 商品图片
-    pub plating: Option<String>, // 电镀
-    pub color: String,           // 颜色
-    pub notes: Option<String>,   // 备注
+    pub goods_no: String,      // 产品编号 (暂时没有)
+    pub goods_id: i32,         // 产品ID
+    pub image: Option<String>, // 商品图片
+    pub plating: String,       // 电镀
+    pub color: String,         // 颜色
+    pub notes: Option<String>, // 备注
 }
 
 impl SKUModelDto {
@@ -18,7 +18,7 @@ impl SKUModelDto {
             goods_id: sku.goods_id,
             goods_no: goods.goods_no.to_string(),
             image: Some(goods.image.to_owned()),
-            plating: sku.plating.to_owned(),
+            plating: goods.plating.to_owned(),
             color: sku.color.to_string(),
             notes: sku.notes.to_owned(),
         }
@@ -28,13 +28,14 @@ impl SKUModelDto {
         sku: &SKUModel,
         goods_no: &str,
         goods_image: &str,
+        goods_plating: &str,
     ) -> SKUModelDto {
         Self {
             id: sku.id,
             goods_id: sku.goods_id,
             goods_no: goods_no.to_string(),
             image: Some(goods_image.to_string()),
-            plating: sku.plating.to_owned(),
+            plating: goods_plating.to_string(),
             color: sku.color.to_string(),
             notes: sku.notes.to_owned(),
         }

@@ -247,6 +247,7 @@ impl OrderItemExcel {
             goods_no: "".to_string(),
             image: "".to_string(),
             name: "".to_string(),
+            plating: "".to_string(),
             notes: None,
         };
 
@@ -257,6 +258,9 @@ impl OrderItemExcel {
             }
             if goods.name.is_empty() && !item.name.is_empty() {
                 goods.name = item.name.clone();
+            }
+            if goods.plating.is_empty() && !item.plating.is_empty() {
+                goods.plating = item.plating.clone();
             }
         }
 
