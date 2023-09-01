@@ -68,10 +68,7 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
         if let Some(read_package_image) = package_image {
             let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, identifier);
             read_package_image.download_image(&package_image_path);
-            cur.package_card = Some(format!(
-                "{}/package/{}.png",
-                STORAGE_URL_PREFIX, identifier
-            ));
+            cur.package_card = Some(format!("{}/package/{}.png", STORAGE_URL_PREFIX, identifier));
         }
 
         items.push(cur.clone());

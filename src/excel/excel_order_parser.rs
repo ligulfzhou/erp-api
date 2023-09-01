@@ -10,9 +10,9 @@ use crate::model::order::{
     ExcelOrder, OrderGoodsModel, OrderInfo, OrderItemExcel, OrderItemModel, OrderModel,
 };
 use crate::{ERPError, ERPResult};
+use itertools::Itertools;
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
-use itertools::Itertools;
 use umya_spreadsheet::reader;
 
 #[derive(Debug)]
@@ -125,7 +125,7 @@ impl<'a> ExcelOrderParser<'a> {
         tracing::info!("id_order_items: {:?}", id_order_item);
 
         // 循环检查 商品是否已经入库
-        for (_, items) in id_order_item.iter().sorted_by_key(|x|x.0) {
+        for (_, items) in id_order_item.iter().sorted_by_key(|x| x.0) {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
             tracing::info!("picked up goods_no: {}", goods_no);
 
@@ -153,7 +153,7 @@ impl<'a> ExcelOrderParser<'a> {
                 let (package_card, package_card_des) = OrderItemExcel::pick_up_package(&items);
                 println!("package: {package_card}, {package_card_des}");
 
-                /// insert order_goods data
+                // insert order_goods data
                 sqlx::query(&format!(
                     r#"insert into order_goods(order_id, goods_id, package_card, package_card_des)
                     values ({}, {}, '{}', '{}');"#,
@@ -196,7 +196,8 @@ impl<'a> ExcelOrderParser<'a> {
                     // todo,感觉可以不做
                 } else {
                     // 插入数据
-                    let order_item_id = item.save_to_order_item(&self.db, order_id, goods_id, sku_id)
+                    let order_item_id = item
+                        .save_to_order_item(&self.db, order_id, goods_id, sku_id)
                         .await?;
                     tracing::info!("save to order_items#{order_item_id}");
                 }

@@ -136,6 +136,7 @@ VALUES (3, 'order_no_3', '2023-01-02', '2023-06-01', true, true);
 create table order_goods
 (
     id               serial,
+--    index              integer not null default 0, -- 用于排序
     order_id         integer not null, -- 订单ID
 --     order_no         text    not null, -- 订单编号
 --     goods_no         text    not null, -- 商品编号
@@ -213,10 +214,10 @@ values ('业务部', 0);
 create table accounts
 (
     id            serial,
-    name          text,
-    account       text,
-    password      text,
-    department_id integer
+    name          text not null default '',
+    account       text not null default '',
+    password      text not null default '',
+    department_id integer not null default 0
 );
 insert into accounts (name, account, password, department_id)
 values ('test', 'test', 'test', 1);

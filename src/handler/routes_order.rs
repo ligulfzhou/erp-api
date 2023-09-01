@@ -17,6 +17,10 @@ pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
         .route("/api/order/detail", get(order_detail))
+        .route(
+            "/api/order/detail/with/order/no",
+            get(order_detail_with_order_no),
+        )
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
@@ -122,6 +126,34 @@ async fn order_detail(
             .fetch_one(&state.db)
             .await
             .map_err(ERPError::DBError)?;
+
+    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        "select * from customers where id={}",
+        order.customer_id
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    Ok(APIDataResponse::new(OrderDto::from(order, customer)))
+}
+
+#[derive(Debug, Deserialize)]
+struct DetailWithOrderNoParam {
+    order_no: String,
+}
+
+async fn order_detail_with_order_no(
+    State(state): State<Arc<AppState>>,
+    Query(param): Query<DetailWithOrderNoParam>,
+) -> ERPResult<APIDataResponse<OrderDto>> {
+    let order = sqlx::query_as::<_, OrderModel>(&format!(
+        "select * from orders where order_no='{}'",
+        param.order_no
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
     let customer = sqlx::query_as::<_, CustomerModel>(&format!(
         "select * from customers where id={}",

@@ -1,5 +1,4 @@
 -- Add down migration script here
-
 drop table if exists goods;
 drop table if exists skus;
 drop table if exists customers;
