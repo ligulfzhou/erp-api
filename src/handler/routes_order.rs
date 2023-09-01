@@ -64,21 +64,29 @@ async fn delete_order_item(
 struct CreateOrderParam {
     customer_id: i32,
     order_no: String,
-    order_date: i32,
-    delivery_date: i32,
+    order_date: String,
+    delivery_date: String,
     is_urgent: bool,
     is_return_order: bool,
 }
 
 impl CreateOrderParam {
     fn to_sql(&self) -> String {
+        let delivery_date = {
+            if self.delivery_date.is_empty() {
+                "null".to_string()
+            } else {
+                format!("'{}'", self.delivery_date)
+            }
+        };
+
         format!(
             r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-               values ('{}', '{}', {}, {}, {}, {});"#,
+               values ('{}', '{}', '{}', {}, {}, {});"#,
             self.customer_id,
             self.order_no,
             self.order_date,
-            self.delivery_date,
+            delivery_date,
             self.is_urgent,
             self.is_return_order
         )
@@ -405,13 +413,23 @@ struct UpdateOrderParam {
     id: i32,
     order_no: String,
     customer_id: i32,
-    order_date: i32,
-    delivery_date: i32,
+    order_date: String,
+    delivery_date: String,
 }
 
 impl UpdateOrderParam {
     pub fn to_sql(&self) -> String {
-        format!("update orders set order_no='{}', customer_id={}, order_date={}, delivery_date={} where id={};", self.order_no, self.customer_id, self.order_date, self.delivery_date, self.id)
+        let delivery_date = {
+            if self.delivery_date.is_empty() {
+                "null".to_string()
+            } else {
+                format!("'{}'", self.delivery_date)
+            }
+        };
+
+        format!(
+            "update orders set order_no='{}', customer_id={}, order_date='{}', delivery_date={} where id={};", 
+            self.order_no, self.customer_id, self.order_date, delivery_date, self.id)
     }
 }
 
@@ -827,12 +845,12 @@ mod tests {
     use tokio;
 
     #[tokio::test]
-    async fn test() -> Result<()> {
+    async fn test_create_order() -> Result<()> {
         let param = CreateOrderParam {
             customer_id: 12,
-            order_no: "order_no".to_string(),
-            order_date: 0,
-            delivery_date: 0,
+            order_no: "order_no_101".to_string(),
+            order_date: "2022-03-09".to_string(),
+            delivery_date: "".to_string(),
             is_urgent: false,
             is_return_order: false,
         };
