@@ -49,7 +49,7 @@ impl DeleteOrderItem {
 
 async fn delete_order_item(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<DeleteOrderItem>,
+    WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     sqlx::query(&param.to_sql())
         .execute(&state.db)
@@ -119,7 +119,7 @@ struct DetailParam {
 
 async fn order_detail(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<DetailParam>,
+    WithRejection(Query(param), _): WithRejection<Query<DetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<OrderDto>> {
     let order =
         sqlx::query_as::<_, OrderModel>(&format!("select * from orders where id={}", param.id))
@@ -145,7 +145,7 @@ struct DetailWithOrderNoParam {
 
 async fn order_detail_with_order_no(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<DetailWithOrderNoParam>,
+    WithRejection(Query(param), _): WithRejection<Query<DetailWithOrderNoParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<OrderDto>> {
     let order = sqlx::query_as::<_, OrderModel>(&format!(
         "select * from orders where order_no='{}'",
@@ -228,7 +228,7 @@ impl ListParamToSQLTrait for ListParam {
 
 async fn get_orders(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListParam>,
+    WithRejection(Query(param), _): WithRejection<Query<ListParam>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderDto>> {
     tracing::info!("get_orders: ....");
 
@@ -318,7 +318,7 @@ impl ListParamToSQLTrait for OrderItemsQuery {
 
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<OrderItemsQuery>,
+    WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderItemModel>> {
     if param.order_id == 0 {
         return Err(ERPError::ParamNeeded(param.order_id.to_string()));
@@ -582,7 +582,7 @@ impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
 
 async fn get_order_item_materials(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListOrderItemMaterialsParam>,
+    WithRejection(Query(param), _): WithRejection<Query<ListOrderItemMaterialsParam>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderItemMaterialModel>> {
     let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&param.to_pagination_sql())
         .fetch_all(&state.db)

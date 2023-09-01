@@ -1,9 +1,10 @@
-use axum::extract::rejection::JsonRejection;
+use axum::extract::rejection::{JsonRejection, QueryRejection};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use sqlx::error::Error as SqlxError;
+use sqlx::query::Query;
 use thiserror::Error;
 
 pub type ERPResult<T> = Result<T, ERPError>;
@@ -34,8 +35,11 @@ pub enum ERPError {
     #[error("参数缺失: {:?}", .0)]
     ParamNeeded(String),
 
-    #[error(transparent)]
+    #[error("json参数错误: {:?}", .0)]
     JsonExtractorRejection(#[from] JsonRejection),
+
+    #[error("query参数错误: {:?}", .0)]
+    QueryExtractorRejection(#[from] QueryRejection),
 
     #[error("{}", .0)]
     SaveFileFailed(String),

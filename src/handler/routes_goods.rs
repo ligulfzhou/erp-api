@@ -55,7 +55,7 @@ impl ListParamToSQLTrait for SearchSkusParam {
 
 async fn search_skus(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<SearchSkusParam>,
+    WithRejection(Query(param), _): WithRejection<Query<SearchSkusParam>, ERPError>,
 ) -> ERPResult<APIListResponse<SKUModel>> {
     let skus = sqlx::query_as::<_, SKUModel>(&param.to_pagination_sql())
         .fetch_all(&state.db)
@@ -117,7 +117,7 @@ impl ListParamToSQLTrait for ListGoodsParam {
 
 async fn get_goods(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListGoodsParam>,
+    WithRejection(Query(param), _): WithRejection<Query<ListGoodsParam>, ERPError>,
 ) -> ERPResult<APIListResponse<GoodsDto>> {
     let pagination_sql = param.to_pagination_sql();
     let goods = sqlx::query_as::<_, GoodsModel>(&pagination_sql)
@@ -249,7 +249,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
 
 async fn get_skus(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListSKUsParam>,
+    WithRejection(Query(param), _): WithRejection<Query<ListSKUsParam>, ERPError>,
 ) -> ERPResult<APIListResponse<SKUModelDto>> {
     let pagination_sql = param.to_pagination_sql();
     tracing::info!("{pagination_sql}");

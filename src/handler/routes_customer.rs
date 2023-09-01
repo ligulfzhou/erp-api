@@ -88,7 +88,7 @@ impl ListParamToSQLTrait for ListCustomerParam {
 
 async fn get_customers(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<ListCustomerParam>,
+    WithRejection(Query(param), _): WithRejection<Query<ListCustomerParam>, ERPError>,
 ) -> ERPResult<APIListResponse<CustomerDto>> {
     let pagination_sql = param.to_pagination_sql();
     let customers = sqlx::query_as::<_, CustomerModel>(&pagination_sql)
@@ -162,7 +162,7 @@ struct DetailParam {
 
 async fn detail_customer(
     State(state): State<Arc<AppState>>,
-    Query(param): Query<DetailParam>,
+    WithRejection(Query(param), _): WithRejection<Query<DetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<CustomerModel>> {
     let customer = sqlx::query_as::<_, CustomerModel>(&format!(
         "select * from customers where id = {};",
