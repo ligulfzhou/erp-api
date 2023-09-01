@@ -39,8 +39,6 @@ pub struct OrderGoodsModel {
     pub id: i32,
     pub order_id: i32,
     pub goods_id: i32,
-    // pub order_no: String,
-    // pub goods_no: String,
     pub package_card: Option<String>,
     pub package_card_des: Option<String>,
 }

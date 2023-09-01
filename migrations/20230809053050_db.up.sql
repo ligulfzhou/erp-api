@@ -5,6 +5,7 @@ create table goods
     goods_no text not null default '', -- 类目编号(可以为空，主要来自L1005)
     image    text not null default '', -- 图片
     name     text not null default '', -- 名称
+    plating  text not null default '', -- 电镀
     notes    text                      -- 备注
 );
 create unique index uniq_goods_goods_no on goods (goods_no);
@@ -31,7 +32,7 @@ create table skus
     id       SERIAL,                      -- ID
     goods_id integer not null default 0,  -- 类目ID
 --    image    text,                        -- 商品图片  // todo: 感觉可有可无
-    plating  text,                        -- 电镀
+--    plating  text,                        -- 电镀
     sku_no   text,
     color    text    not null default '', -- 颜色
     color2   text,                        -- 颜色（只记录，只会用上面的color）
@@ -40,24 +41,24 @@ create table skus
 create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 
 
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '绿色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '红色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '粉红', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '白色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '黑色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '黄色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '橙色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '青色', 'notes');
-insert into skus (goods_id, plating, color, notes)
-values (1, 'plating', '紫色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '绿色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '红色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '粉红', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '白色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '黑色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '黄色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '橙色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '青色', 'notes');
+insert into skus (goods_id, color, notes)
+values (1, '紫色', 'notes');
 
 -- 客户
 create table customers

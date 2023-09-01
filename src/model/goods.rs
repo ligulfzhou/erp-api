@@ -7,6 +7,7 @@ pub struct GoodsModel {
     pub goods_no: String,      // 类目编号
     pub image: String,         // 图片
     pub name: String,          // 名称
+    pub plating: String,       // 电镀
     pub notes: Option<String>, // 备注
 }
 
@@ -46,11 +47,11 @@ pub struct SKUModel {
     pub id: i32,
     pub goods_id: i32, // 产品ID
     // pub image: Option<String>,   // 商品图片
-    pub plating: Option<String>, // 电镀
-    pub sku_no: Option<String>,  // sku no (这个只有L1005的有)
-    pub color: String,           // 颜色
-    pub color2: Option<String>,  // 颜色2
-    pub notes: Option<String>,   // 备注
+    // pub plating: Option<String>, // 电镀
+    pub sku_no: Option<String>, // sku no (这个只有L1005的有)
+    pub color: String,          // 颜色
+    pub color2: Option<String>, // 颜色2
+    pub notes: Option<String>,  // 备注
 }
 
 impl SKUModel {
