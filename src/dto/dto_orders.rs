@@ -46,7 +46,7 @@ impl OrderDto {
     }
 }
 
-#[derive(Debug, Serialize, FromRow)]
+#[derive(Debug, Serialize, FromRow, Clone)]
 pub struct OrderGoodsItemDto {
     pub id: i32,
     pub order_id: i32,
@@ -67,12 +67,14 @@ pub struct OrderGoodsDto {
     pub goods_id: i32,
     pub goods_no: String,
     pub name: String,
+    pub image: String,
     pub plating: String,
     pub package_card: String,
     pub package_card_des: String,
 }
 
-struct OrderGoodsWithItemDto {
+#[derive(Debug, Serialize)]
+pub struct OrderGoodsWithItemDto {
     pub goods: OrderGoodsDto,
     pub items: Vec<OrderGoodsItemDto>,
 }

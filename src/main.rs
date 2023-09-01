@@ -30,6 +30,17 @@ pub struct AppState {
     db: Pool<Postgres>,
 }
 
+impl AppState {
+    pub async fn execute_sql(&self, sql: &str) -> ERPResult<()> {
+        sqlx::query(sql)
+            .execute(&self.db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();

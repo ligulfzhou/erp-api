@@ -1,5 +1,5 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_orders::OrderDto;
+use crate::dto::dto_orders::{OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto};
 use crate::handler::ListParamToSQLTrait;
 use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
@@ -51,10 +51,12 @@ async fn delete_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    sqlx::query(&param.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    // sqlx::query(&param.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
+
+    state.execute_sql(&param.to_sql()).await?;
     Ok(APIEmptyResponse::new())
 }
 
@@ -104,10 +106,11 @@ async fn create_order(
     }
 
     // insert into table
-    sqlx::query(&payload.to_sql())
-        .execute(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    state.execute_sql(&payload.to_sql()).await?;
+    // sqlx::query(&payload.to_sql())
+    //     .execute(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -303,14 +306,21 @@ impl ListParamToSQLTrait for OrderItemsQuery {
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         format!(
-            "select * from order_items where order_id = {} order by id desc offset {} limit {}",
+            "
+        select 
+            og.id, og.order_id, og.goods_id, g.goods_no, g.name, g.image, 
+            g.plating, og.package_card, og.package_card_des
+        from order_goods og, goods g
+        where og.goods_id = g.id and og.order_id = {}
+        order by og.id offset {} limit {}
+        ",
             self.order_id, offset, page_size
         )
     }
 
     fn to_count_sql(&self) -> String {
         format!(
-            "select count(1) from order_items where order_id = {}",
+            "select count(1) from order_goods where order_id = {}",
             self.order_id
         )
     }
@@ -319,22 +329,75 @@ impl ListParamToSQLTrait for OrderItemsQuery {
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
-) -> ERPResult<APIListResponse<OrderItemModel>> {
+) -> ERPResult<APIListResponse<OrderGoodsWithItemDto>> {
     if param.order_id == 0 {
         return Err(ERPError::ParamNeeded(param.order_id.to_string()));
     }
 
-    let order_items = sqlx::query_as::<_, OrderItemModel>(&param.to_pagination_sql())
+    // 获取order_good
+    let order_goods = sqlx::query_as::<_, OrderGoodsDto>(&param.to_pagination_sql())
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
+    if order_goods.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+    println!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
+
+    // 从order_goods里拿出goods_ids
+    let goods_ids_str = order_goods
+        .iter()
+        .map(|goods| goods.goods_id.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+
+    // 用goods_ids去获取order_items
+    let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
+        "
+        select 
+            oi.id, oi.order_id, oi.goods_id, oi.sku_id,
+            s.sku_no, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
+        from order_items oi, skus s
+        where oi.sku_id = s.id
+            and oi.order_id = {} and oi.goods_id in ({})
+        order by id;
+        ",
+        param.order_id, goods_ids_str
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    println!(
+        "order_items: {:?}, len: {}",
+        order_items_dto,
+        order_items_dto.len()
+    );
+    let mut gid_order_item_dtos = HashMap::new();
+    for item in order_items_dto.into_iter() {
+        let dtos = gid_order_item_dtos.entry(item.goods_id).or_insert(vec![]);
+        dtos.push(item);
+    }
+    let empty_array: Vec<OrderGoodsItemDto> = vec![];
+    let order_goods_dtos = order_goods
+        .into_iter()
+        .map(|order_good| {
+            let items = gid_order_item_dtos
+                .get(&order_good.goods_id)
+                .unwrap_or(&empty_array);
+            OrderGoodsWithItemDto {
+                goods: order_good,
+                items: items.clone(),
+            }
+        })
+        .collect::<Vec<OrderGoodsWithItemDto>>();
 
     let count: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(order_items, count.0 as i32))
+    Ok(APIListResponse::new(order_goods_dtos, count.0 as i32))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
