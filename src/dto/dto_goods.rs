@@ -1,8 +1,11 @@
 use crate::model::goods::{GoodsModel, SKUModel};
+use sqlx::FromRow;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct SKUModelDto {
     pub id: i32,
+    pub sku_no: String,
+    pub name: String,
     pub goods_no: String,      // 产品编号 (暂时没有)
     pub goods_id: i32,         // 产品ID
     pub image: Option<String>, // 商品图片
@@ -15,29 +18,14 @@ impl SKUModelDto {
     pub fn from(sku: &SKUModel, goods: &GoodsModel) -> SKUModelDto {
         Self {
             id: sku.id,
+            sku_no: sku.sku_no.as_deref().unwrap_or("").to_string(),
             goods_id: sku.goods_id,
             goods_no: goods.goods_no.to_string(),
             image: Some(goods.image.to_owned()),
             plating: goods.plating.to_owned(),
             color: sku.color.to_string(),
             notes: sku.notes.to_owned(),
-        }
-    }
-
-    pub fn from_sku_goods_no_and_image(
-        sku: &SKUModel,
-        goods_no: &str,
-        goods_image: &str,
-        goods_plating: &str,
-    ) -> SKUModelDto {
-        Self {
-            id: sku.id,
-            goods_id: sku.goods_id,
-            goods_no: goods_no.to_string(),
-            image: Some(goods_image.to_string()),
-            plating: goods_plating.to_string(),
-            color: sku.color.to_string(),
-            notes: sku.notes.to_owned(),
+            name: goods.name.to_string(),
         }
     }
 }

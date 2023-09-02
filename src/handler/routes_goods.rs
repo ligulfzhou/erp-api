@@ -31,10 +31,21 @@ struct SearchSkusParam {
 
 impl ListParamToSQLTrait for SearchSkusParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = format!("select * from skus where goods_no like '%{}%'", self.key);
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
+
+        let mut sql = format!(
+            r#"
+            select 
+                s.id, s.sku_no, s.goods_id, s.color,
+                g.name, g.image, g.goods_no, g.plating, s.notes
+            from skus s, goods g
+            where s.goods_id = g.id
+                and g.goods_no like '%{}%' or s.sku_no like '%{}%'
+            "#,
+            self.key, self.key
+        );
         sql.push_str(&format!(
             " order by id desc offset {} limit {};",
             offset, page_size
@@ -47,8 +58,13 @@ impl ListParamToSQLTrait for SearchSkusParam {
 
     fn to_count_sql(&self) -> String {
         format!(
-            "select count(1) from skus where goods_no like '%{}%'",
-            self.key
+            r#"
+            select count(1) 
+            from skus s, goods g
+            where s.goods_id = g.id
+                and g.goods_no like '%{}%' or s.sku_no like '%{}%'
+            "#,
+            self.key, self.key
         )
     }
 }
@@ -56,8 +72,8 @@ impl ListParamToSQLTrait for SearchSkusParam {
 async fn search_skus(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<SearchSkusParam>, ERPError>,
-) -> ERPResult<APIListResponse<SKUModel>> {
-    let skus = sqlx::query_as::<_, SKUModel>(&param.to_pagination_sql())
+) -> ERPResult<APIListResponse<SKUModelDto>> {
+    let skus = sqlx::query_as::<_, SKUModelDto>(&param.to_pagination_sql())
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -287,12 +303,7 @@ async fn get_skus(
         .iter()
         .map(|sku| {
             let goods = id_to_goods.get(&sku.goods_id).unwrap();
-            SKUModelDto::from_sku_goods_no_and_image(
-                sku,
-                &goods.goods_no,
-                &goods.image,
-                &goods.plating,
-            )
+            SKUModelDto::from(sku, &goods)
         })
         .collect::<Vec<SKUModelDto>>();
 

@@ -160,21 +160,13 @@ async fn order_detail_with_order_no(
         c.customer_no, c.address as customer_address, c.name as customer_name, c.phone as customer_phone 
         from orders o, customers c
         where o.customer_id = c.id and order_no = '{}'
-    "#,
+        "#,
         param.order_no
     );
     let order = sqlx::query_as::<_, OrderDto>(&sql)
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
-    //
-    // let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-    //     "select * from customers where id={}",
-    //     order.customer_id
-    // ))
-    // .fetch_one(&state.db)
-    // .await
-    // .map_err(ERPError::DBError)?;
 
     Ok(APIDataResponse::new(order))
 }
@@ -294,14 +286,14 @@ impl ListParamToSQLTrait for OrderItemsQuery {
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         format!(
-            "
-        select 
-            og.id, og.order_id, og.goods_id, g.goods_no, g.name, g.image, 
-            g.plating, og.package_card, og.package_card_des
-        from order_goods og, goods g
-        where og.goods_id = g.id and og.order_id = {}
-        order by og.id offset {} limit {}
-        ",
+            r#"
+            select 
+                og.id, og.order_id, og.goods_id, g.goods_no, g.name, g.image, 
+                g.plating, og.package_card, og.package_card_des
+            from order_goods og, goods g
+            where og.goods_id = g.id and og.order_id = {}
+            order by og.id offset {} limit {}
+            "#,
             self.order_id, offset, page_size
         )
     }
@@ -341,7 +333,7 @@ async fn get_order_items(
 
     // 用goods_ids去获取order_items
     let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
-        "
+        r#"
         select 
             oi.id, oi.order_id, oi.goods_id, oi.sku_id,
             s.sku_no, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
@@ -349,7 +341,7 @@ async fn get_order_items(
         where oi.sku_id = s.id
             and oi.order_id = {} and oi.goods_id in ({})
         order by id;
-        ",
+        "#,
         param.order_id, goods_ids_str
     ))
     .fetch_all(&state.db)
@@ -819,10 +811,6 @@ async fn update_order_item_material(
     .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", payload.id)))?;
 
     state.execute_sql(&payload.to_sql()).await?;
-    // sqlx::query(&payload.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
