@@ -17,10 +17,6 @@ pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
         .route("/api/order/detail", get(order_detail))
-        .route(
-            "/api/order/detail/with/order/no",
-            get(order_detail_with_order_no),
-        )
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/item/update", post(update_order_item))
@@ -51,11 +47,6 @@ async fn delete_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    // sqlx::query(&param.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
-
     state.execute_sql(&param.to_sql()).await?;
     Ok(APIEmptyResponse::new())
 }
@@ -152,32 +143,6 @@ async fn order_detail(
         .map_err(ERPError::DBError)?;
 
     Ok(APIDataResponse::new(order_dto))
-}
-
-#[derive(Debug, Deserialize)]
-struct DetailWithOrderNoParam {
-    order_no: String,
-}
-
-async fn order_detail_with_order_no(
-    State(state): State<Arc<AppState>>,
-    WithRejection(Query(param), _): WithRejection<Query<DetailWithOrderNoParam>, ERPError>,
-) -> ERPResult<APIDataResponse<OrderDto>> {
-    let sql = format!(
-        r#"
-        select o.id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent 
-        c.customer_no, c.address as customer_address, c.name as customer_name, c.phone as customer_phone 
-        from orders o, customers c
-        where o.customer_id = c.id and order_no = '{}'
-        "#,
-        param.order_no
-    );
-    let order = sqlx::query_as::<_, OrderDto>(&sql)
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-    Ok(APIDataResponse::new(order))
 }
 
 #[derive(Debug, Deserialize)]
