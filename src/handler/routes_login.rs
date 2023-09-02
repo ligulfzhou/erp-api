@@ -1,6 +1,7 @@
 use crate::dto::dto_account::AccountDto;
 use crate::model::account::{AccountModel, DepartmentModel};
-use crate::{AppState, ERPError};
+use crate::response::api_response::APIEmptyResponse;
+use crate::{AppState, ERPError, ERPResult};
 use axum::extract::State;
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
@@ -13,6 +14,7 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/login", post(api_login))
+        .route("/api/logout", post(api_logout))
         .with_state(state)
 }
 
@@ -68,6 +70,21 @@ async fn api_login(
         .headers_mut()
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
 
+    Ok(response)
+}
+
+async fn api_logout() -> ERPResult<impl IntoResponse> {
+    let cookie = Cookie::build("account_id", "")
+        .path("/")
+        .max_age(time::Duration::hours(-1))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    let mut response = APIEmptyResponse::new().into_response();
+    response
+        .headers_mut()
+        .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
     Ok(response)
 }
 

@@ -173,7 +173,7 @@ struct ListSKUsParam {
     // name: Option<String>,
     // goods_no: Option<String>,
     // sku_no: Option<String>,
-    plating: Option<String>,
+    // plating: Option<String>,
     color: Option<String>,
 
     page: Option<i32>,
@@ -195,9 +195,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
         //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         // }
-        if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
-        }
+        // if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
+        // }
         if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
@@ -230,9 +230,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
         //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
         // }
-        if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
-        }
+        // if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
+        //     where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
+        // }
         if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
             where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
         }
@@ -317,9 +317,8 @@ struct CreateSKUParam {
 impl CreateSKUParam {
     fn to_sql(&self) -> String {
         format!(
-            r#"insert into skus (goods_id, plating, color, notes) values ({}, {}, {}, {})"#,
+            r#"insert into skus (goods_id, color, notes) values ({}, '{}', '{}')"#,
             self.goods_id,
-            self.plating.as_ref().unwrap_or(&"".to_string()),
             self.color,
             self.notes.as_ref().unwrap_or(&"".to_string())
         )

@@ -154,23 +154,29 @@ async fn order_detail_with_order_no(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DetailWithOrderNoParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<OrderDto>> {
-    let order = sqlx::query_as::<_, OrderModel>(&format!(
-        "select * from orders where order_no='{}'",
+    let sql = format!(
+        r#"
+        select o.id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent 
+        c.customer_no, c.address as customer_address, c.name as customer_name, c.phone as customer_phone 
+        from orders o, customers c
+        where o.customer_id = c.id and order_no = '{}'
+    "#,
         param.order_no
-    ))
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    );
+    let order = sqlx::query_as::<_, OrderDto>(&sql)
+        .fetch_one(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+    //
+    // let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+    //     "select * from customers where id={}",
+    //     order.customer_id
+    // ))
+    // .fetch_one(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?;
 
-    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customers where id={}",
-        order.customer_id
-    ))
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    Ok(APIDataResponse::new(OrderDto::from(order, customer)))
+    Ok(APIDataResponse::new(order))
 }
 
 #[derive(Debug, Deserialize)]
@@ -179,7 +185,7 @@ struct ListParam {
     #[serde(rename(deserialize = "pageSize"))]
     page_size: Option<i32>,
 
-    customer_id: Option<i32>,
+    customer_no: Option<String>,
     order_no: Option<String>,
     sort_col: Option<String>,
     sort: Option<String>, // desc/asc: default desc
@@ -187,25 +193,28 @@ struct ListParam {
 
 impl ListParamToSQLTrait for ListParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from orders ".to_string();
-        let mut where_clauses = vec![];
-        if self.order_no.is_some() && !self.order_no.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("order_no='{}'", self.order_no.as_ref().unwrap()));
-        }
-        if let Some(customer_id) = &self.customer_id {
-            where_clauses.push(format!("customer_id={}", customer_id));
-        }
-
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
-        }
-
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
+
+        let mut sql = r#"
+        select 
+            o.id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent, o.customer_id,
+            c.customer_no, c.address as customer_address, c.name as customer_name, c.phone as customer_phone 
+        from orders o, customers c
+        where o.customer_id = c.id
+        "#.to_string();
+        let customer_no = self.customer_no.as_deref().unwrap_or("");
+        if !customer_no.is_empty() {
+            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no));
+        }
+        let order_no = self.order_no.as_deref().unwrap_or("");
+        if !order_no.is_empty() {
+            sql.push_str(&format!(" and o.order_no like '%{}%'", order_no));
+        }
+
         sql.push_str(&format!(
-            " order by id desc offset {} limit {};",
+            " order by o.id desc offset {} limit {};",
             offset, page_size
         ));
 
@@ -214,22 +223,36 @@ impl ListParamToSQLTrait for ListParam {
     }
 
     fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from orders ".to_string();
-        let mut where_clauses = vec![];
-        if let Some(order_no) = &self.order_no {
-            where_clauses.push(format!("order_no='{}'", order_no));
+        let customer_no = self.customer_no.as_deref().unwrap_or("");
+        let order_no = self.order_no.as_deref().unwrap_or("");
+        if customer_no.is_empty() && order_no.is_empty() {
+            "select count(1) from orders;".to_string()
+        } else if customer_no.is_empty() && !order_no.is_empty() {
+            format!(
+                "select count(1) from orders where order_no like '%{}%';",
+                order_no
+            )
+        } else if !customer_no.is_empty() && order_no.is_empty() {
+            format!(
+                r#"
+                select count(1) 
+                from orders o, customers c
+                where o.customer_id = c.id
+                and c.customer_no = '{}'
+                "#,
+                customer_no
+            )
+        } else {
+            format!(
+                r#"
+                select count(1) 
+                from orders o, customers c
+                where o.customer_id = c.id 
+                and c.customer_no = '{}' and o.order_no like '%{}%'
+                "#,
+                customer_no, order_no
+            )
         }
-        if let Some(customer_id) = &self.customer_id {
-            where_clauses.push(format!("customer_id={}", customer_id));
-        }
-
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
-        }
-        sql.push(';');
-
-        sql
     }
 }
 
@@ -239,53 +262,14 @@ async fn get_orders(
 ) -> ERPResult<APIListResponse<OrderDto>> {
     tracing::info!("get_orders: ....");
 
-    let orders = sqlx::query_as::<_, OrderModel>(&param.to_pagination_sql())
+    let order_dtos = sqlx::query_as::<_, OrderDto>(&param.to_pagination_sql())
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    if orders.is_empty() {
+    if order_dtos.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
-
-    tracing::info!("get_orders:{:?}", orders);
-    let mut customer_ids = orders
-        .iter()
-        .map(|order| order.customer_id)
-        .collect::<Vec<i32>>();
-    customer_ids.dedup();
-    tracing::info!("customer_ids: {:?}", customer_ids);
-
-    let customer_ids_joined = customer_ids
-        .iter()
-        .map(|id| id.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-
-    let customers = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customers where id in ({customer_ids_joined})"
-    ))
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-    tracing::info!("customers found: {}", customers.len());
-
-    let id_customer = customers
-        .iter()
-        .map(|customer| (customer.id, customer.clone()))
-        .collect::<HashMap<_, _>>();
-    tracing::info!("id_customer: {:?}", id_customer);
-
-    let order_dtos = orders
-        .iter()
-        .map(|order| {
-            if let Some(customer) = id_customer.get(&order.customer_id) {
-                OrderDto::from(order.clone(), customer.clone())
-            } else {
-                OrderDto::from_only(order.clone())
-            }
-        })
-        .collect::<Vec<OrderDto>>();
 
     let count: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)

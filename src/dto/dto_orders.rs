@@ -3,7 +3,7 @@ use crate::model::order::{OrderItemModel, OrderModel};
 use chrono::NaiveDate;
 use sqlx::FromRow;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct OrderDto {
     pub id: i32,
     pub customer_id: i32,
@@ -14,6 +14,8 @@ pub struct OrderDto {
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
+    pub is_return_order: bool,
+    pub is_urgent: bool,
 }
 
 impl OrderDto {
@@ -28,6 +30,8 @@ impl OrderDto {
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,
+            is_return_order: order.is_return_order,
+            is_urgent: order.is_urgent,
         }
     }
 
@@ -42,6 +46,8 @@ impl OrderDto {
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,
+            is_return_order: order.is_return_order,
+            is_urgent: order.is_urgent,
         }
     }
 }

@@ -288,11 +288,10 @@ impl OrderItemExcel {
 
     pub async fn save_to_sku(&self, db: &Pool<Postgres>, goods_id: i32) -> ERPResult<i32> {
         let sql = format!(
-            r#"insert into skus (goods_id, plating, sku_no, color, color2)
-            values ({}, '{}', '{}', '{}', '{}')
+            r#"insert into skus (goods_id, sku_no, color, color2)
+            values ({}, '{}', '{}', '{}')
             returning id;"#,
             goods_id,
-            self.plating,
             self.sku_no.as_deref().unwrap_or(""),
             self.color,
             self.color_2.as_deref().unwrap_or("")

@@ -42,7 +42,7 @@ async fn import_excel(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> ERPResult<APIEmptyResponse> {
-    let mut id = 0;
+    // let mut id = 0;
     let mut itype = 0;
     let mut file_path: String = "".to_string();
 
@@ -78,12 +78,12 @@ async fn import_excel(
                 ERPError::SaveFileFailed(format!("create {} failed", file_path_full))
             })?;
             file_path = file_path_full;
-        } else if name == "id" {
-            let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
-            tracing::info!("value of `{}` is: {}", name, data);
-            id = data
-                .parse::<i32>()
-                .map_err(|_| ERPError::ConvertFailed("id".to_string()))?;
+        // } else if name == "id" {
+        //     let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+        //     tracing::info!("value of `{}` is: {}", name, data);
+        //     id = data
+        //         .parse::<i32>()
+        //         .map_err(|_| ERPError::ConvertFailed("id".to_string()))?;
         } else if name == "type" {
             let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
             tracing::info!("value of `{}` is: {}", name, data);

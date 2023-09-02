@@ -181,6 +181,20 @@ values (1, 1, 2, 10, '个');
 insert into order_items (order_id, goods_id, sku_id, count, unit)
 values (1, 1, 3, 10, '个');
 
+create table progress
+(
+    id    serial,
+    order_id integer not null default 0,
+    goods_id integer not null default 0,
+    sku_id integer not null default 0,
+    account_id integer not null default 0,
+    index integer not null default 0,   -- 哪一步
+    success boolean not null default false,
+    notes text not null default '',
+    create_time date not null
+);
+
+
 -- 订单sku的的材料单 * N
 create table order_item_materials
 (
@@ -197,7 +211,6 @@ create table order_item_materials
     debt          integer,       -- 欠数
     notes         text           -- 备注
 );
-
 
 -- 部门
 create table departments
