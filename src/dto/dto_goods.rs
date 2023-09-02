@@ -16,6 +16,7 @@ pub struct SKUModelDto {
 }
 
 impl SKUModelDto {
+    /// 没在用，多表组合的，还不如直接联表查
     pub fn from(sku: &SKUModel, goods: &GoodsModel) -> SKUModelDto {
         Self {
             id: sku.id,
