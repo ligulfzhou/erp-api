@@ -121,28 +121,37 @@ async fn create_order(
 
 #[derive(Debug, Deserialize)]
 struct DetailParam {
-    id: i32,
+    id: Option<i32>,
+    order_no: Option<String>,
 }
 
 async fn order_detail(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<OrderDto>> {
-    let order =
-        sqlx::query_as::<_, OrderModel>(&format!("select * from orders where id={}", param.id))
-            .fetch_one(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+    let mut sql = r#"
+    select 
+        o.id, o.customer_id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent,
+        c.name as customer_name, c.phone as customer_phone, c.address as customer_address, c.customer_no
+    from orders o, customers c
+    where o.customer_id = c.id
+    "#.to_string();
 
-    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customers where id={}",
-        order.customer_id
-    ))
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    let id = param.id.unwrap_or(0);
+    if id > 0 {
+        sql.push_str(&format!(" and o.id={id}"))
+    }
+    let order_no = param.order_no.as_deref().unwrap_or("");
+    if !order_no.is_empty() {
+        sql.push_str(&format!(" and o.order_no='{order_no}'"));
+    }
 
-    Ok(APIDataResponse::new(OrderDto::from(order, customer)))
+    let order_dto = sqlx::query_as::<_, OrderDto>(&sql)
+        .fetch_one(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+    Ok(APIDataResponse::new(order_dto))
 }
 
 #[derive(Debug, Deserialize)]
