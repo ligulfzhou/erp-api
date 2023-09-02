@@ -187,9 +187,9 @@ async fn get_goods(
 #[derive(Debug, Deserialize)]
 struct ListSKUsParam {
     // name: Option<String>,
-    // goods_no: Option<String>,
-    // sku_no: Option<String>,
     // plating: Option<String>,
+    goods_no: Option<String>,
+    sku_no: Option<String>,
     color: Option<String>,
 
     page: Option<i32>,
@@ -199,35 +199,33 @@ struct ListSKUsParam {
 
 impl ListParamToSQLTrait for ListSKUsParam {
     fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from skus ".to_string();
-        let mut where_clauses = vec![];
-        // if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        // }
-
-        // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
-        // }
-        // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
-        // }
-        // if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
-        // }
-        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
+        let goods_no = self.goods_no.as_deref().unwrap_or("");
+        let sku_no = self.sku_no.as_deref().unwrap_or("");
+        let color = self.color.as_deref().unwrap_or("");
+        let mut sql = format!(
+            r#"
+            select
+                s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
+                g.name, g.goods_no, g.image, g.plating
+            from skus s, goods g
+            where s.goods_id = g.id
+            "#,
+        );
+        if !goods_no.is_empty() {
+            sql.push_str(&format!(" and g.goods_no like '%{}%'", goods_no));
         }
-
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
+        if !sku_no.is_empty() {
+            sql.push_str(&format!(" and s.sku_no like '%{}%'", sku_no));
+        }
+        if !color.is_empty() {
+            sql.push_str(&format!(" and s.color like '%{}%'", color));
         }
 
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
         sql.push_str(&format!(
-            " order by id desc offset {} limit {};",
+            " order by s.id desc offset {} limit {};",
             offset, page_size
         ));
 
@@ -235,29 +233,25 @@ impl ListParamToSQLTrait for ListSKUsParam {
     }
 
     fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from skus ".to_string();
-        let mut where_clauses = vec![];
-        // if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        // }
-        // if self.goods_no.is_some() && !self.goods_no.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("goods_no='{}'", self.goods_no.as_ref().unwrap()));
-        // }
-        // if self.sku_no.is_some() && !self.sku_no.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("sku_no='{}'", self.sku_no.as_ref().unwrap()));
-        // }
-        // if self.plating.is_some() && !self.plating.as_ref().unwrap().is_empty() {
-        //     where_clauses.push(format!("plating='{}'", self.plating.as_ref().unwrap()));
-        // }
-        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
+        let goods_no = self.goods_no.as_deref().unwrap_or("");
+        let sku_no = self.sku_no.as_deref().unwrap_or("");
+        let color = self.color.as_deref().unwrap_or("");
+        let mut sql = format!(
+            r#"
+            select count(1) 
+            from skus s, goods g
+            where s.goods_id = g.id
+            "#,
+        );
+        if !goods_no.is_empty() {
+            sql.push_str(&format!(" and g.goods_no like '%{}%'", goods_no));
         }
-
-        if !where_clauses.is_empty() {
-            sql.push_str(" where ");
-            sql.push_str(&where_clauses.join(" and "));
+        if !sku_no.is_empty() {
+            sql.push_str(&format!(" and s.sku_no like '%{}%'", sku_no));
         }
-        sql.push(';');
+        if !color.is_empty() {
+            sql.push_str(&format!(" and s.color like '%{}%'", color));
+        }
 
         sql
     }
@@ -269,7 +263,7 @@ async fn get_skus(
 ) -> ERPResult<APIListResponse<SKUModelDto>> {
     let pagination_sql = param.to_pagination_sql();
     tracing::info!("{pagination_sql}");
-    let skus = sqlx::query_as::<_, SKUModel>(&pagination_sql)
+    let skus = sqlx::query_as::<_, SKUModelDto>(&pagination_sql)
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -278,35 +272,6 @@ async fn get_skus(
         return Ok(APIListResponse::new(vec![], 0));
     }
 
-    let goods_ids = skus.iter().map(|sku| sku.goods_id).collect::<Vec<i32>>();
-    let goods_ids_str = goods_ids
-        .iter()
-        .map(|goods_id| format!("{}", goods_id))
-        .collect::<Vec<String>>()
-        .join(",");
-
-    let goods = sqlx::query_as::<_, GoodsModel>(&format!(
-        "select * from goods where id in ({})",
-        goods_ids_str
-    ))
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-    tracing::info!("{:?}", goods);
-
-    let id_to_goods = goods
-        .into_iter()
-        .map(|good| (good.id, good))
-        .collect::<HashMap<i32, GoodsModel>>();
-
-    let sku_dtos = skus
-        .iter()
-        .map(|sku| {
-            let goods = id_to_goods.get(&sku.goods_id).unwrap();
-            SKUModelDto::from(sku, &goods)
-        })
-        .collect::<Vec<SKUModelDto>>();
-
     let count_sql = param.to_count_sql();
     tracing::info!("{count_sql}");
     let total: (i64,) = sqlx::query_as(&count_sql)
@@ -314,7 +279,7 @@ async fn get_skus(
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(sku_dtos, total.0 as i32))
+    Ok(APIListResponse::new(skus, total.0 as i32))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
