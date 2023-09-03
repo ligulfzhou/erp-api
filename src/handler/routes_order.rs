@@ -1,7 +1,7 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto};
 use crate::handler::ListParamToSQLTrait;
-use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
+use crate::model::order::OrderModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -18,16 +18,17 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
+        .route("/api/order/goods/update", post(update_order_goods))
         .route("/api/order/item/update", post(update_order_item))
         .route("/api/order/item/delete", post(delete_order_item))
-        .route(
-            "/api/order/item/materials",
-            get(get_order_item_materials).post(add_order_item_materials),
-        )
-        .route(
-            "/api/order/item/material/update",
-            post(update_order_item_material),
-        )
+        // .route(
+        //     "/api/order/item/materials",
+        //     get(get_order_item_materials).post(add_order_item_materials),
+        // )
+        // .route(
+        //     "/api/order/item/material/update",
+        //     post(update_order_item_material),
+        // )
         .with_state(state)
 }
 
@@ -52,42 +53,19 @@ async fn delete_order_item(
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CreateOrderParam {
-    customer_id: i32,
+    customer_no: String,
     order_no: String,
     order_date: String,
-    delivery_date: String,
+    delivery_date: Option<String>,
     is_urgent: bool,
     is_return_order: bool,
-}
-
-impl CreateOrderParam {
-    fn to_sql(&self) -> String {
-        let delivery_date = {
-            if self.delivery_date.is_empty() {
-                "null".to_string()
-            } else {
-                format!("'{}'", self.delivery_date)
-            }
-        };
-
-        format!(
-            r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-               values ('{}', '{}', '{}', {}, {}, {});"#,
-            self.customer_id,
-            self.order_no,
-            self.order_date,
-            delivery_date,
-            self.is_urgent,
-            self.is_return_order
-        )
-    }
 }
 
 async fn create_order(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<CreateOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    // check order_no exists.
+    // 检查订单号是否已存在.
     if sqlx::query_as!(
         OrderModel,
         "select * from orders where order_no = $1",
@@ -103,8 +81,38 @@ async fn create_order(
         )));
     }
 
-    // insert into table
-    state.execute_sql(&payload.to_sql()).await?;
+    // 获取客户的ID
+    let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
+        "select id from customers where customer_no = '{}'",
+        payload.customer_no
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    let delivery_date = {
+        if payload.delivery_date.is_none()
+            || payload.delivery_date.as_deref().unwrap_or("").is_empty()
+        {
+            "null".to_string()
+        } else {
+            format!("'{}'", payload.delivery_date.as_deref().unwrap())
+        }
+    };
+
+    // 插入订单
+    let sql = format!(
+        r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+               values ('{}', '{}', '{}', {}, {}, {});"#,
+        customer_id,
+        payload.order_no,
+        payload.order_date,
+        delivery_date,
+        payload.is_urgent,
+        payload.is_return_order
+    );
+
+    state.execute_sql(&sql).await?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -392,45 +400,23 @@ async fn update_order(
 #[derive(Debug, Deserialize)]
 struct UpdateOrderItemParam {
     id: Option<i32>,
-    order_id: i32,
-    sku_id: i32,
-    package_card: Option<String>,
-    package_card_des: Option<String>,
+    order_id: Option<i32>,
+    goods_id: Option<i32>,
+    sku_id: Option<i32>,
     count: i32,
     unit: Option<String>,
     unit_price: Option<i32>,
     total_price: Option<i32>,
-    notes: Option<String>,
 }
 
 impl UpdateOrderItemParam {
     fn to_insert_sql(&self) -> String {
         let mut kv_pairs: Vec<(_, _)> = vec![];
-        kv_pairs.push(("order_id", self.order_id.to_string()));
-        kv_pairs.push(("sku_id", self.sku_id.to_string()));
-        kv_pairs.push((
-            "package_card",
-            format!(
-                "'{}'",
-                self.package_card.as_ref().unwrap_or(&"".to_string())
-            ),
-        ));
-        kv_pairs.push((
-            "package_card_des",
-            format!(
-                "'{}'",
-                self.package_card_des.as_ref().unwrap_or(&"".to_string())
-            ),
-        ));
+        kv_pairs.push(("order_id", self.order_id.unwrap_or(0).to_string()));
+        kv_pairs.push(("sku_id", self.sku_id.unwrap_or(0).to_string()));
+        kv_pairs.push(("goods_id", self.goods_id.unwrap_or(0).to_string()));
         kv_pairs.push(("count", self.count.to_string()));
-        kv_pairs.push((
-            "unit",
-            format!("'{}'", self.unit.as_ref().unwrap_or(&"".to_string())),
-        ));
-        kv_pairs.push((
-            "notes",
-            format!("'{}'", self.notes.as_ref().unwrap_or(&"".to_string())),
-        ));
+        kv_pairs.push(("unit", format!("'{}'", self.unit.as_deref().unwrap_or(""))));
         if let Some(unit_price) = self.unit_price {
             kv_pairs.push(("unit_price", unit_price.to_string()))
         }
@@ -460,15 +446,7 @@ impl UpdateOrderItemParam {
 
     fn to_update_sql(&self) -> String {
         let mut where_clauses = vec![];
-        where_clauses.push(format!("order_id={}", self.order_id));
-        where_clauses.push(format!("sku_id={}", self.sku_id));
         where_clauses.push(format!("count={}", self.count));
-        if let Some(package_card) = &self.package_card {
-            where_clauses.push(format!("package_card='{}'", package_card));
-        }
-        if let Some(package_card_des) = &self.package_card_des {
-            where_clauses.push(format!("package_card_des='{}'", package_card_des));
-        }
         if let Some(unit) = &self.unit {
             where_clauses.push(format!("unit='{}'", unit));
         }
@@ -477,9 +455,6 @@ impl UpdateOrderItemParam {
         }
         if let Some(total_price) = &self.total_price {
             where_clauses.push(format!("total_price={}", total_price));
-        }
-        if let Some(notes) = &self.notes {
-            where_clauses.push(format!("notes='{}'", notes));
         }
 
         let sql = format!(
@@ -496,289 +471,397 @@ async fn update_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    // check if sku_id exists
-    let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
-        "select id from order_items where order_id={} and sku_id={}",
-        payload.order_id, payload.sku_id
-    ))
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?
-    .iter()
-    .map(|id| id.0)
-    .collect::<Vec<i32>>();
-    tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
-
     if let Some(id) = payload.id {
-        // update
-        let other_ids = ids_with_this_sku_id
-            .iter()
-            .filter(|order_item_id| order_item_id != &&id)
-            .collect::<Vec<&i32>>();
-        if !other_ids.is_empty() {
-            return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
-        }
         // 修改数据
+        tracing::info!(
+            "=> handler update_order_item: update sql: {:?}",
+            payload.to_update_sql()
+        );
         state.execute_sql(&payload.to_update_sql()).await?;
-
-        // sqlx::query(&payload.to_update_sql())
-        //     .execute(&state.db)
-        //     .await
-        //     .map_err(ERPError::DBError)?;
     } else {
-        // insert
+        // 新增
+        let order_id = payload.order_id.expect("订单ID");
+        let sku_id = payload.sku_id.expect("sku ID");
+
+        // check if sku_id exists
+        let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
+            "select id from order_items where order_id={} and sku_id={}",
+            order_id, sku_id
+        ))
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?
+        .iter()
+        .map(|id| id.0)
+        .collect::<Vec<i32>>();
+        tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
+
         if !ids_with_this_sku_id.is_empty() {
             return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
         }
 
         // insert
+        tracing::info!(
+            "=> handler update_order_item: insert sql: {:?}",
+            payload.to_insert_sql()
+        );
+
         state.execute_sql(&payload.to_insert_sql()).await?;
-
-        // sqlx::query(&payload.to_insert_sql())
-        //     .execute(&state.db)
-        //     .await
-        //     .map_err(ERPError::DBError)?;
     }
-
-    tracing::info!("insert/update sql: {:?}", payload.to_insert_sql());
-    Ok(APIEmptyResponse::new())
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct ListOrderItemMaterialsParam {
-    pub order_id: Option<i32>,
-    pub order_item_id: i32,
-    pub name: Option<String>,
-    pub color: Option<String>,
-    pub page: Option<i32>,
-    #[serde(rename(deserialize = "pageSize"))]
-    pub page_size: Option<i32>,
-}
-
-impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
-    fn to_pagination_sql(&self) -> String {
-        let mut sql = "select * from order_item_materials".to_string();
-        let mut where_clauses = vec![];
-        if let Some(order_id) = self.order_id {
-            where_clauses.push(format!("order_id={}", order_id));
-        }
-        where_clauses.push(format!("order_item_id={}", self.order_item_id));
-        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        }
-        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
-        }
-        sql.push_str(" where ");
-        sql.push_str(&where_clauses.join(" and "));
-
-        let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-        sql.push_str(&format!(
-            " order by id desc limit {page} offset {page_size};"
-        ));
-
-        tracing::info!("{sql}");
-        sql
-    }
-
-    fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from order_item_materials".to_string();
-        let mut where_clauses = vec![];
-        if let Some(order_id) = self.order_id {
-            where_clauses.push(format!("order_id={}", order_id));
-        }
-        where_clauses.push(format!("order_item_id={}", self.order_item_id));
-        if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
-        }
-        if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
-            where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
-        }
-        sql.push_str(" where ");
-        sql.push_str(&where_clauses.join(" and "));
-        sql.push(';');
-
-        tracing::info!("{sql}");
-        sql
-    }
-}
-
-async fn get_order_item_materials(
-    State(state): State<Arc<AppState>>,
-    WithRejection(Query(param), _): WithRejection<Query<ListOrderItemMaterialsParam>, ERPError>,
-) -> ERPResult<APIListResponse<OrderItemMaterialModel>> {
-    let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&param.to_pagination_sql())
-        .fetch_all(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-    let total: (i64,) = sqlx::query_as(&param.to_count_sql())
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-    Ok(APIListResponse::new(materials, total.0 as i32))
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct CreateOrderItemMaterialParam {
-    pub order_id: i32,
-    pub order_item_id: i32,
-    pub name: String,
-    pub color: String,
-    // material_id   integer, -- 材料ID  (暂时先不用)
-    pub single: Option<i32>,   //  integer, -- 单数      ？小数
-    pub count: i32,            //  integer, -- 数量      ？小数
-    pub total: Option<i32>,    //  integer, -- 总数(米)  ? 小数
-    pub stock: Option<i32>,    //  integer, -- 库存 ?
-    pub debt: Option<i32>,     //  integer, -- 欠数
-    pub notes: Option<String>, //  text     -- 备注
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct CreateOrderItemMaterialsParam {
-    order_item_id: i32,
-    materials: Vec<CreateOrderItemMaterialParam>,
-}
-
-impl CreateOrderItemMaterialsParam {
-    fn to_sql(&self) -> String {
-        let values = self
-            .materials
-            .iter()
-            .map(|material| {
-                format!(
-                    "({}, {}, '{}', '{}', {:?}, {}, {:?}, {:?}, {:?}, '{:?}')",
-                    material.order_id,
-                    material.order_item_id,
-                    material.name,
-                    material.color,
-                    material.single,
-                    material.count,
-                    material.total,
-                    material.stock,
-                    material.debt,
-                    material.notes
-                )
-            })
-            .collect::<Vec<String>>()
-            .join(",");
-
-        format!("insert into order_item_materials (order_id, order_item_id, name, color, single, count, total, stock, debt, notes) values {};", values)
-    }
-}
-
-async fn add_order_item_materials(
-    State(state): State<Arc<AppState>>,
-    WithRejection(Json(payload), _): WithRejection<Json<CreateOrderItemMaterialsParam>, ERPError>,
-) -> ERPResult<APIEmptyResponse> {
-    // checking material is empty
-    if payload.materials.is_empty() {
-        return Err(ERPError::ParamNeeded("materials".to_string()));
-    }
-
-    // checking material
-    let existings = sqlx::query_as::<_, OrderItemMaterialModel>(&format!(
-        "select * from order_item_materials where order_item_id={};",
-        payload.order_item_id
-    ))
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    // if already have some material, then check against it.
-    if !existings.is_empty() {
-        let existing_name_color_tuples: Vec<(String, String)> = existings
-            .iter()
-            .map(|material| (material.name.clone(), material.color.clone()))
-            .collect();
-
-        let duplicates = payload
-            .materials
-            .iter()
-            .filter(|&material| {
-                existing_name_color_tuples
-                    .contains(&(material.name.clone(), material.color.clone()))
-            })
-            .map(|material| format!("({}-{})", material.name, material.color))
-            .collect::<Vec<String>>();
-
-        if !duplicates.is_empty() {
-            return Err(ERPError::AlreadyExists(duplicates.join(",")));
-        }
-    }
-
-    state.execute_sql(&payload.to_sql()).await?;
-
-    // sqlx::query(&payload.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
 
 #[derive(Debug, Deserialize)]
-struct UpdateOrderItemMaterialParam {
-    id: i32,
-    order_id: i32,
-    sku_id: i32,
-    package_card: Option<String>,
-    package_card_des: Option<String>,
+struct UpdateOrderGoodsParam {
+    id: Option<i32>,
+    order_id: Option<i32>,
+    goods_id: Option<i32>,
+    sku_id: Option<i32>,
     count: i32,
     unit: Option<String>,
     unit_price: Option<i32>,
     total_price: Option<i32>,
-    notes: Option<String>,
 }
 
-impl UpdateOrderItemMaterialParam {
-    fn to_sql(&self) -> String {
-        let mut sql = format!(
-            "update order_items set order_id={},sku_id={},count={}",
-            self.order_id, self.sku_id, self.count
-        );
-        if let Some(package_card) = &self.package_card {
-            sql.push_str(&format!(",package_card='{}'", package_card));
+impl UpdateOrderGoodsParam {
+    fn to_insert_sql(&self) -> String {
+        let mut kv_pairs: Vec<(_, _)> = vec![];
+        kv_pairs.push(("order_id", self.order_id.unwrap_or(0).to_string()));
+        kv_pairs.push(("sku_id", self.sku_id.unwrap_or(0).to_string()));
+        kv_pairs.push(("goods_id", self.goods_id.unwrap_or(0).to_string()));
+        kv_pairs.push(("count", self.count.to_string()));
+        kv_pairs.push(("unit", format!("'{}'", self.unit.as_deref().unwrap_or(""))));
+        if let Some(unit_price) = self.unit_price {
+            kv_pairs.push(("unit_price", unit_price.to_string()))
         }
-        if let Some(package_card_des) = &self.package_card_des {
-            sql.push_str(&format!(",package_card_des='{}'", package_card_des));
+        if let Some(total_price) = self.total_price {
+            kv_pairs.push(("total_price", total_price.to_string()))
         }
+
+        let keys = kv_pairs
+            .iter()
+            .map(|kv| kv.0)
+            .collect::<Vec<&str>>()
+            .join(",");
+        tracing::debug!("keys: {:?}", keys);
+
+        let values = kv_pairs
+            .iter()
+            .map(|kv| kv.1.as_str())
+            .collect::<Vec<&str>>()
+            .join(",");
+        tracing::debug!("values: {:?}", values);
+
+        let sql = format!("insert into order_items ({}) values ({})", keys, values);
+        tracing::debug!("sql: {:?}", sql);
+
+        sql
+    }
+
+    fn to_update_sql(&self) -> String {
+        let mut where_clauses = vec![];
+        where_clauses.push(format!("count={}", self.count));
         if let Some(unit) = &self.unit {
-            sql.push_str(&format!(",unit='{}'", unit));
+            where_clauses.push(format!("unit='{}'", unit));
         }
         if let Some(unit_price) = &self.unit_price {
-            sql.push_str(&format!(",unit_price={}", unit_price));
+            where_clauses.push(format!("unit_price={}", unit_price));
         }
         if let Some(total_price) = &self.total_price {
-            sql.push_str(&format!(",total_price='{}'", total_price));
+            where_clauses.push(format!("total_price={}", total_price));
         }
-        if let Some(notes) = &self.notes {
-            sql.push_str(&format!(",notes={}", notes));
-        }
+
+        let sql = format!(
+            "update order_items set {} where id={}",
+            where_clauses.join(","),
+            self.id.unwrap()
+        );
 
         sql
     }
 }
 
-async fn update_order_item_material(
+async fn update_order_goods(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemMaterialParam>, ERPError>,
+    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let _ = sqlx::query_as!(
-        OrderItemModel,
-        "select * from order_items where id=$1",
-        payload.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", payload.id)))?;
+    if let Some(id) = payload.id {
+        // 修改数据
+        tracing::info!(
+            "=> handler update_order_item: update sql: {:?}",
+            payload.to_update_sql()
+        );
+        state.execute_sql(&payload.to_update_sql()).await?;
+    } else {
+        // 新增
+        let order_id = payload.order_id.expect("订单ID");
+        let sku_id = payload.sku_id.expect("sku ID");
 
-    state.execute_sql(&payload.to_sql()).await?;
+        // check if sku_id exists
+        let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
+            "select id from order_items where order_id={} and sku_id={}",
+            order_id, sku_id
+        ))
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?
+        .iter()
+        .map(|id| id.0)
+        .collect::<Vec<i32>>();
+        tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
+
+        if !ids_with_this_sku_id.is_empty() {
+            return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
+        }
+
+        // insert
+        tracing::info!(
+            "=> handler update_order_item: insert sql: {:?}",
+            payload.to_insert_sql()
+        );
+
+        state.execute_sql(&payload.to_insert_sql()).await?;
+    }
 
     Ok(APIEmptyResponse::new())
 }
+
+// #[derive(Debug, Deserialize, Serialize)]
+// struct ListOrderItemMaterialsParam {
+//     pub order_id: Option<i32>,
+//     pub order_item_id: i32,
+//     pub name: Option<String>,
+//     pub color: Option<String>,
+//     pub page: Option<i32>,
+//     #[serde(rename(deserialize = "pageSize"))]
+//     pub page_size: Option<i32>,
+// }
+
+// impl ListParamToSQLTrait for ListOrderItemMaterialsParam {
+//     fn to_pagination_sql(&self) -> String {
+//         let mut sql = "select * from order_item_materials".to_string();
+//         let mut where_clauses = vec![];
+//         if let Some(order_id) = self.order_id {
+//             where_clauses.push(format!("order_id={}", order_id));
+//         }
+//         where_clauses.push(format!("order_item_id={}", self.order_item_id));
+//         if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+//             where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
+//         }
+//         if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+//             where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
+//         }
+//         sql.push_str(" where ");
+//         sql.push_str(&where_clauses.join(" and "));
+//
+//         let page = self.page.unwrap_or(1);
+//         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+//         sql.push_str(&format!(
+//             " order by id desc limit {page} offset {page_size};"
+//         ));
+//
+//         tracing::info!("{sql}");
+//         sql
+//     }
+//
+//     fn to_count_sql(&self) -> String {
+//         let mut sql = "select count(1) from order_item_materials".to_string();
+//         let mut where_clauses = vec![];
+//         if let Some(order_id) = self.order_id {
+//             where_clauses.push(format!("order_id={}", order_id));
+//         }
+//         where_clauses.push(format!("order_item_id={}", self.order_item_id));
+//         if self.name.is_some() && !self.name.as_ref().unwrap().is_empty() {
+//             where_clauses.push(format!("name='{}'", self.name.as_ref().unwrap()));
+//         }
+//         if self.color.is_some() && !self.color.as_ref().unwrap().is_empty() {
+//             where_clauses.push(format!("color='{}'", self.color.as_ref().unwrap()));
+//         }
+//         sql.push_str(" where ");
+//         sql.push_str(&where_clauses.join(" and "));
+//         sql.push(';');
+//
+//         tracing::info!("{sql}");
+//         sql
+//     }
+// }
+//
+// async fn get_order_item_materials(
+//     State(state): State<Arc<AppState>>,
+//     WithRejection(Query(param), _): WithRejection<Query<ListOrderItemMaterialsParam>, ERPError>,
+// ) -> ERPResult<APIListResponse<OrderItemMaterialModel>> {
+//     let materials = sqlx::query_as::<_, OrderItemMaterialModel>(&param.to_pagination_sql())
+//         .fetch_all(&state.db)
+//         .await
+//         .map_err(ERPError::DBError)?;
+//
+//     let total: (i64,) = sqlx::query_as(&param.to_count_sql())
+//         .fetch_one(&state.db)
+//         .await
+//         .map_err(ERPError::DBError)?;
+//
+//     Ok(APIListResponse::new(materials, total.0 as i32))
+// }
+
+// #[derive(Debug, Deserialize, Serialize, Clone)]
+// struct CreateOrderItemMaterialParam {
+//     pub order_id: i32,
+//     pub order_item_id: i32,
+//     pub name: String,
+//     pub color: String,
+//     // material_id   integer, -- 材料ID  (暂时先不用)
+//     pub single: Option<i32>,   //  integer, -- 单数      ？小数
+//     pub count: i32,            //  integer, -- 数量      ？小数
+//     pub total: Option<i32>,    //  integer, -- 总数(米)  ? 小数
+//     pub stock: Option<i32>,    //  integer, -- 库存 ?
+//     pub debt: Option<i32>,     //  integer, -- 欠数
+//     pub notes: Option<String>, //  text     -- 备注
+// }
+
+// #[derive(Debug, Deserialize, Serialize, Clone)]
+// struct CreateOrderItemMaterialsParam {
+//     order_item_id: i32,
+//     materials: Vec<CreateOrderItemMaterialParam>,
+// }
+//
+// impl CreateOrderItemMaterialsParam {
+//     fn to_sql(&self) -> String {
+//         let values = self
+//             .materials
+//             .iter()
+//             .map(|material| {
+//                 format!(
+//                     "({}, {}, '{}', '{}', {:?}, {}, {:?}, {:?}, {:?}, '{:?}')",
+//                     material.order_id,
+//                     material.order_item_id,
+//                     material.name,
+//                     material.color,
+//                     material.single,
+//                     material.count,
+//                     material.total,
+//                     material.stock,
+//                     material.debt,
+//                     material.notes
+//                 )
+//             })
+//             .collect::<Vec<String>>()
+//             .join(",");
+//
+//         format!("insert into order_item_materials (order_id, order_item_id, name, color, single, count, total, stock, debt, notes) values {};", values)
+//     }
+// }
+
+// async fn add_order_item_materials(
+//     State(state): State<Arc<AppState>>,
+//     WithRejection(Json(payload), _): WithRejection<Json<CreateOrderItemMaterialsParam>, ERPError>,
+// ) -> ERPResult<APIEmptyResponse> {
+//     // checking material is empty
+//     if payload.materials.is_empty() {
+//         return Err(ERPError::ParamNeeded("materials".to_string()));
+//     }
+//
+//     // checking material
+//     let existings = sqlx::query_as::<_, OrderItemMaterialModel>(&format!(
+//         "select * from order_item_materials where order_item_id={};",
+//         payload.order_item_id
+//     ))
+//     .fetch_all(&state.db)
+//     .await
+//     .map_err(ERPError::DBError)?;
+//
+//     // if already have some material, then check against it.
+//     if !existings.is_empty() {
+//         let existing_name_color_tuples: Vec<(String, String)> = existings
+//             .iter()
+//             .map(|material| (material.name.clone(), material.color.clone()))
+//             .collect();
+//
+//         let duplicates = payload
+//             .materials
+//             .iter()
+//             .filter(|&material| {
+//                 existing_name_color_tuples
+//                     .contains(&(material.name.clone(), material.color.clone()))
+//             })
+//             .map(|material| format!("({}-{})", material.name, material.color))
+//             .collect::<Vec<String>>();
+//
+//         if !duplicates.is_empty() {
+//             return Err(ERPError::AlreadyExists(duplicates.join(",")));
+//         }
+//     }
+//
+//     state.execute_sql(&payload.to_sql()).await?;
+//
+//     // sqlx::query(&payload.to_sql())
+//     //     .execute(&state.db)
+//     //     .await
+//     //     .map_err(ERPError::DBError)?;
+//
+//     Ok(APIEmptyResponse::new())
+// }
+//
+// #[derive(Debug, Deserialize)]
+// struct UpdateOrderItemMaterialParam {
+//     id: i32,
+//     order_id: i32,
+//     sku_id: i32,
+//     package_card: Option<String>,
+//     package_card_des: Option<String>,
+//     count: i32,
+//     unit: Option<String>,
+//     unit_price: Option<i32>,
+//     total_price: Option<i32>,
+//     notes: Option<String>,
+// }
+//
+// impl UpdateOrderItemMaterialParam {
+//     fn to_sql(&self) -> String {
+//         let mut sql = format!(
+//             "update order_items set order_id={},sku_id={},count={}",
+//             self.order_id, self.sku_id, self.count
+//         );
+//         if let Some(package_card) = &self.package_card {
+//             sql.push_str(&format!(",package_card='{}'", package_card));
+//         }
+//         if let Some(package_card_des) = &self.package_card_des {
+//             sql.push_str(&format!(",package_card_des='{}'", package_card_des));
+//         }
+//         if let Some(unit) = &self.unit {
+//             sql.push_str(&format!(",unit='{}'", unit));
+//         }
+//         if let Some(unit_price) = &self.unit_price {
+//             sql.push_str(&format!(",unit_price={}", unit_price));
+//         }
+//         if let Some(total_price) = &self.total_price {
+//             sql.push_str(&format!(",total_price='{}'", total_price));
+//         }
+//         if let Some(notes) = &self.notes {
+//             sql.push_str(&format!(",notes={}", notes));
+//         }
+//
+//         sql
+//     }
+// }
+//
+// async fn update_order_item_material(
+//     State(state): State<Arc<AppState>>,
+//     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemMaterialParam>, ERPError>,
+// ) -> ERPResult<APIEmptyResponse> {
+//     let _ = sqlx::query_as!(
+//         OrderItemModel,
+//         "select * from order_items where id=$1",
+//         payload.id
+//     )
+//     .fetch_one(&state.db)
+//     .await
+//     .map_err(|err| ERPError::NotFound(format!("OrderItem#{} {err}", payload.id)))?;
+//
+//     state.execute_sql(&payload.to_sql()).await?;
+//
+//     Ok(APIEmptyResponse::new())
+// }
 
 #[cfg(test)]
 mod tests {
