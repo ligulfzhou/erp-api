@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use sqlx::error::Error as SqlxError;
-use sqlx::query::Query;
 use thiserror::Error;
 
 pub type ERPResult<T> = Result<T, ERPError>;

@@ -160,7 +160,6 @@ create table order_items
 (
     id          serial,
     order_id    integer not null, -- 订单ID
---     order_no    text    not null, -- 商品编号
     goods_id    integer not null, -- 商品ID
     sku_id      integer not null, -- sku id
     count       integer not null, -- 数量
@@ -172,7 +171,7 @@ create table order_items
 create index idx_order_items_order_id on order_items (order_id);
 create index idx_order_items_goods_id on order_items (goods_id);
 create index idx_order_items_sku_id on order_items (sku_id);
-create unique index uniq_order_goods_order_id_and_sku_id on order_items (order_id, sku_id);
+create unique index uniq_order_items_order_id_and_sku_id on order_items (order_id, sku_id);
 
 --insert into order_items (order_id, goods_id, sku_id, count, unit)
 --values (1, 1, 1, 10, '个');
