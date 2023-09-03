@@ -275,29 +275,29 @@ mod tests {
             .print()
             .await?;
 
-        // let param = MarkProgressParam {
-        //     order_goods_id: Some(1),
-        //     order_item_id: None,
-        //     done: false,
-        //     notes: "notes..".to_string(),
-        // };
-        // client
-        //     .do_post("/api/mark/progress", serde_json::json!(param))
-        //     .await?
-        //     .print()
-        //     .await?;
-        //
-        // let param = MarkProgressParam {
-        //     order_goods_id: Some(1),
-        //     order_item_id: None,
-        //     done: true,
-        //     notes: "notes..".to_string(),
-        // };
-        // client
-        //     .do_post("/api/mark/progress", serde_json::json!(param))
-        //     .await?
-        //     .print()
-        //     .await?;
+        let param = MarkProgressParam {
+            order_goods_id: Some(1),
+            order_item_id: None,
+            done: false,
+            notes: "notes..".to_string(),
+        };
+        client
+            .do_post("/api/mark/progress", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        let param = MarkProgressParam {
+            order_goods_id: Some(1),
+            order_item_id: None,
+            done: true,
+            notes: "notes..".to_string(),
+        };
+        client
+            .do_post("/api/mark/progress", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
 
         let param = MarkProgressParam {
             order_goods_id: Some(3),
