@@ -82,6 +82,7 @@ async fn main() {
         .merge(handler::routes_goods::routes(app_state.clone()))
         .merge(handler::routes_excel::routes(app_state.clone()))
         .merge(handler::routes_login::routes(app_state.clone()))
+        .merge(handler::routes_progress::routes(app_state.clone()))
         .fallback_service(handler::routes_static::routes())
         .layer(DefaultBodyLimit::max(usize::MAX))
         .layer(cors);

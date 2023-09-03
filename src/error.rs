@@ -11,6 +11,7 @@ pub type ERPResult<T> = Result<T, ERPError>;
 
 #[derive(Debug, Error)]
 pub enum ERPError {
+    /// 登陆相关
     #[error("登陆失败")]
     LoginFail,
 
@@ -22,6 +23,9 @@ pub enum ERPError {
 
     #[error("账号不存在")]
     AccountNotFound,
+
+    #[error("无权限: {}", .0)]
+    NoPermission(String),
 
     #[error("sqlx数据库错误: {:?}", .0)]
     DBError(#[from] SqlxError),

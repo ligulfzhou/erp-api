@@ -8,6 +8,7 @@ pub struct AccountDto {
     // pub password: String,
     pub department_id: i32,
     pub department: String,
+    pub steps: Vec<i32>,
 }
 
 impl AccountDto {
@@ -18,6 +19,7 @@ impl AccountDto {
             account: account.account,
             department_id: department.id,
             department: department.name,
+            steps: department.steps,
         }
     }
 }

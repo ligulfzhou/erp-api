@@ -19,9 +19,9 @@ pub fn routes(state: Arc<AppState>) -> Router {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct LoginPayload {
-    account: String,
-    password: String,
+pub struct LoginPayload {
+    pub account: String,
+    pub password: String,
 }
 
 async fn api_login(

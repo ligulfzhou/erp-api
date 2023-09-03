@@ -184,13 +184,13 @@ create unique index uniq_order_goods_order_id_and_sku_id on order_items (order_i
 create table progress
 (
     id    serial,
-    order_id integer not null default 0,
+--    order_id integer not null default 0,
     order_item_id integer not null default 0,
     step integer not null default 0,   -- 哪一步
     account_id integer not null default 0,
     done boolean not null default false,
     notes text not null default '',
-    dt date not null
+    dt timestamp not null
 );
 
 
