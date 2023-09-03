@@ -10,6 +10,7 @@ use axum::{middleware, Json};
 use axum::{Extension, Router};
 use axum_extra::extract::WithRejection;
 use chrono::Utc;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
@@ -43,7 +44,7 @@ async fn mark_progress(
 
     if order_goods_id > 0 {
         let order_goods = sqlx::query_as::<_, (i32, i32)>(&format!(
-            "select order_id from order_goods where id = {order_goods_id}"
+            "select order_id, goods_id from order_goods where id = {order_goods_id}"
         ))
         .fetch_optional(&state.db)
         .await
@@ -52,6 +53,8 @@ async fn mark_progress(
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
         let (order_id, goods_id) = order_goods.unwrap();
+        println!("order_id: {order_id}, goods_id: {goods_id}");
+
         let order_item_ids = sqlx::query_as::<_, (i32,)>(&format!(
             "select id from order_items where order_id={} and goods_id={}",
             order_id, goods_id
@@ -60,20 +63,27 @@ async fn mark_progress(
         .await
         .map_err(ERPError::DBError)?;
 
+        println!("order_item_ids: {:?}", order_item_ids);
         if order_item_ids.is_empty() {
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
 
-        let order_item_ids_str = order_item_ids
+        let order_item_ids_vec = order_item_ids
             .into_iter()
-            .map(|item| item.0.to_string())
+            .map(|item| item.0)
+            .collect::<Vec<i32>>();
+
+        let order_item_ids_str = order_item_ids_vec
+            .iter()
+            .map(|item| item.to_string())
             .collect::<Vec<String>>()
             .join(",");
 
         let progresses = sqlx::query_as::<_, ProgressModel>(&format!(
             r#"
-            select distinct on (order_item_id) *
-            from progress
+            select distinct on (order_item_id) 
+            id, order_item_id, step, account_id, done, notes, dt
+            from progress 
             where order_item_id in ({})
             order by order_item_id, step, id desc;
         "#,
@@ -83,6 +93,67 @@ async fn mark_progress(
         .await
         .map_err(ERPError::DBError)?;
         println!("progresses: {:?}", progresses);
+
+        let mut order_item_progress = progresses
+            .into_iter()
+            .map(|progress| {
+                if progress.done {
+                    (progress.order_item_id, progress.step + 1)
+                } else {
+                    (progress.order_item_id, progress.step)
+                }
+            })
+            .collect::<HashMap<i32, i32>>();
+
+        println!("order_item_progress: {:?}", order_item_progress);
+        for order_item_id in order_item_ids_vec.iter() {
+            order_item_progress
+                .entry(order_item_id.to_owned())
+                .or_insert(1);
+        }
+        println!("after order_item_progress: {:?}", order_item_progress);
+        // 检查所有的产品，是否在同一个步骤上
+        let mut values = order_item_progress
+            .into_iter()
+            .map(|oip| oip.1)
+            .collect::<Vec<i32>>();
+
+        println!("order_item_progress values: {:?}", values);
+        values.dedup();
+
+        println!("after dedup order_item_progress values: {:?}", values);
+        if values.len() > 1 {
+            return Err(ERPError::Failed(
+                "该产品的所有颜色，不在同一个流程下，请单独处理".to_string(),
+            ));
+        }
+
+        let step = values[0];
+        if !account.steps.contains(&step) {
+            return Err(ERPError::NoPermission(
+                "当前的状态并不是你可以修改的".to_string(),
+            ));
+        }
+
+        let now = Utc::now().naive_utc();
+        let now_str = format_datetime(now);
+        let sql = "insert into progress (order_item_id, step, account_id, done, notes, dt) values ";
+
+        let multi_items = order_item_ids_vec
+            .iter()
+            .map(|oii| {
+                format!(
+                    "({}, {}, {}, {}, '{}', '{}')",
+                    oii, step, account.id, payload.done, payload.notes, now_str
+                )
+            })
+            .collect::<Vec<String>>()
+            .join(",");
+
+        sqlx::query(&format!("{sql} {multi_items}"))
+            .execute(&state.db)
+            .await
+            .map_err(ERPError::DBError)?;
     } else {
         // 获得上一个 节点 在什么步骤
         let order_item = sqlx::query_as::<_, (i32,)>(&format!(
@@ -204,36 +275,41 @@ mod tests {
             .print()
             .await?;
 
-        let param = MarkProgressParam {
-            order_goods_id: Some(1),
-            order_item_id: None,
-            done: false,
-            notes: "notes..".to_string(),
-        };
-        client
-            .do_post("/api/mark/progress", serde_json::json!(param))
-            .await?
-            .print()
-            .await?;
+        // let param = MarkProgressParam {
+        //     order_goods_id: Some(1),
+        //     order_item_id: None,
+        //     done: false,
+        //     notes: "notes..".to_string(),
+        // };
+        // client
+        //     .do_post("/api/mark/progress", serde_json::json!(param))
+        //     .await?
+        //     .print()
+        //     .await?;
+        //
+        // let param = MarkProgressParam {
+        //     order_goods_id: Some(1),
+        //     order_item_id: None,
+        //     done: true,
+        //     notes: "notes..".to_string(),
+        // };
+        // client
+        //     .do_post("/api/mark/progress", serde_json::json!(param))
+        //     .await?
+        //     .print()
+        //     .await?;
 
         let param = MarkProgressParam {
-            order_goods_id: Some(1),
+            order_goods_id: Some(3),
             order_item_id: None,
             done: true,
-            notes: "notes..".to_string(),
+            notes: "测试 order_goods_id=3..".to_string(),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))
             .await?
             .print()
             .await?;
-
-        client
-            .do_post("/api/mark/progress", serde_json::json!(param))
-            .await?
-            .print()
-            .await?;
-
         Ok(())
     }
 }
