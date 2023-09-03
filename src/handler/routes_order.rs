@@ -364,16 +364,18 @@ struct UpdateOrderParam {
     order_no: String,
     customer_id: i32,
     order_date: String,
-    delivery_date: String,
+    delivery_date: Option<String>,
 }
 
 impl UpdateOrderParam {
     pub fn to_sql(&self) -> String {
         let delivery_date = {
-            if self.delivery_date.is_empty() {
+            if self.delivery_date.is_none()
+                || self.delivery_date.as_deref().unwrap_or("").is_empty()
+            {
                 "null".to_string()
             } else {
-                format!("'{}'", self.delivery_date)
+                format!("'{}'", self.delivery_date.as_deref().unwrap())
             }
         };
 
@@ -872,10 +874,10 @@ mod tests {
     #[tokio::test]
     async fn test_create_order() -> Result<()> {
         let param = CreateOrderParam {
-            customer_id: 12,
+            customer_no: "L1007".to_string(),
             order_no: "order_no_101".to_string(),
             order_date: "2022-03-09".to_string(),
-            delivery_date: "".to_string(),
+            delivery_date: None,
             is_urgent: false,
             is_return_order: false,
         };
