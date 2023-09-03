@@ -338,10 +338,7 @@ async fn get_order_items(
             let items = gid_order_item_dtos
                 .get(&order_good.goods_id)
                 .unwrap_or(&empty_array);
-            OrderGoodsWithItemDto {
-                goods: order_good,
-                items: items.clone(),
-            }
+            OrderGoodsWithItemDto::from_order_with_goods(order_good, items.clone())
         })
         .collect::<Vec<OrderGoodsWithItemDto>>();
 
