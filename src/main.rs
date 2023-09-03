@@ -78,6 +78,7 @@ async fn main() {
         .merge(handler::routes_upload::routes(app_state.clone()))
         .merge(handler::routes_account::routes(app_state.clone()))
         .merge(handler::routes_order::routes(app_state.clone()))
+        .merge(handler::routes_material::routes(app_state.clone()))
         .merge(handler::routes_customer::routes(app_state.clone()))
         .merge(handler::routes_goods::routes(app_state.clone()))
         .merge(handler::routes_excel::routes(app_state.clone()))
