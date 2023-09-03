@@ -92,7 +92,6 @@ mod tests {
         let order_info = parse_order_excel_t2(sheet);
         println!("order_info: {:#?}", order_info);
 
-        // order_info.iter().map(|item|tracing::info!("{:?}", item));
         Ok(())
     }
 }
