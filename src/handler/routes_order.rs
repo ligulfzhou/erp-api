@@ -308,7 +308,7 @@ async fn get_order_items(
     let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
         r#"
         select 
-            oi.id, oi.order_id, oi.goods_id, oi.sku_id,
+            oi.id, oi.order_id, oi.goods_id, oi.sku_id, s.color,
             s.sku_no, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
         from order_items oi, skus s
         where oi.sku_id = s.id

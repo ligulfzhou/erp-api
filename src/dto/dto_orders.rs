@@ -60,6 +60,7 @@ pub struct OrderGoodsItemDto {
     pub goods_id: i32,
     pub sku_id: i32,
     pub sku_no: Option<String>,
+    pub color: String,
     pub count: i32,
     pub unit: String,
     pub unit_price: Option<i32>,
