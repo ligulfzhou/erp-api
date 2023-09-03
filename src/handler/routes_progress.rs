@@ -42,11 +42,51 @@ async fn mark_progress(
     }
 
     if order_goods_id > 0 {
+        let order_goods = sqlx::query_as::<_, (i32, i32)>(&format!(
+            "select order_id from order_goods where id = {order_goods_id}"
+        ))
+        .fetch_optional(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+        if order_goods.is_none() {
+            return Err(ERPError::NotFound("订单商品不存在".to_string()));
+        }
+        let (order_id, goods_id) = order_goods.unwrap();
+        let order_item_ids = sqlx::query_as::<_, (i32,)>(&format!(
+            "select id from order_items where order_id={} and goods_id={}",
+            order_id, goods_id
+        ))
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        if order_item_ids.is_empty() {
+            return Err(ERPError::NotFound("订单商品不存在".to_string()));
+        }
+
+        let order_item_ids_str = order_item_ids
+            .into_iter()
+            .map(|item| item.0.to_string())
+            .collect::<Vec<String>>()
+            .join(",");
+
+        let progresses = sqlx::query_as::<_, ProgressModel>(&format!(
+            r#"
+            select distinct on (order_item_id) *
+            from progress
+            where order_item_id in ({})
+            order by order_item_id, step, id desc;
+        "#,
+            order_item_ids_str,
+        ))
+        .fetch_all(&state.db)
+        .await
+        .map_err(ERPError::DBError)?;
+        println!("progresses: {:?}", progresses);
     } else {
         // 获得上一个 节点 在什么步骤
-
         let order_item = sqlx::query_as::<_, (i32,)>(&format!(
-            "select * from order_items where id = {order_item_id}"
+            "select id from order_items where id = {order_item_id}"
         ))
         .fetch_optional(&state.db)
         .await
@@ -105,7 +145,7 @@ mod tests {
     use crate::handler::routes_progress::MarkProgressParam;
 
     #[tokio::test]
-    async fn test() -> anyhow::Result<()> {
+    async fn test_mark_progress_on_order_items() -> anyhow::Result<()> {
         let param = LoginPayload {
             account: "test".to_string(),
             password: "test".to_string(),
@@ -132,6 +172,53 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: None,
             order_item_id: Some(1),
+            done: true,
+            notes: "notes..".to_string(),
+        };
+        client
+            .do_post("/api/mark/progress", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        client
+            .do_post("/api/mark/progress", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_mark_progress_on_order_goods() -> anyhow::Result<()> {
+        let param = LoginPayload {
+            account: "test".to_string(),
+            password: "test".to_string(),
+        };
+
+        let client = httpc_test::new_client("http://localhost:9100")?;
+        client
+            .do_post("/api/login", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        let param = MarkProgressParam {
+            order_goods_id: Some(1),
+            order_item_id: None,
+            done: false,
+            notes: "notes..".to_string(),
+        };
+        client
+            .do_post("/api/mark/progress", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        let param = MarkProgressParam {
+            order_goods_id: Some(1),
+            order_item_id: None,
             done: true,
             notes: "notes..".to_string(),
         };
