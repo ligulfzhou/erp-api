@@ -16,9 +16,9 @@ impl CustomerDto {
             id: customer.id,
             customer_no: customer.customer_no,
             name: customer.name,
-            address: customer.address.unwrap_or("".to_string()),
-            phone: customer.phone.unwrap_or("".to_string()),
-            notes: customer.notes.unwrap_or("".to_string()),
+            address: customer.address,
+            phone: customer.phone,
+            notes: customer.notes,
         }
     }
 }

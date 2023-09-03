@@ -64,10 +64,10 @@ create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 create table customers
 (
     id          serial,
-    customer_no text, -- 客户编号
-    name        text, -- 名称
-    address     text, -- 地址
-    phone       text, -- 电话
+    customer_no text not null default '', -- 客户编号
+    name        text not null default '', -- 名称
+    address     text not null default '', -- 地址
+    phone       text not null default '', -- 电话
     notes       text  -- 备注
 );
 create unique index uniq_customers_customer_no on customers (customer_no);
@@ -185,13 +185,12 @@ create table progress
 (
     id    serial,
     order_id integer not null default 0,
-    goods_id integer not null default 0,
-    sku_id integer not null default 0,
+    order_item_id integer not null default 0,
+    step integer not null default 0,   -- 哪一步
     account_id integer not null default 0,
-    index integer not null default 0,   -- 哪一步
-    success boolean not null default false,
+    done boolean not null default false,
     notes text not null default '',
-    create_time date not null
+    dt date not null
 );
 
 
@@ -216,13 +215,12 @@ create table order_item_materials
 create table departments
 (
     id    serial,
---    department_id integer,
-    name  text,   -- 部门名称
-    index integer -- 流程位续
+    name  text not null default '',   -- 部门名称
+    steps integer[] not null default '{}' -- 流程位续
 );
 
-insert into departments (name, index)
-values ('业务部', 0);
+insert into departments (name, steps)
+values ('业务部', '{1}');
 
 -- 账号
 create table accounts

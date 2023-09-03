@@ -1,7 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto};
 use crate::handler::ListParamToSQLTrait;
-use crate::model::customer::CustomerModel;
 use crate::model::order::{OrderItemMaterialModel, OrderItemModel, OrderModel};
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
@@ -389,11 +388,6 @@ async fn update_order(
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
 
     state.execute_sql(&payload.to_sql()).await?;
-
-    // let _ = sqlx::query(&payload.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }

@@ -11,5 +11,5 @@ pub struct AccountModel {
 pub struct DepartmentModel {
     pub id: i32,
     pub name: String,
-    pub index: i32,
+    pub steps: Vec<i32>,
 }
