@@ -61,7 +61,7 @@ async fn api_login(
     let cookie = Cookie::build("account_id", account_id.to_string())
         .path("/")
         .max_age(time::Duration::days(7))
-        .same_site(SameSite::Lax)
+        .same_site(SameSite::None)
         .http_only(true)
         .finish();
 
