@@ -395,7 +395,7 @@ impl UpdateOrderParam {
 
         format!(
             "update orders set order_no='{}', customer_id={}, order_date='{}', delivery_date={}, is_return_order={}, is_urgent={} where id={};", 
-            self.order_no, self.customer_id, self.order_date, delivery_date, self.id, self.is_return_order, self.is_urgent)
+            self.order_no, self.customer_id, self.order_date, delivery_date, self.is_return_order, self.is_urgent, self.id)
     }
 }
 
@@ -408,6 +408,7 @@ async fn update_order(
         .await
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
 
+    tracing::info!("update order sql: {}", payload.to_sql());
     state.execute_sql(&payload.to_sql()).await?;
 
     Ok(APIEmptyResponse::new())
