@@ -77,7 +77,7 @@ async fn api_logout() -> ERPResult<impl IntoResponse> {
     let cookie = Cookie::build("account_id", "")
         .path("/")
         .max_age(time::Duration::hours(-1))
-        .same_site(SameSite::Lax)
+        .same_site(SameSite::None)
         .http_only(true)
         .finish();
 
