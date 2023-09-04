@@ -60,11 +60,11 @@ async fn api_login(
 
     let cookie = Cookie::build("account_id", account_id.to_string())
         .path("/")
-        .max_age(time::Duration::days(7))
+        .max_age(time::Duration::days(14))
         .same_site(SameSite::None)
         .domain(".ligulfzhou.com")
-        .http_only(true)
-        .secure(true)
+        // .http_only(true)
+        // .secure(true)
         .finish();
 
     let mut response = APIDataResponse::new(account_dto).into_response();
