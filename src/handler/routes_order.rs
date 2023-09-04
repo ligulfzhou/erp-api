@@ -246,7 +246,7 @@ async fn get_orders(
         .collect::<Vec<i32>>();
 
     let order_items_steps = ProgressModel::get_progress_status(&state.db, order_ids).await?;
-    println!("{:#?}", order_items_steps);
+    tracing::info!("{:#?}", order_items_steps);
 
     let order_with_step_dtos = order_dtos
         .into_iter()
@@ -315,7 +315,7 @@ async fn get_order_items(
     if order_goods.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
-    println!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
+    tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
     // 从order_goods里拿出goods_ids
     let goods_ids_str = order_goods
@@ -341,7 +341,7 @@ async fn get_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    println!(
+    tracing::info!(
         "order_items: {:?}, len: {}",
         order_items_dto,
         order_items_dto.len()

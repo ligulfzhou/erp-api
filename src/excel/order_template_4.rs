@@ -91,7 +91,7 @@ mod tests {
         let book = reader::xlsx::read(path)?;
         let sheet = book.get_active_sheet();
         let order_info = parse_order_excel_t4(sheet);
-        println!("order_info: {:#?}", order_info);
+        tracing::info!("order_info: {:#?}", order_info);
 
         // order_info.iter().map(|item|tracing::info!("{:?}", item));
         Ok(())

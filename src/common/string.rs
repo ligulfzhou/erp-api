@@ -74,7 +74,7 @@ mod tests {
             "hellobob".to_string(),
             "hellxyz".to_string(),
         ]);
-        println!("cp: {:?}", cp);
+        tracing::info!("cp: {:?}", cp);
         Ok(())
     }
 }

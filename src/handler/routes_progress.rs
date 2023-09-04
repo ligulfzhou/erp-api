@@ -53,7 +53,7 @@ async fn mark_progress(
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
         let (order_id, goods_id) = order_goods.unwrap();
-        println!("order_id: {order_id}, goods_id: {goods_id}");
+        tracing::info!("order_id: {order_id}, goods_id: {goods_id}");
 
         let order_item_ids = sqlx::query_as::<_, (i32,)>(&format!(
             "select id from order_items where order_id={} and goods_id={}",
@@ -63,7 +63,7 @@ async fn mark_progress(
         .await
         .map_err(ERPError::DBError)?;
 
-        println!("order_item_ids: {:?}", order_item_ids);
+        tracing::info!("order_item_ids: {:?}", order_item_ids);
         if order_item_ids.is_empty() {
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
@@ -92,7 +92,7 @@ async fn mark_progress(
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
-        println!("progresses: {:?}", progresses);
+        tracing::info!("progresses: {:?}", progresses);
 
         let mut order_item_progress = progresses
             .into_iter()
@@ -105,23 +105,23 @@ async fn mark_progress(
             })
             .collect::<HashMap<i32, i32>>();
 
-        println!("order_item_progress: {:?}", order_item_progress);
+        tracing::info!("order_item_progress: {:?}", order_item_progress);
         for order_item_id in order_item_ids_vec.iter() {
             order_item_progress
                 .entry(order_item_id.to_owned())
                 .or_insert(1);
         }
-        println!("after order_item_progress: {:?}", order_item_progress);
+        tracing::info!("after order_item_progress: {:?}", order_item_progress);
         // 检查所有的产品，是否在同一个步骤上
         let mut values = order_item_progress
             .into_iter()
             .map(|oip| oip.1)
             .collect::<Vec<i32>>();
 
-        println!("order_item_progress values: {:?}", values);
+        tracing::info!("order_item_progress values: {:?}", values);
         values.dedup();
 
-        println!("after dedup order_item_progress values: {:?}", values);
+        tracing::info!("after dedup order_item_progress values: {:?}", values);
         if values.len() > 1 {
             return Err(ERPError::Failed(
                 "该产品的所有颜色，不在同一个流程下，请单独处理".to_string(),

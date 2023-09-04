@@ -222,10 +222,10 @@ impl OrderItemExcel {
             let count = goods_no_cnt.entry(&item.goods_no).or_insert(0);
             *count += 1;
         }
-        println!("goods_no_cnt: {:?}", goods_no_cnt);
+        tracing::info!("goods_no_cnt: {:?}", goods_no_cnt);
 
         let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
-        println!("goods_no_cnt key: {}", key);
+        tracing::info!("goods_no_cnt key: {}", key);
         let empty_string = "".to_string();
         if key.is_empty() {
             // 如果找不到goods_no,怎从sku_no里获取(最大的prefix)
@@ -234,7 +234,7 @@ impl OrderItemExcel {
                 .map(|item| item.sku_no.as_ref().unwrap_or(&empty_string).clone())
                 .collect::<Vec<_>>();
 
-            println!("sku_nos: {:?}", sku_nos);
+            tracing::info!("sku_nos: {:?}", sku_nos);
             return common_prefix(sku_nos);
         }
 

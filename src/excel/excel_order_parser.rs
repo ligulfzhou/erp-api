@@ -79,7 +79,7 @@ impl<'a> ExcelOrderParser<'a> {
         let order =
             OrderModel::get_order_with_order_no(&self.db, &excel_order.info.order_no).await?;
 
-        println!("order: {:?}", order);
+        tracing::info!("order: {:?}", order);
         let customer =
             CustomerModel::get_customer_with_customer_no(&self.db, &excel_order.info.customer_no)
                 .await?;
@@ -133,7 +133,7 @@ impl<'a> ExcelOrderParser<'a> {
                 .await
                 .unwrap();
 
-            println!("goods: {:?}", goods);
+            tracing::info!("goods: {:?}", goods);
 
             let goods_id = match goods {
                 None => {
@@ -144,14 +144,14 @@ impl<'a> ExcelOrderParser<'a> {
                 }
                 Some(some_goods) => some_goods.id,
             };
-            println!("goods_id: {goods_id}");
+            tracing::info!("goods_id: {goods_id}");
 
             // 处理order_goods
             let order_goods = OrderGoodsModel::get_row(&self.db, order_id, goods_id).await?;
-            println!("order_goods: {:?}", order_goods);
+            tracing::info!("order_goods: {:?}", order_goods);
             if order_goods.is_none() {
                 let (package_card, package_card_des) = OrderItemExcel::pick_up_package(&items);
-                println!("package: {package_card}, {package_card_des}");
+                tracing::info!("package: {package_card}, {package_card_des}");
 
                 // insert order_goods data
                 sqlx::query(&format!(

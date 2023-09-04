@@ -37,7 +37,7 @@ impl ProgressModel {
         .map_err(ERPError::DBError)?
         .into_iter()
         .collect::<HashMap<i32, i32>>();
-        println!("order_item_id => order_id: {:?}", order_item_id_to_order_id);
+        tracing::info!("order_item_id => order_id: {:?}", order_item_id_to_order_id);
 
         let order_item_ids = order_item_id_to_order_id
             .iter()
@@ -74,12 +74,12 @@ impl ProgressModel {
             })
             .collect::<HashMap<i32, i32>>();
 
-        println!("order_item_progress: {:?}", order_item_step);
+        tracing::info!("order_item_progress: {:?}", order_item_step);
         for order_item_id in order_item_ids.iter() {
             order_item_step.entry(order_item_id.to_owned()).or_insert(1);
         }
 
-        println!("after order_item_progress: {:?}", order_item_step);
+        tracing::info!("after order_item_progress: {:?}", order_item_step);
         let mut order_items_steps = OrderItemSteps::new();
         for order_id in order_ids.iter() {
             let mut order_item_progress_stats = HashMap::new();
