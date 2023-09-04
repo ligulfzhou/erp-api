@@ -63,8 +63,8 @@ async fn api_login(
         .max_age(time::Duration::days(14))
         .same_site(SameSite::None)
         .domain(".lien.ligulfzhou.com")
-        // .http_only(true)
-        // .secure(true)
+        .http_only(true)
+        .secure(true)
         .finish();
 
     let mut response = APIDataResponse::new(account_dto).into_response();
