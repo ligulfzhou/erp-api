@@ -2,6 +2,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{
     OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto, OrderWithStepsDto,
 };
+use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::model::order::OrderModel;
 use crate::model::progress::ProgressModel;
@@ -340,17 +341,76 @@ async fn get_order_items(
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-
     tracing::info!(
         "order_items: {:?}, len: {}",
         order_items_dto,
         order_items_dto.len()
     );
+
+    // order_items表应该加一个 order_goods_id 字段
+    let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
+    let order_item_id_to_goods_id = order_items_dto
+        .iter()
+        .map(|item| (item.id, item.goods_id))
+        .collect::<HashMap<i32, i32>>();
+    let order_item_ids = order_items_dto
+        .iter()
+        .map(|item| item.id)
+        .collect::<Vec<i32>>();
+    let order_item_ids_str = order_item_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    tracing::info!("order_item_ids: {}", order_item_ids_str);
+
+    // 获取所有的order_item的流程数据
+    let progresses = sqlx::query_as::<_, OneProgress>(&format!(
+        r#"
+        select 
+            p.*, a.name as account_name, d.name as department
+        from progress p, accounts a, departments d
+        where p.account_id = a.id 
+            and p.order_item_id in ({})
+        "#,
+        order_item_ids_str
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+    tracing::info!("progresses: {:?}", progresses);
+
+    let mut order_item_id_to_progress_vec = HashMap::new();
+    for one_progress in progresses.into_iter() {
+        let progress_vec = order_item_id_to_progress_vec
+            .entry(one_progress.order_item_id)
+            .or_insert(vec![]);
+        progress_vec.push(one_progress);
+    }
+    tracing::info!(
+        "order_item_id_to_progress_vec: {:?}",
+        order_item_id_to_progress_vec
+    );
+
+    let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
+        .into_iter()
+        .map(|mut oid_progress_vec| {
+            let mut progress_vec = oid_progress_vec.1;
+            progress_vec.sort_by_key(|item| item.id.clone());
+            (oid_progress_vec.0, progress_vec)
+        })
+        .collect::<HashMap<i32, Vec<OneProgress>>>();
+    tracing::info!(
+        "order_item_id_to_progress_vec after ordering: {:?}",
+        order_item_id_to_sorted_progress_vec
+    );
+
     let mut gid_order_item_dtos = HashMap::new();
     for item in order_items_dto.into_iter() {
         let dtos = gid_order_item_dtos.entry(item.goods_id).or_insert(vec![]);
         dtos.push(item);
     }
+
     let empty_array: Vec<OrderGoodsItemDto> = vec![];
     let order_goods_dtos = order_goods
         .into_iter()

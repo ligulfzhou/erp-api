@@ -1,6 +1,5 @@
 use crate::model::customer::CustomerModel;
-use crate::model::goods::GoodsModel;
-use crate::model::order::{OrderItemModel, OrderModel};
+use crate::model::order::OrderModel;
 use chrono::NaiveDate;
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -157,6 +156,44 @@ impl OrderGoodsWithItemDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct OrderGoodsWithStepsWithItemStepDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub goods_no: String,
+    pub name: String,
+    pub image: String,
+    pub plating: String,
+    pub package_card: String,
+    pub package_card_des: String,
+
+    pub steps: HashMap<i32, i32>,
+    pub items: Vec<OrderGoodsItemDto>,
+}
+
+impl OrderGoodsWithStepsWithItemStepDto {
+    pub fn from_order_with_goods_and_steps_and_items(
+        order_goods: OrderGoodsDto,
+        steps: HashMap<i32, i32>,
+        items: Vec<OrderGoodsItemDto>,
+    ) -> OrderGoodsWithStepsWithItemStepDto {
+        Self {
+            id: order_goods.id,
+            order_id: order_goods.order_id,
+            goods_id: order_goods.goods_id,
+            goods_no: order_goods.goods_no,
+            name: order_goods.name,
+            image: order_goods.image,
+            plating: order_goods.plating,
+            package_card: order_goods.package_card,
+            package_card_des: order_goods.package_card_des,
+            steps,
+            items,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 struct OrderItemDto {
     id: i32,
     order_id: i32, // -- 订单ID
@@ -169,26 +206,4 @@ struct OrderItemDto {
     unit_price: Option<i32>,  //  integer, - - 单价
     total_price: Option<i32>, //   integer,  - - 总价 / 金额
     notes: String,            //    text - - 备注,
-}
-
-impl OrderItemDto {
-    fn from(order_item: OrderItemModel) -> OrderItemDto {
-        Self {
-            id: order_item.id,
-            order_id: order_item.order_id,
-            sku_id: order_item.sku_id,
-            // todo
-            // package_card: order_item.package_card.unwrap_or("".to_string()),
-            // todo
-            // package_card_des: order_item.package_card_des.unwrap_or("".to_string()),
-            package_card: "".to_string(),
-            package_card_des: "".to_string(),
-
-            count: order_item.count,
-            unit: order_item.unit.unwrap_or("".to_string()),
-            unit_price: order_item.unit_price,
-            total_price: order_item.total_price,
-            notes: order_item.notes.unwrap_or("".to_string()),
-        }
-    }
 }

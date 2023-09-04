@@ -75,6 +75,8 @@ create unique index uniq_customers_customer_no on customers (customer_no);
 insert into customers (customer_no, name, address, phone, notes)
 values ('L1001', '', '', '', '');
 insert into customers (customer_no, name, address, phone, notes)
+values ('L1002', '', '', '', '');
+insert into customers (customer_no, name, address, phone, notes)
 values ('L1003', '', '', '', '');
 insert into customers (customer_no, name, address, phone, notes)
 values ('L1004', '', '', '', '');
@@ -96,6 +98,8 @@ create table customer_excel_template
 
 insert into customer_excel_template (customer_no, template_id)
 values ('L1001', 1);
+insert into customer_excel_template (customer_no, template_id)
+values ('L1002', 1);
 insert into customer_excel_template (customer_no, template_id)
 values ('L1003', 1);
 insert into customer_excel_template (customer_no, template_id)
