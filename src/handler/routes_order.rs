@@ -377,6 +377,8 @@ struct UpdateOrderParam {
     customer_id: i32,
     order_date: String,
     delivery_date: Option<String>,
+    is_return_order: bool,
+    is_urgent: bool,
 }
 
 impl UpdateOrderParam {
@@ -392,8 +394,8 @@ impl UpdateOrderParam {
         };
 
         format!(
-            "update orders set order_no='{}', customer_id={}, order_date='{}', delivery_date={} where id={};", 
-            self.order_no, self.customer_id, self.order_date, delivery_date, self.id)
+            "update orders set order_no='{}', customer_id={}, order_date='{}', delivery_date={}, is_return_order={}, is_urgent={} where id={};", 
+            self.order_no, self.customer_id, self.order_date, delivery_date, self.id, self.is_return_order, self.is_urgent)
     }
 }
 
