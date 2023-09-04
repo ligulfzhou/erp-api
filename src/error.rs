@@ -63,10 +63,15 @@ impl IntoResponse for ERPError {
 
         let msg = self.to_string();
 
+        let code = match self {
+            ERPError::NotAuthorized => 401,
+            _ => 1,
+        };
+
         (
             StatusCode::OK,
             serde_json::json!({
-                "code": 1, // failed code is always 1
+                "code": code, // failed code is always 1
                 "msg": msg
             })
             .to_string(),

@@ -7,7 +7,7 @@ use axum::http::method::Method;
 use axum::{response::Response, Router};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 mod common;
 mod config;
@@ -69,6 +69,7 @@ async fn main() {
             "https://lien.ligulfzhou.com".parse().unwrap(),
             "http://localhost:5173".parse().unwrap(),
             "http://127.0.0.1:5173".parse().unwrap(),
+            "https://egret-erp.vercel.app".parse().unwrap(),
         ])
         .allow_methods(vec![Method::GET, Method::POST])
         .allow_credentials(true)
