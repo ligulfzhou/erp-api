@@ -63,6 +63,7 @@ async fn api_login(
         .max_age(time::Duration::days(7))
         .same_site(SameSite::None)
         .http_only(true)
+        .secure(true)
         .finish();
 
     let mut response = APIDataResponse::new(account_dto).into_response();
@@ -78,6 +79,7 @@ async fn api_logout() -> ERPResult<impl IntoResponse> {
         .path("/")
         .max_age(time::Duration::hours(-1))
         .same_site(SameSite::None)
+        .secure(true)
         .http_only(true)
         .finish();
 
