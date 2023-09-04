@@ -190,11 +190,6 @@ async fn add_order_item_materials(
 
     state.execute_sql(&payload.to_sql()).await?;
 
-    // sqlx::query(&payload.to_sql())
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
-
     Ok(APIEmptyResponse::new())
 }
 

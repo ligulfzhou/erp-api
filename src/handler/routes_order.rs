@@ -1,7 +1,10 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_orders::{OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto};
+use crate::dto::dto_orders::{
+    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto, OrderWithStepsDto,
+};
 use crate::handler::ListParamToSQLTrait;
 use crate::model::order::OrderModel;
+use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -224,7 +227,7 @@ impl ListParamToSQLTrait for ListParam {
 async fn get_orders(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<ListParam>, ERPError>,
-) -> ERPResult<APIListResponse<OrderDto>> {
+) -> ERPResult<APIListResponse<OrderWithStepsDto>> {
     tracing::info!("get_orders: ....");
 
     let order_dtos = sqlx::query_as::<_, OrderDto>(&param.to_pagination_sql())
@@ -236,12 +239,29 @@ async fn get_orders(
         return Ok(APIListResponse::new(vec![], 0));
     }
 
+    // 去获取各产品的流程
+    let order_ids = order_dtos
+        .iter()
+        .map(|order| order.id)
+        .collect::<Vec<i32>>();
+
+    let order_items_steps = ProgressModel::get_progress_status(&state.db, order_ids).await?;
+    println!("{:#?}", order_items_steps);
+
+    let order_with_step_dtos = order_dtos
+        .into_iter()
+        .map(|order_dto| {
+            let steps = order_items_steps.get(&order_dto.id).unwrap();
+            OrderWithStepsDto::from_order_dto_and_steps(order_dto, steps.clone())
+        })
+        .collect::<Vec<OrderWithStepsDto>>();
+
     let count: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)
         .await
         .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(order_dtos, count.0 as i32))
+    Ok(APIListResponse::new(order_with_step_dtos, count.0 as i32))
 }
 
 #[derive(Debug, Deserialize)]

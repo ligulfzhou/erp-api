@@ -3,6 +3,7 @@ use crate::model::goods::GoodsModel;
 use crate::model::order::{OrderItemModel, OrderModel};
 use chrono::NaiveDate;
 use sqlx::FromRow;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct OrderDto {
@@ -49,6 +50,44 @@ impl OrderDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrderWithStepsDto {
+    pub id: i32,
+    pub customer_id: i32,
+    pub customer_name: String,
+    pub customer_address: String,
+    pub customer_phone: String,
+    pub customer_no: String,
+    pub order_no: String,
+    pub order_date: NaiveDate,
+    pub delivery_date: Option<NaiveDate>,
+    pub is_return_order: bool,
+    pub is_urgent: bool,
+    pub steps: HashMap<i32, i32>,
+}
+
+impl OrderWithStepsDto {
+    pub fn from_order_dto_and_steps(
+        order: OrderDto,
+        steps: HashMap<i32, i32>,
+    ) -> OrderWithStepsDto {
+        Self {
+            id: order.id,
+            customer_id: order.customer_id,
+            customer_name: order.customer_name,
+            customer_address: order.customer_address,
+            customer_phone: order.customer_phone,
+            customer_no: order.customer_no,
+            order_no: order.order_no,
+            order_date: order.order_date,
+            delivery_date: order.delivery_date,
+            is_return_order: order.is_return_order,
+            is_urgent: order.is_urgent,
+            steps,
         }
     }
 }
