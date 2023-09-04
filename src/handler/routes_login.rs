@@ -1,10 +1,10 @@
 use crate::dto::dto_account::AccountDto;
 use crate::model::account::{AccountModel, DepartmentModel};
-use crate::response::api_response::APIEmptyResponse;
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::State;
 use axum::http::header;
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
 use axum::{routing::post, Json, Router};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::WithRejection;
@@ -65,7 +65,7 @@ async fn api_login(
         .http_only(true)
         .finish();
 
-    let mut response = Response::new(serde_json::json!(account_dto).to_string());
+    let mut response = APIDataResponse::new(account_dto).into_response();
     response
         .headers_mut()
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
