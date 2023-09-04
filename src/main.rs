@@ -64,8 +64,14 @@ async fn main() {
 
     let app_state = Arc::new(AppState { db: pool.clone() });
     let cors = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin([
+            "https://erp.ligulfzhou.com".parse().unwrap(),
+            "https://lien.ligulfzhou.com".parse().unwrap(),
+            "http://localhost:5173".parse().unwrap(),
+            "http://127.0.0.1:5173".parse().unwrap(),
+        ])
         .allow_methods(vec![Method::GET, Method::POST])
+        .allow_credentials(true)
         .allow_headers(vec![
             header::CONTENT_TYPE,
             header::ACCEPT,
