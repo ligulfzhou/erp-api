@@ -62,7 +62,7 @@ async fn api_login(
         .path("/")
         .max_age(time::Duration::days(14))
         .same_site(SameSite::None)
-        .domain(".ligulfzhou.com")
+        .domain(".lien.ligulfzhou.com")
         // .http_only(true)
         // .secure(true)
         .finish();
