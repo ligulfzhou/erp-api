@@ -62,11 +62,9 @@ async fn api_login(
         .path("/")
         .max_age(time::Duration::days(14))
         .same_site(SameSite::None)
-        // .domain("127.0.0.1:5173")
-        .domain(".lien.ligulfzhou.com")
-        // .domain("127.0.0.1:5173")
+        .domain(".ligulfzhou.com")
         .http_only(true)
-        .secure(false)
+        .secure(true)
         .finish();
 
     // println!("{:?}", cookie.to_string().parse().unwrap());
