@@ -2,7 +2,7 @@ use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_goods::{GoodsDto, SKUModelDto};
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
-use crate::response::api_response::{APIEmptyResponse, APIListResponse};
+use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
@@ -17,6 +17,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/goods", get(get_goods))
         .route("/api/skus/search", get(search_skus))
         .route("/api/skus", get(get_skus).post(create_sku)) //.post(create_skus))
+        .route("/api/sku/detail", get(get_sku_detail)) //.post(create_skus))
         .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
@@ -323,12 +324,34 @@ async fn create_sku(
 
     // 插入
     state.execute_sql(&param.to_sql()).await?;
-    // let insert_sql = param.to_sql();
-    // sqlx::query(&insert_sql)
-    //     .execute(&state.db)
-    //     .await
-    //     .map_err(ERPError::DBError)?;
     Ok(APIEmptyResponse::new())
+}
+
+#[derive(Debug, Deserialize)]
+struct SkuDetailParam {
+    id: i32,
+}
+
+async fn get_sku_detail(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Query(param), _): WithRejection<Query<SkuDetailParam>, ERPError>,
+) -> ERPResult<APIDataResponse<SKUModelDto>> {
+    let sku_dto = sqlx::query_as::<_, SKUModelDto>(&format!(
+        r#"
+        select 
+            s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
+            g.image, g.plating, s.color, s.color2, s.notes
+        from skus s, goods g
+        where s.goods_id = g.id
+            and s.id = {};
+    "#,
+        param.id
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    Ok(APIDataResponse::new(sku_dto))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
