@@ -174,42 +174,6 @@ pub struct OrderGoodsDto {
     pub package_card_des: String,
 }
 
-// #[derive(Debug, Serialize)]
-// pub struct OrderGoodsWithItemDto {
-//     // pub goods: OrderGoodsDto,
-//     pub id: i32,
-//     pub order_id: i32,
-//     pub goods_id: i32,
-//     pub goods_no: String,
-//     pub name: String,
-//     pub image: String,
-//     pub plating: String,
-//     pub package_card: String,
-//     pub package_card_des: String,
-//
-//     pub items: Vec<OrderGoodsItemWithStepsDto>,
-// }
-
-// impl OrderGoodsWithItemDto {
-//     pub fn from_order_with_goods(
-//         order_goods: OrderGoodsDto,
-//         items: Vec<OrderGoodsItemWithStepsDto>,
-//     ) -> OrderGoodsWithItemDto {
-//         Self {
-//             id: order_goods.id,
-//             order_id: order_goods.order_id,
-//             goods_id: order_goods.goods_id,
-//             goods_no: order_goods.goods_no,
-//             name: order_goods.name,
-//             image: order_goods.image,
-//             plating: order_goods.plating,
-//             package_card: order_goods.package_card,
-//             package_card_des: order_goods.package_card_des,
-//             items,
-//         }
-//     }
-// }
-
 #[derive(Debug, Serialize)]
 pub struct OrderGoodsWithStepsWithItemStepDto {
     pub id: i32,
