@@ -27,6 +27,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/goods/update", post(update_order_goods))
         .route("/api/order/item/update", post(update_order_item))
+        .route("/api/order/goods/delete", post(delete_order_goods))
         .route("/api/order/item/delete", post(delete_order_item))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
@@ -44,6 +45,25 @@ impl DeleteOrderItem {
 }
 
 async fn delete_order_item(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    state.execute_sql(&param.to_sql()).await?;
+    Ok(APIEmptyResponse::new())
+}
+
+#[derive(Debug, Deserialize)]
+struct DeleteOrderGoods {
+    id: i32,
+}
+
+impl DeleteOrderGoods {
+    fn to_sql(&self) -> String {
+        format!("delete from order_goods where id = {}", self.id)
+    }
+}
+
+async fn delete_order_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
