@@ -349,11 +349,11 @@ async fn get_order_items(
     );
 
     // todo: order_items表应该加一个 order_goods_id 字段
-    let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
-    let order_item_id_to_goods_id = order_items_dto
-        .iter()
-        .map(|item| (item.id, item.goods_id))
-        .collect::<HashMap<i32, i32>>();
+    // let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
+    // let order_item_id_to_goods_id = order_items_dto
+    //     .iter()
+    //     .map(|item| (item.id, item.goods_id))
+    //     .collect::<HashMap<i32, i32>>();
     let order_item_ids = order_items_dto
         .iter()
         .map(|item| item.id)
