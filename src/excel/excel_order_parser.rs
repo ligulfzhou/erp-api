@@ -1,8 +1,8 @@
 use crate::excel::excel_order_info::parse_order_info;
-use crate::excel::order_template_1::parse_order_excel_t1;
-use crate::excel::order_template_2::parse_order_excel_t2;
-use crate::excel::order_template_3::parse_order_excel_t3;
-use crate::excel::order_template_4::parse_order_excel_t4;
+use crate::excel::order_template_1::{checking_order_items_excel_1, parse_order_excel_t1};
+use crate::excel::order_template_2::{checking_order_items_excel_2, parse_order_excel_t2};
+use crate::excel::order_template_3::{checking_order_items_excel_3, parse_order_excel_t3};
+use crate::excel::order_template_4::{checking_order_items_excel_4, parse_order_excel_t4};
 use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::goods::{GoodsModel, SKUModel};
@@ -40,6 +40,21 @@ impl<'a> ExcelOrderParser<'a> {
                 "客户编号未找到，请检查一下excel表格".to_string(),
             ));
         }
+        if order_info.order_no.is_empty() {
+            return Err(ERPError::Failed(
+                "订单编号未找到，请检查一下excel表格".to_string(),
+            ));
+        }
+
+        let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+            "select * from customers where customer_no='{}'",
+            order_info.customer_no
+        ))
+        .fetch_one(&self.db)
+        .await
+        .map_err(|_| ERPError::NotFound(format!("客户#{}未找到", order_info.customer_no)))?;
+
+        let customer_id = customer.id;
 
         tracing::info!("customer_no: {}", order_info.customer_no);
         let customer_excel_template_model =
@@ -68,9 +83,18 @@ impl<'a> ExcelOrderParser<'a> {
             _ => parse_order_excel_t1(sheet),
         };
 
-        let excel_order = ExcelOrder {
+        match template_id {
+            1 => checking_order_items_excel_1(&order_items)?,
+            2 => checking_order_items_excel_2(&order_items)?,
+            3 => checking_order_items_excel_3(&order_items)?,
+            4 => checking_order_items_excel_4(&order_items)?,
+            _ => checking_order_items_excel_1(&order_items)?,
+        };
+
+        let mut excel_order = ExcelOrder {
             info: order_info,
             items: order_items,
+            exists: false,
         };
 
         tracing::info!("excel_order: {:?}", excel_order);
@@ -83,35 +107,33 @@ impl<'a> ExcelOrderParser<'a> {
         let customer =
             CustomerModel::get_customer_with_customer_no(&self.db, &excel_order.info.customer_no)
                 .await?;
-        let mut order_id = 0;
 
         // 订单是否已经存在
         // 如果已经存在，则更新一下，如果不存在则 保存
-        match order {
-            None => {
-                // save order
-                tracing::info!(
-                    "order#{} not exists, we will save",
-                    excel_order.info.order_no
-                );
+        let order_id = {
+            match order {
+                None => {
+                    tracing::info!(
+                        "order#{} not exists, we will save",
+                        excel_order.info.order_no
+                    );
 
-                order_id =
-                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer.id).await?;
-                tracing::info!("order_id: {}", order_id);
+                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer.id).await?
+                }
+                Some(existing_order) => {
+                    tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
+                    excel_order.exists = true;
+                    OrderInfo::update_to_orders(
+                        &self.db,
+                        &excel_order.info,
+                        customer.id,
+                        existing_order.id,
+                    )
+                    .await?;
+                    existing_order.id
+                }
             }
-            Some(existing_order) => {
-                // maybe update order
-                tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
-                OrderInfo::update_to_orders(
-                    &self.db,
-                    &excel_order.info,
-                    customer.id,
-                    existing_order.id,
-                )
-                .await?;
-                order_id = existing_order.id;
-            }
-        }
+        };
 
         // check goods/skus exists.
         let mut id_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
@@ -121,26 +143,20 @@ impl<'a> ExcelOrderParser<'a> {
                 .or_insert(vec![])
                 .push(item.clone())
         }
-
         tracing::info!("id_order_items: {:?}", id_order_item);
 
-        // 循环检查 商品是否已经入库
+        //TODO: 循环检查 商品是否已经入库
         for (_, items) in id_order_item.iter().sorted_by_key(|x| x.0) {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
             tracing::info!("picked up goods_no: {}", goods_no);
 
-            let goods = GoodsModel::get_goods_with_goods_no(&self.db, &goods_no)
-                .await
-                .unwrap();
-
+            let goods = GoodsModel::get_goods_with_goods_no(&self.db, &goods_no).await?;
             tracing::info!("goods: {:?}", goods);
 
             let goods_id = match goods {
                 None => {
                     let goods = OrderItemExcel::pick_up_goods(items);
-                    GoodsModel::insert_goods_to_db(&self.db, &goods)
-                        .await
-                        .unwrap()
+                    GoodsModel::insert_goods_to_db(&self.db, &goods, customer_id).await?
                 }
                 Some(some_goods) => some_goods.id,
             };

@@ -98,6 +98,7 @@ impl OrderItemModel {
 pub struct ExcelOrder {
     pub info: OrderInfo,
     pub items: Vec<OrderItemExcel>,
+    pub exists: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -135,7 +136,7 @@ impl OrderInfo {
         let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
             .fetch_one(db)
             .await
-            .map_err(ERPError::DBError)?;
+            .map_err(|_| ERPError::Failed("插入订单失败".to_string()))?;
 
         Ok(order_id)
     }
@@ -167,7 +168,7 @@ impl OrderInfo {
         sqlx::query(&update_sql)
             .execute(db)
             .await
-            .map_err(ERPError::DBError)?;
+            .map_err(|_| ERPError::Failed("覆盖订单信息失败".to_string()))?;
         Ok(())
     }
 }
@@ -218,9 +219,7 @@ impl OrderItemExcel {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
         for item in items.iter() {
-            // *goods_no_cnt.entry(&item.goods_no).or_default() + 1;
-            let count = goods_no_cnt.entry(&item.goods_no).or_insert(0);
-            *count += 1;
+            *goods_no_cnt.entry(&item.goods_no).or_insert(0) += 1;
         }
         tracing::info!("goods_no_cnt: {:?}", goods_no_cnt);
 
@@ -244,6 +243,7 @@ impl OrderItemExcel {
     pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
         let mut goods = GoodsModel {
             id: 0,
+            customer_id: 0,
             goods_no: "".to_string(),
             image: "".to_string(),
             name: "".to_string(),

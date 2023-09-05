@@ -4,6 +4,7 @@ use sqlx::{Pool, Postgres};
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct GoodsModel {
     pub id: i32,               // SERIAL,
+    pub customer_id: i32,      // 客户ID
     pub goods_no: String,      // 类目编号
     pub image: String,         // 图片
     pub name: String,          // 名称
@@ -27,12 +28,16 @@ impl GoodsModel {
         Ok(goods)
     }
 
-    pub async fn insert_goods_to_db(db: &Pool<Postgres>, goods: &GoodsModel) -> ERPResult<i32> {
+    pub async fn insert_goods_to_db(
+        db: &Pool<Postgres>,
+        goods: &GoodsModel,
+        customer_id: i32,
+    ) -> ERPResult<i32> {
         let sql = format!(
-            r#"insert into goods (goods_no, name, image)
-            values ('{}', '{}', '{}')
+            r#"insert into goods (goods_no, name, image, customer_id)
+            values ('{}', '{}', '{}', {})
             returning id"#,
-            goods.goods_no, goods.name, goods.image
+            goods.goods_no, goods.name, goods.image, customer_id
         );
         let (goods_id,) = sqlx::query_as::<_, (i32,)>(&sql)
             .fetch_one(db)

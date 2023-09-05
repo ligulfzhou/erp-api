@@ -1,6 +1,8 @@
 use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
+use crate::{ERPError, ERPResult};
+use std::collections::HashMap;
 use umya_spreadsheet::*;
 
 pub fn parse_order_excel_t4(sheet: &Worksheet) -> Vec<OrderItemExcel> {
@@ -77,6 +79,32 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     }
 
     items
+}
+
+pub fn checking_order_items_excel_4(order_items_excel: &Vec<OrderItemExcel>) -> ERPResult<()> {
+    let mut index_order_items = HashMap::new();
+
+    for order_item in order_items_excel.iter() {
+        index_order_items
+            .entry(order_item.index)
+            .or_insert(vec![])
+            .push(order_item);
+    }
+
+    for (index, order_items) in index_order_items.iter() {
+        let mut goods_nos = order_items
+            .iter()
+            .map(|item| item.goods_no.as_str())
+            .collect::<Vec<&str>>();
+        goods_nos.dedup();
+        if goods_nos.len() > 1 {
+            return Err(ERPError::ExcelError(format!(
+                "Excel内序号#{index}可能重复,或者有多余总计的行"
+            )));
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

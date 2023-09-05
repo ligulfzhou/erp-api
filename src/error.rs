@@ -41,6 +41,9 @@ pub enum ERPError {
     #[error("参数错误: {:?}", .0)]
     ParamError(String),
 
+    #[error("Excel数据有误: {:?}", .0)]
+    ExcelError(String),
+
     #[error("json参数错误: {:?}", .0)]
     JsonExtractorRejection(#[from] JsonRejection),
 
