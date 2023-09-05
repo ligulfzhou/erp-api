@@ -121,11 +121,16 @@ pub struct OrderGoodsItemWithStepsDto {
     pub total_price: Option<i32>,
     pub notes: Option<String>,
 
+    pub is_next_action: bool,
     pub steps: Vec<OneProgress>,
 }
 
 impl OrderGoodsItemWithStepsDto {
-    pub fn from(ogid: OrderGoodsItemDto, steps: Vec<OneProgress>) -> OrderGoodsItemWithStepsDto {
+    pub fn from(
+        ogid: OrderGoodsItemDto,
+        steps: Vec<OneProgress>,
+        is_next_action: bool,
+    ) -> OrderGoodsItemWithStepsDto {
         Self {
             id: ogid.id,
             order_id: ogid.order_id,
@@ -138,6 +143,7 @@ impl OrderGoodsItemWithStepsDto {
             unit_price: ogid.unit_price,
             total_price: ogid.total_price,
             notes: ogid.notes,
+            is_next_action,
             steps,
         }
     }
@@ -204,6 +210,7 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub package_card: String,
     pub package_card_des: String,
 
+    pub is_next_action: bool,
     pub steps: HashMap<i32, i32>,
     pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
@@ -213,6 +220,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
         order_goods: OrderGoodsDto,
         steps: HashMap<i32, i32>,
         items: Vec<OrderGoodsItemWithStepsDto>,
+        is_next_action: bool,
     ) -> OrderGoodsWithStepsWithItemStepDto {
         Self {
             id: order_goods.id,
@@ -224,6 +232,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             plating: order_goods.plating,
             package_card: order_goods.package_card,
             package_card_des: order_goods.package_card_des,
+            is_next_action,
             steps,
             items,
         }

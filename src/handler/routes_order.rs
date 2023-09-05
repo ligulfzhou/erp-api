@@ -1,17 +1,19 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
+use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
-    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto, OrderGoodsWithItemDto,
+    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto,
     OrderGoodsWithStepsWithItemStepDto, OrderWithStepsDto,
 };
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
+use crate::middleware::auth::auth;
 use crate::model::order::OrderModel;
 use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{middleware, Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -26,6 +28,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/goods/update", post(update_order_goods))
         .route("/api/order/item/update", post(update_order_item))
         .route("/api/order/item/delete", post(delete_order_item))
+        .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
 }
 
@@ -302,6 +305,7 @@ impl ListParamToSQLTrait for OrderItemsQuery {
 }
 
 async fn get_order_items(
+    Extension(account): Extension<AccountDto>,
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
@@ -395,7 +399,7 @@ async fn get_order_items(
 
     let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
         .iter()
-        .map(|mut oid_progress_vec| {
+        .map(|oid_progress_vec| {
             let mut progress_vec = oid_progress_vec.1.clone();
             progress_vec.sort_by_key(|item| item.id.clone());
             (oid_progress_vec.0.clone(), progress_vec)
@@ -413,7 +417,19 @@ async fn get_order_items(
             let steps = order_item_id_to_progress_vec
                 .get(&item.id)
                 .unwrap_or(&empty);
-            OrderGoodsItemWithStepsDto::from(item, steps.clone())
+
+            let step = {
+                match steps.len() {
+                    0 => 1,
+                    _ => match steps[steps.len() - 1].done {
+                        true => steps[steps.len() - 1].step + 1,
+                        false => steps[steps.len() - 1].step + 0,
+                    },
+                }
+            };
+            let is_next_action = account.steps.contains(&step);
+
+            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action)
         })
         .collect::<Vec<OrderGoodsItemWithStepsDto>>();
 
@@ -437,9 +453,9 @@ async fn get_order_items(
                     let step = {
                         match &item.steps.len() {
                             0 => 1,
-                            _ => match &item.steps[0].done {
-                                true => &item.steps[0].step + 1,
-                                false => &item.steps[0].step + 0,
+                            _ => match &item.steps[item.steps.len() - 1].done {
+                                true => &item.steps[item.steps.len() - 1].step + 1,
+                                false => &item.steps[item.steps.len() - 1].step + 0,
                             },
                         }
                     };
@@ -453,10 +469,20 @@ async fn get_order_items(
                 *count += 1;
             }
 
+            let mut is_next_action = false;
+            let steps = order_item_steps_count
+                .iter()
+                .map(|sc| sc.0)
+                .collect::<Vec<&i32>>();
+            if steps.len() == 1 && account.steps.contains(steps[0]) {
+                is_next_action = true;
+            }
+            println!("steps: {:?}, {}", steps, is_next_action);
             OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
                 order_good,
                 order_item_steps_count,
                 items.clone(),
+                is_next_action,
             )
         })
         .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
@@ -587,7 +613,7 @@ async fn update_order_item(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    if let Some(id) = payload.id {
+    if let Some(_id) = payload.id {
         // 修改数据
         tracing::info!(
             "=> handler update_order_item: update sql: {:?}",
@@ -702,7 +728,7 @@ async fn update_order_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    if let Some(id) = payload.id {
+    if let Some(_id) = payload.id {
         // 修改数据
         tracing::info!(
             "=> handler update_order_item: update sql: {:?}",
