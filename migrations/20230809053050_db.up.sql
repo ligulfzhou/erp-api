@@ -10,22 +10,6 @@ create table goods
 );
 create unique index uniq_goods_goods_no on goods (goods_no);
 
---insert into goods (goods_no, image, name, notes)
---values ('goods_no_1', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_1',
---        'notes_1');
---insert into goods (goods_no, image, name, notes)
---values ('goods_no_2', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_2',
---        'notes_2');
---insert into goods (goods_no, image, name, notes)
---values ('goods_no_3', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_3',
---        'notes_3');
---insert into goods (goods_no, image, name, notes)
---values ('goods_no_4', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_4',
---        'notes_4');
---insert into goods (goods_no, image, name, notes)
---values ('goods_no_5', 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', 'goods_5',
---        'notes_5');
-
 -- sku表
 create table skus
 (
@@ -39,26 +23,6 @@ create table skus
     notes    text                         -- 备注
 );
 create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
-
-
---insert into skus (goods_id, color, notes)
---values (1, '绿色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '红色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '粉红', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '白色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '黑色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '黄色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '橙色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '青色', 'notes');
---insert into skus (goods_id, color, notes)
---values (1, '紫色', 'notes');
 
 -- 客户
 create table customers
@@ -127,15 +91,7 @@ create table orders
     is_urgent       boolean not null default false, -- 加急
     is_return_order boolean not null default false  -- 返单
 );
-
 create unique index uniq_orders_order_no on orders (order_no);
-
---insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
---VALUES (1, 'order_no_1', '2023-01-02', '2023-06-01', false, false);
---insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
---VALUES (2, 'order_no_2', '2023/01/02', '2023/06/01', true, false);
---insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
---VALUES (3, 'order_no_3', '2023-01-02', '2023-06-01', true, true);
 
 -- 订单商品表
 create table order_goods
@@ -151,13 +107,6 @@ create table order_goods
 );
 create index idx_order_goods_order_id on order_goods (order_id);
 create unique index uniq_order_goods_order_id_and_goods_id on order_goods (order_id, goods_id);
-
---insert into order_goods (order_id, goods_id, package_card, package_card_des)
---VALUES (1, 1, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
---insert into order_goods (order_id, goods_id, package_card, package_card_des)
---values (1, 2, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
---insert into order_goods (order_id, goods_id, package_card, package_card_des)
---values (1, 3, 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png', '');
 
 -- 订单sku表
 create table order_items
@@ -177,12 +126,6 @@ create index idx_order_items_goods_id on order_items (goods_id);
 create index idx_order_items_sku_id on order_items (sku_id);
 create unique index uniq_order_items_order_id_and_sku_id on order_items (order_id, sku_id);
 
---insert into order_items (order_id, goods_id, sku_id, count, unit)
---values (1, 1, 1, 10, '个');
---insert into order_items (order_id, goods_id, sku_id, count, unit)
---values (1, 1, 2, 10, '个');
---insert into order_items (order_id, goods_id, sku_id, count, unit)
---values (1, 1, 3, 10, '个');
 
 create table progress
 (
