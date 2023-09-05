@@ -5,6 +5,7 @@ use sqlx::FromRow;
 pub struct SKUModelDto {
     pub id: i32,
     pub sku_no: String,
+    pub customer_no: String,
     pub name: String,
     pub goods_no: String,      // 产品编号 (暂时没有)
     pub goods_id: i32,         // 产品ID
@@ -13,24 +14,6 @@ pub struct SKUModelDto {
     pub color: String,         // 颜色
     pub color2: String,
     pub notes: Option<String>, // 备注
-}
-
-impl SKUModelDto {
-    /// 没在用，多表组合的，还不如直接联表查
-    pub fn from(sku: &SKUModel, goods: &GoodsModel) -> SKUModelDto {
-        Self {
-            id: sku.id,
-            sku_no: sku.sku_no.clone(),
-            goods_id: sku.goods_id,
-            goods_no: goods.goods_no.clone(),
-            image: Some(goods.image.clone()),
-            plating: goods.plating.clone(),
-            color: sku.color.clone(),
-            color2: sku.color2.clone(),
-            notes: sku.notes.to_owned(),
-            name: goods.name.to_string(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

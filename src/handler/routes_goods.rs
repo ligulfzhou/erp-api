@@ -192,6 +192,7 @@ struct ListSKUsParam {
     goods_no: Option<String>,
     sku_no: Option<String>,
     color: Option<String>,
+    customer_no: Option<String>,
 
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
@@ -203,13 +204,14 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let goods_no = self.goods_no.as_deref().unwrap_or("");
         let sku_no = self.sku_no.as_deref().unwrap_or("");
         let color = self.color.as_deref().unwrap_or("");
+        let customer_no = self.customer_no.as_deref().unwrap_or("");
         let mut sql = format!(
             r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
-                g.name, g.goods_no, g.image, g.plating
-            from skus s, goods g
-            where s.goods_id = g.id
+                g.name, g.goods_no, g.image, g.plating, c.customer_no
+            from skus s, goods g, customers c
+            where s.goods_id = g.id and g.customer_id = c.id
             "#,
         );
         if !goods_no.is_empty() {
@@ -220,6 +222,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         }
         if !color.is_empty() {
             sql.push_str(&format!(" and s.color like '%{}%'", color));
+        }
+        if !customer_no.is_empty() {
+            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no))
         }
 
         let page = self.page.unwrap_or(1);
@@ -237,11 +242,12 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let goods_no = self.goods_no.as_deref().unwrap_or("");
         let sku_no = self.sku_no.as_deref().unwrap_or("");
         let color = self.color.as_deref().unwrap_or("");
+        let customer_no = self.customer_no.as_deref().unwrap_or("");
         let mut sql = format!(
             r#"
             select count(1) 
-            from skus s, goods g
-            where s.goods_id = g.id
+            from skus s, goods g, customers c
+            where s.goods_id = g.id and g.customer_id = c.id
             "#,
         );
         if !goods_no.is_empty() {
@@ -252,6 +258,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         }
         if !color.is_empty() {
             sql.push_str(&format!(" and s.color like '%{}%'", color));
+        }
+        if !customer_no.is_empty() {
+            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no))
         }
 
         sql
