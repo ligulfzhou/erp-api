@@ -67,7 +67,6 @@ async fn api_login(
         .secure(true)
         .finish();
 
-    // println!("{:?}", cookie.to_string().parse().unwrap());
     let mut response = APIDataResponse::new(account_dto).into_response();
     response
         .headers_mut()

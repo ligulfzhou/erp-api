@@ -1,3 +1,4 @@
+use crate::constants::STEP_TO_DEPARTMENT;
 use crate::dto::dto_progress::OneProgress;
 use crate::model::customer::CustomerModel;
 use crate::model::order::OrderModel;
@@ -54,6 +55,20 @@ impl OrderDto {
     }
 }
 
+type StepCount = HashMap<i32, i32>;
+type StepCountUF = HashMap<String, i32>;
+
+pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
+    sc.into_iter()
+        .map(|item| {
+            (
+                STEP_TO_DEPARTMENT.get(&item.0).unwrap_or(&"").to_string(),
+                item.1,
+            )
+        })
+        .collect::<HashMap<String, i32>>()
+}
+
 #[derive(Debug, Serialize)]
 pub struct OrderWithStepsDto {
     pub id: i32,
@@ -67,14 +82,11 @@ pub struct OrderWithStepsDto {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
-    pub steps: HashMap<i32, i32>,
+    pub steps: StepCountUF,
 }
 
 impl OrderWithStepsDto {
-    pub fn from_order_dto_and_steps(
-        order: OrderDto,
-        steps: HashMap<i32, i32>,
-    ) -> OrderWithStepsDto {
+    pub fn from_order_dto_and_steps(order: OrderDto, steps: StepCount) -> OrderWithStepsDto {
         Self {
             id: order.id,
             customer_id: order.customer_id,
@@ -87,7 +99,7 @@ impl OrderWithStepsDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
-            steps,
+            steps: to_step_count_user_friendly(steps),
         }
     }
 }
@@ -211,14 +223,14 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub package_card_des: String,
 
     pub is_next_action: bool,
-    pub steps: HashMap<i32, i32>,
+    pub steps: StepCountUF,
     pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
 
 impl OrderGoodsWithStepsWithItemStepDto {
     pub fn from_order_with_goods_and_steps_and_items(
         order_goods: OrderGoodsDto,
-        steps: HashMap<i32, i32>,
+        steps: StepCount,
         items: Vec<OrderGoodsItemWithStepsDto>,
         is_next_action: bool,
     ) -> OrderGoodsWithStepsWithItemStepDto {
@@ -233,7 +245,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             package_card: order_goods.package_card,
             package_card_des: order_goods.package_card_des,
             is_next_action,
-            steps,
+            steps: to_step_count_user_friendly(steps),
             items,
         }
     }

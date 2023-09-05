@@ -421,9 +421,9 @@ async fn get_order_items(
             let step = {
                 match steps.len() {
                     0 => 1,
-                    _ => match steps[steps.len() - 1].done {
-                        true => steps[steps.len() - 1].step + 1,
-                        false => steps[steps.len() - 1].step + 0,
+                    _ => match steps[0].done {
+                        true => steps[0].step + 1,
+                        false => steps[0].step + 0,
                     },
                 }
             };
@@ -453,9 +453,9 @@ async fn get_order_items(
                     let step = {
                         match &item.steps.len() {
                             0 => 1,
-                            _ => match &item.steps[item.steps.len() - 1].done {
-                                true => &item.steps[item.steps.len() - 1].step + 1,
-                                false => &item.steps[item.steps.len() - 1].step + 0,
+                            _ => match &item.steps[0].done {
+                                true => &item.steps[0].step + 1,
+                                false => &item.steps[0].step + 0,
                             },
                         }
                     };
