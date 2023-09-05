@@ -101,7 +101,7 @@ async fn import_excel(
     // 解析excel文件
     let parser = ExcelOrderParser::new(&file_path, state.db.clone());
     let order_info = parser.parse().await?;
-    tracing::info!("order_info: {:#?}", order_info);
+    // tracing::info!("order_info: {:#?}", order_info);
 
     if order_info.exists {
         return Err(ERPError::AlreadyExists("订单已经导入".to_string()));

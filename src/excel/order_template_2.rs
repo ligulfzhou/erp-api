@@ -2,9 +2,7 @@ use crate::common::string::{common_prefix, remove_whitespace_str};
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use crate::{ERPError, ERPResult};
-use clap::builder::Str;
 use std::collections::HashMap;
-use tracing::log::kv::Source;
 use umya_spreadsheet::*;
 
 pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {

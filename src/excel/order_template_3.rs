@@ -86,6 +86,21 @@ pub fn checking_order_items_excel_3(order_items_excel: &Vec<OrderItemExcel>) -> 
         }
     }
 
+    let mut sku_count = HashMap::new();
+    for order_item in order_items_excel.iter() {
+        let str = format!("{}+{}", order_item.goods_no, order_item.color);
+        *sku_count.entry(str).or_insert(0) += 1;
+    }
+    println!("{:?}", sku_count);
+
+    for (sku, count) in sku_count.iter() {
+        if count > &1 {
+            return Err(ERPError::ExcelError(format!(
+                "{sku}可能有重复，或者有多余的总计的行"
+            )));
+        }
+    }
+
     Ok(())
 }
 

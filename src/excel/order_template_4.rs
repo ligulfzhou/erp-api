@@ -99,10 +99,41 @@ pub fn checking_order_items_excel_4(order_items_excel: &Vec<OrderItemExcel>) -> 
         goods_nos.dedup();
         if goods_nos.len() > 1 {
             return Err(ERPError::ExcelError(format!(
-                "Excel内序号#{index}可能重复,或者有多余总计的行"
+                "Excel内序号#{index}可能重复,或者有 多余总计的行"
             )));
         }
     }
+
+    for order_item in order_items_excel.iter() {
+        if order_item.color.is_empty() {
+            return Err(ERPError::ExcelError(format!(
+                "序列#{}可能有重复，或者有多余的总计的行",
+                order_item.index
+            )));
+        }
+    }
+
+    // let mut skus = order_items_excel
+    //     .iter()
+    //     .map(|item| format!("{}{}", item.goods_no, item.color))
+    //     .collect::<Vec<_>>();
+    //
+    // skus.dedup();
+
+    // let mut sku_count = HashMap::new();
+    // for order_item in order_items_excel.iter() {
+    //     let str = format!("{}+{}", order_item.goods_no, order_item.color);
+    //     *sku_count.entry(str).or_insert(0) += 1;
+    // }
+    // println!("{:?}", sku_count);
+    //
+    // for (sku, count) in sku_count.iter() {
+    //     if count > &1 {
+    //         return Err(ERPError::ExcelError(format!(
+    //             "{sku}可能有重复，或者有多余的总计的行"
+    //         )));
+    //     }
+    // }
 
     Ok(())
 }
