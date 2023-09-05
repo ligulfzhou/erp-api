@@ -91,7 +91,7 @@ async fn mark_progress(
             from progress 
             where order_item_id in ({})
             order by order_item_id, step, id desc;
-        "#,
+            "#,
             order_item_ids_str,
         ))
         .fetch_all(&state.db)

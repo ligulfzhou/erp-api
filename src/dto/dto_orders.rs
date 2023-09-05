@@ -1,3 +1,4 @@
+use crate::dto::dto_progress::OneProgress;
 use crate::model::customer::CustomerModel;
 use crate::model::order::OrderModel;
 use chrono::NaiveDate;
@@ -106,6 +107,42 @@ pub struct OrderGoodsItemDto {
     pub notes: Option<String>,
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct OrderGoodsItemWithStepsDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub sku_id: i32,
+    pub sku_no: Option<String>,
+    pub color: String,
+    pub count: i32,
+    pub unit: String,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: Option<String>,
+
+    pub steps: Vec<OneProgress>,
+}
+
+impl OrderGoodsItemWithStepsDto {
+    pub fn from(ogid: OrderGoodsItemDto, steps: Vec<OneProgress>) -> OrderGoodsItemWithStepsDto {
+        Self {
+            id: ogid.id,
+            order_id: ogid.order_id,
+            goods_id: ogid.goods_id,
+            sku_id: ogid.sku_id,
+            sku_no: ogid.sku_no,
+            color: ogid.color,
+            count: ogid.count,
+            unit: ogid.unit,
+            unit_price: ogid.unit_price,
+            total_price: ogid.total_price,
+            notes: ogid.notes,
+            steps,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, FromRow)]
 pub struct OrderGoodsDto {
     pub id: i32,
@@ -132,13 +169,13 @@ pub struct OrderGoodsWithItemDto {
     pub package_card: String,
     pub package_card_des: String,
 
-    pub items: Vec<OrderGoodsItemDto>,
+    pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
 
 impl OrderGoodsWithItemDto {
     pub fn from_order_with_goods(
         order_goods: OrderGoodsDto,
-        items: Vec<OrderGoodsItemDto>,
+        items: Vec<OrderGoodsItemWithStepsDto>,
     ) -> OrderGoodsWithItemDto {
         Self {
             id: order_goods.id,
@@ -168,14 +205,14 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub package_card_des: String,
 
     pub steps: HashMap<i32, i32>,
-    pub items: Vec<OrderGoodsItemDto>,
+    pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
 
 impl OrderGoodsWithStepsWithItemStepDto {
     pub fn from_order_with_goods_and_steps_and_items(
         order_goods: OrderGoodsDto,
         steps: HashMap<i32, i32>,
-        items: Vec<OrderGoodsItemDto>,
+        items: Vec<OrderGoodsItemWithStepsDto>,
     ) -> OrderGoodsWithStepsWithItemStepDto {
         Self {
             id: order_goods.id,

@@ -64,9 +64,9 @@ impl OrderGoodsModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
+    // pub order_goods_id: i32, // todo: 感觉应该存这个
     pub order_id: i32,
     pub goods_id: i32,
-    // pub order_no: String,
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,

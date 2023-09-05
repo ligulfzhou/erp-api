@@ -1,6 +1,7 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_orders::{
-    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsWithItemDto, OrderWithStepsDto,
+    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto, OrderGoodsWithItemDto,
+    OrderGoodsWithStepsWithItemStepDto, OrderWithStepsDto,
 };
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
@@ -303,7 +304,7 @@ impl ListParamToSQLTrait for OrderItemsQuery {
 async fn get_order_items(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
-) -> ERPResult<APIListResponse<OrderGoodsWithItemDto>> {
+) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
     if param.order_id == 0 {
         return Err(ERPError::ParamNeeded(param.order_id.to_string()));
     }
@@ -347,7 +348,7 @@ async fn get_order_items(
         order_items_dto.len()
     );
 
-    // order_items表应该加一个 order_goods_id 字段
+    // todo: order_items表应该加一个 order_goods_id 字段
     let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
     let order_item_id_to_goods_id = order_items_dto
         .iter()
@@ -393,11 +394,11 @@ async fn get_order_items(
     );
 
     let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
-        .into_iter()
+        .iter()
         .map(|mut oid_progress_vec| {
-            let mut progress_vec = oid_progress_vec.1;
+            let mut progress_vec = oid_progress_vec.1.clone();
             progress_vec.sort_by_key(|item| item.id.clone());
-            (oid_progress_vec.0, progress_vec)
+            (oid_progress_vec.0.clone(), progress_vec)
         })
         .collect::<HashMap<i32, Vec<OneProgress>>>();
     tracing::info!(
@@ -405,22 +406,60 @@ async fn get_order_items(
         order_item_id_to_sorted_progress_vec
     );
 
+    let empty: Vec<OneProgress> = vec![];
+    let order_items_with_steps_dtos = order_items_dto
+        .into_iter()
+        .map(|item| {
+            let steps = order_item_id_to_progress_vec
+                .get(&item.id)
+                .unwrap_or(&empty);
+            OrderGoodsItemWithStepsDto::from(item, steps.clone())
+        })
+        .collect::<Vec<OrderGoodsItemWithStepsDto>>();
+
     let mut gid_order_item_dtos = HashMap::new();
-    for item in order_items_dto.into_iter() {
+    for item in order_items_with_steps_dtos.into_iter() {
         let dtos = gid_order_item_dtos.entry(item.goods_id).or_insert(vec![]);
         dtos.push(item);
     }
 
-    let empty_array: Vec<OrderGoodsItemDto> = vec![];
+    let empty_array: Vec<OrderGoodsItemWithStepsDto> = vec![];
     let order_goods_dtos = order_goods
         .into_iter()
         .map(|order_good| {
             let items = gid_order_item_dtos
                 .get(&order_good.goods_id)
                 .unwrap_or(&empty_array);
-            OrderGoodsWithItemDto::from_order_with_goods(order_good, items.clone())
+
+            let order_item_step = items
+                .iter()
+                .map(|item| {
+                    let step = {
+                        match &item.steps.len() {
+                            0 => 1,
+                            _ => match &item.steps[&item.steps.len() - 1].done {
+                                true => &item.steps[&item.steps.len() - 1].step + 1,
+                                false => &item.steps[&item.steps.len() - 1].step + 0,
+                            },
+                        }
+                    };
+                    (item.id, step)
+                })
+                .collect::<HashMap<i32, i32>>();
+
+            let mut order_item_steps_count: HashMap<i32, i32> = HashMap::new();
+            for (_, step) in order_item_step.iter() {
+                let count = order_item_steps_count.entry(step.to_owned()).or_insert(0);
+                *count += 1;
+            }
+
+            OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
+                order_good,
+                order_item_steps_count,
+                items.clone(),
+            )
         })
-        .collect::<Vec<OrderGoodsWithItemDto>>();
+        .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
 
     let count: (i64,) = sqlx::query_as(&param.to_count_sql())
         .fetch_one(&state.db)

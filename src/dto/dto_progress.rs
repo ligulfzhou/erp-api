@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
-#[derive(Debug, Serialize, FromRow)]
+#[derive(Debug, Serialize, FromRow, Clone)]
 pub struct OneProgress {
     pub id: i32,
     pub order_item_id: i32,
