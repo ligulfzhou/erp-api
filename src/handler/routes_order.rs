@@ -401,7 +401,7 @@ async fn get_order_items(
         .iter()
         .map(|oid_progress_vec| {
             let mut progress_vec = oid_progress_vec.1.clone();
-            progress_vec.sort_by_key(|item| item.id);
+            progress_vec.sort_unstable_by_key(|item| item.id);
             (oid_progress_vec.0.clone(), progress_vec)
         })
         .collect::<HashMap<i32, Vec<OneProgress>>>();
