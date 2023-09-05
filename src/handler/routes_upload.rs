@@ -48,7 +48,7 @@ async fn upload_image(
                 ERPError::SaveFileFailed(format!("create {} failed", file_path_full))
             })?;
 
-            let url = format!("{}images/{}/{}", STORAGE_URL_PREFIX, ymd, file_name);
+            let url = format!("{}/images/{}/{}", STORAGE_URL_PREFIX, ymd, file_name);
             return Ok(APIDataResponse::new(ImageUrlResponse { url }));
         }
     }
