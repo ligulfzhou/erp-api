@@ -24,8 +24,8 @@ pub fn routes(state: Arc<AppState>) -> Router {
 struct MarkProgressParam {
     order_goods_id: Option<i32>,
     order_item_id: Option<i32>,
-    done: bool,
-    notes: String,
+    done: Option<bool>,
+    notes: Option<String>,
 }
 
 async fn mark_progress(
@@ -40,6 +40,11 @@ async fn mark_progress(
         return Err(ERPError::ParamNeeded(
             "order_goods_id/order_item_id".to_string(),
         ));
+    }
+    let done = payload.done.unwrap_or(false);
+    let notes = payload.notes.as_deref().unwrap_or("");
+    if !done && notes.is_empty() {
+        return Err(ERPError::ParamError("done和notes，至少要有一样".to_owned()));
     }
 
     if order_goods_id > 0 {
@@ -144,7 +149,7 @@ async fn mark_progress(
             .map(|oii| {
                 format!(
                     "({}, {}, {}, {}, '{}', '{}')",
-                    oii, step, account.id, payload.done, payload.notes, now_str
+                    oii, step, account.id, done, notes, now_str
                 )
             })
             .collect::<Vec<String>>()
@@ -198,8 +203,8 @@ async fn mark_progress(
             order_item_id,
             step,
             account.id,
-            payload.done,
-            payload.notes,
+            done,
+            notes,
             format_datetime(now)
         ))
         .execute(&state.db)
@@ -231,8 +236,8 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: None,
             order_item_id: Some(1),
-            done: false,
-            notes: "notes..".to_string(),
+            done: Some(false),
+            notes: Some("notes..".to_string()),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))
@@ -243,8 +248,8 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: None,
             order_item_id: Some(1),
-            done: true,
-            notes: "notes..".to_string(),
+            done: Some(true),
+            notes: Some("notes..".to_string()),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))
@@ -278,8 +283,8 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: Some(1),
             order_item_id: None,
-            done: false,
-            notes: "notes..".to_string(),
+            done: Some(false),
+            notes: Some("notes..".to_string()),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))
@@ -290,8 +295,8 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: Some(1),
             order_item_id: None,
-            done: true,
-            notes: "notes..".to_string(),
+            done: Some(true),
+            notes: Some("notes..".to_string()),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))
@@ -302,8 +307,8 @@ mod tests {
         let param = MarkProgressParam {
             order_goods_id: Some(3),
             order_item_id: None,
-            done: true,
-            notes: "测试 order_goods_id=3..".to_string(),
+            done: Some(true),
+            notes: Some("测试 order_goods_id=3..".to_string()),
         };
         client
             .do_post("/api/mark/progress", serde_json::json!(param))

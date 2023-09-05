@@ -38,6 +38,9 @@ pub enum ERPError {
     #[error("参数缺失: {:?}", .0)]
     ParamNeeded(String),
 
+    #[error("参数错误: {:?}", .0)]
+    ParamError(String),
+
     #[error("json参数错误: {:?}", .0)]
     JsonExtractorRejection(#[from] JsonRejection),
 
