@@ -658,62 +658,21 @@ async fn update_order_item(
 #[derive(Debug, Deserialize)]
 struct UpdateOrderGoodsParam {
     id: Option<i32>,
-    order_id: Option<i32>,
-    goods_id: Option<i32>,
-    sku_id: Option<i32>,
-    count: i32,
-    unit: Option<String>,
-    unit_price: Option<i32>,
-    total_price: Option<i32>,
+    package_card: Option<String>,
+    package_card_des: Option<String>,
 }
 
 impl UpdateOrderGoodsParam {
-    fn to_insert_sql(&self) -> String {
-        let mut kv_pairs: Vec<(_, _)> = vec![];
-        kv_pairs.push(("order_id", self.order_id.unwrap_or(0).to_string()));
-        kv_pairs.push(("sku_id", self.sku_id.unwrap_or(0).to_string()));
-        kv_pairs.push(("goods_id", self.goods_id.unwrap_or(0).to_string()));
-        kv_pairs.push(("count", self.count.to_string()));
-        kv_pairs.push(("unit", format!("'{}'", self.unit.as_deref().unwrap_or(""))));
-        if let Some(unit_price) = self.unit_price {
-            kv_pairs.push(("unit_price", unit_price.to_string()))
-        }
-        if let Some(total_price) = self.total_price {
-            kv_pairs.push(("total_price", total_price.to_string()))
-        }
-
-        let keys = kv_pairs
-            .iter()
-            .map(|kv| kv.0)
-            .collect::<Vec<&str>>()
-            .join(",");
-        tracing::debug!("keys: {:?}", keys);
-
-        let values = kv_pairs
-            .iter()
-            .map(|kv| kv.1.as_str())
-            .collect::<Vec<&str>>()
-            .join(",");
-        tracing::debug!("values: {:?}", values);
-
-        let sql = format!("insert into order_items ({}) values ({})", keys, values);
-        tracing::debug!("sql: {:?}", sql);
-
-        sql
-    }
-
     fn to_update_sql(&self) -> String {
         let mut where_clauses = vec![];
-        where_clauses.push(format!("count={}", self.count));
-        if let Some(unit) = &self.unit {
-            where_clauses.push(format!("unit='{}'", unit));
-        }
-        if let Some(unit_price) = &self.unit_price {
-            where_clauses.push(format!("unit_price={}", unit_price));
-        }
-        if let Some(total_price) = &self.total_price {
-            where_clauses.push(format!("total_price={}", total_price));
-        }
+        where_clauses.push(format!(
+            "package_card='{}'",
+            self.package_card.as_deref().unwrap_or("")
+        ));
+        where_clauses.push(format!(
+            "package_card_des='{}'",
+            self.package_card_des.as_deref().unwrap_or("")
+        ));
 
         let sql = format!(
             "update order_items set {} where id={}",
@@ -729,43 +688,11 @@ async fn update_order_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    if let Some(_id) = payload.id {
-        // 修改数据
-        tracing::info!(
-            "=> handler update_order_item: update sql: {:?}",
-            payload.to_update_sql()
-        );
-        state.execute_sql(&payload.to_update_sql()).await?;
-    } else {
-        // 新增
-        let order_id = payload.order_id.expect("订单ID");
-        let sku_id = payload.sku_id.expect("sku ID");
-
-        // check if sku_id exists
-        let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
-            "select id from order_items where order_id={} and sku_id={}",
-            order_id, sku_id
-        ))
-        .fetch_all(&state.db)
-        .await
-        .map_err(ERPError::DBError)?
-        .iter()
-        .map(|id| id.0)
-        .collect::<Vec<i32>>();
-        tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
-
-        if !ids_with_this_sku_id.is_empty() {
-            return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
-        }
-
-        // insert
-        tracing::info!(
-            "=> handler update_order_item: insert sql: {:?}",
-            payload.to_insert_sql()
-        );
-
-        state.execute_sql(&payload.to_insert_sql()).await?;
-    }
+    tracing::info!(
+        "=> handler update_order_goods: update sql: {:?}",
+        payload.to_update_sql()
+    );
+    state.execute_sql(&payload.to_update_sql()).await?;
 
     Ok(APIEmptyResponse::new())
 }
