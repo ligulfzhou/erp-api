@@ -162,6 +162,8 @@ create table departments
 
 insert into departments (name, steps)
 values ('业务部', '{1}');
+insert into departments (name, steps)
+values ('仓库部', '{2}');
 
 -- 账号
 create table accounts
@@ -173,4 +175,6 @@ create table accounts
     department_id integer not null default 0
 );
 insert into accounts (name, account, password, department_id)
-values ('test', 'test', 'test', 1);
+values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
+insert into accounts (name, account, password, department_id)
+values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
