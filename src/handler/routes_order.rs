@@ -401,7 +401,7 @@ async fn get_order_items(
         select 
             p.*, a.name as account_name, d.name as department
         from progress p, accounts a, departments d
-        where p.account_id = a.id 
+        where p.account_id = a.id and a.department_id = d.id
             and p.order_item_id in ({})
         order by p.id;
         "#,
