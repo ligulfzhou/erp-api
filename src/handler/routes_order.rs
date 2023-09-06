@@ -696,7 +696,7 @@ impl UpdateOrderGoodsParam {
         ));
 
         let sql = format!(
-            "update order_items set {} where id={}",
+            "update order_goods set {} where id={}",
             where_clauses.join(","),
             self.id.unwrap()
         );
