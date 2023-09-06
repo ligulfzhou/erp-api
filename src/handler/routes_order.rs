@@ -46,7 +46,7 @@ impl DeleteOrderItem {
 
 async fn delete_order_item(
     State(state): State<Arc<AppState>>,
-    WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
+    WithRejection(Json(param), _): WithRejection<Json<DeleteOrderItem>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     state.execute_sql(&param.to_sql()).await?;
     Ok(APIEmptyResponse::new())
@@ -57,17 +57,23 @@ struct DeleteOrderGoods {
     id: i32,
 }
 
-impl DeleteOrderGoods {
-    fn to_sql(&self) -> String {
-        format!("delete from order_goods where id = {}", self.id)
-    }
-}
-
 async fn delete_order_goods(
     State(state): State<Arc<AppState>>,
-    WithRejection(Query(param), _): WithRejection<Query<DeleteOrderItem>, ERPError>,
+    WithRejection(Json(payload), _): WithRejection<Json<DeleteOrderGoods>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    state.execute_sql(&param.to_sql()).await?;
+    state
+        .execute_sql(&format!(
+            "delete from order_goods where id = {}",
+            payload.id
+        ))
+        .await?;
+    // // todo!
+    // state
+    // .execute_sql(&format!(
+    //     "delete from order_items where id = {}",
+    //     payload.id
+    // ))
+    // .await?;
     Ok(APIEmptyResponse::new())
 }
 
