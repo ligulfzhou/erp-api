@@ -397,6 +397,7 @@ async fn get_order_items(
         from progress p, accounts a, departments d
         where p.account_id = a.id 
             and p.order_item_id in ({})
+        order by p.id;
         "#,
         order_item_ids_str
     ))
@@ -420,10 +421,10 @@ async fn get_order_items(
     let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
         .iter()
         .map(|oid_progress_vec| {
-            let mut progress_vec = oid_progress_vec.1.clone();
+            // let progress_vec = oid_progress_vec.1.clone();
             // progress_vec.sort_unstable_by_key(|item| item.id);
-            progress_vec.sort_by(|a, b| a.id.cmp(&b.id));
-            (oid_progress_vec.0.clone(), progress_vec)
+            // progress_vec.sort_by(|a, b| a.id.cmp(&b.id));
+            (oid_progress_vec.0.clone(), oid_progress_vec.1.clone())
         })
         .collect::<HashMap<i32, Vec<OneProgress>>>();
     tracing::info!(

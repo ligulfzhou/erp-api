@@ -187,8 +187,6 @@ async fn get_goods(
 
 #[derive(Debug, Deserialize)]
 struct ListSKUsParam {
-    // name: Option<String>,
-    // plating: Option<String>,
     goods_no: Option<String>,
     sku_no: Option<String>,
     color: Option<String>,
