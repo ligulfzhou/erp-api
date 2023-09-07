@@ -55,13 +55,15 @@ impl ProgressModel {
             id, order_item_id, step, account_id, done, notes, dt
             from progress
             where order_item_id in ({})
-            order by order_item_id, step, id desc;
+            order by order_item_id, step desc, id desc;
         "#,
             order_item_ids_str,
         ))
         .fetch_all(db)
         .await
         .map_err(ERPError::DBError)?;
+
+        tracing::info!("progresses: {:?}", progresses);
 
         let mut order_item_step = progresses
             .into_iter()
@@ -73,6 +75,8 @@ impl ProgressModel {
                 }
             })
             .collect::<HashMap<i32, i32>>();
+
+        tracing::info!("order_item_step: {:?}", order_item_step);
 
         tracing::info!("order_item_progress: {:?}", order_item_step);
         for order_item_id in order_item_ids.iter() {
