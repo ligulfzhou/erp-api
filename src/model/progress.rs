@@ -76,8 +76,6 @@ impl ProgressModel {
             })
             .collect::<HashMap<i32, i32>>();
 
-        tracing::info!("order_item_step: {:?}", order_item_step);
-
         tracing::info!("order_item_progress: {:?}", order_item_step);
         for order_item_id in order_item_ids.iter() {
             order_item_step.entry(order_item_id.to_owned()).or_insert(1);
