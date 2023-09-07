@@ -347,9 +347,9 @@ async fn get_sku_detail(
         r#"
         select 
             s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
-            g.image, g.plating, s.color, s.color2, s.notes
-        from skus s, goods g
-        where s.goods_id = g.id
+            g.image, g.plating, s.color, s.color2, s.notes, c.customer_no
+        from skus s, goods g, customers c
+        where s.goods_id = g.id and g.customer_id = c.id
             and s.id = {};
     "#,
         param.id
@@ -364,37 +364,69 @@ async fn get_sku_detail(
 #[derive(Debug, Deserialize, Serialize)]
 struct UpdateSKUParam {
     id: i32,
+    name: Option<String>,
     image: Option<String>,
+    goods_id: i32,
     goods_no: Option<String>,
     sku_no: Option<String>,
     color: Option<String>,
+    plating: Option<String>,
     notes: Option<String>,
 }
 
 impl UpdateSKUParam {
-    fn to_sql(&self) -> String {
+    fn to_sqls(&self) -> Vec<String> {
+        // let update_goods_sql = format!("");
+        let mut update_set_clauses = vec![];
+        let name = self.name.as_deref().unwrap_or("");
+        let image = self.image.as_deref().unwrap_or("");
+        let sku_no = self.sku_no.as_deref().unwrap_or("");
+        let goods_no = self.goods_no.as_deref().unwrap_or("");
+        let color = self.color.as_deref().unwrap_or("");
+        let plating = self.plating.as_deref().unwrap_or("");
+        let notes = self.notes.as_deref().unwrap_or("");
+
+        if !name.is_empty() {
+            update_set_clauses.push(format!(" name='{}' ", name))
+        }
+        if !image.is_empty() {
+            update_set_clauses.push(format!(" image='{}' ", image));
+        }
+        if !goods_no.is_empty() {
+            update_set_clauses.push(format!(" goods_no='{}' ", goods_no));
+        }
+        if !plating.is_empty() {
+            update_set_clauses.push(format!(" plating='{}' ", plating));
+        }
+        let update_goods_sql = match update_set_clauses.len() {
+            0 => "".to_string(),
+            _ => format!(
+                "update goods set {} where id = {}",
+                update_set_clauses.join(","),
+                self.goods_id
+            ),
+        };
+
         let mut set_clauses = vec![];
-        if let Some(image) = &self.image {
-            set_clauses.push(format!(" image = '{}' ", image))
-        }
-        if let Some(goods_no) = &self.goods_no {
-            set_clauses.push(format!(" goods_no = '{}' ", goods_no))
-        }
-        if let Some(sku_no) = &self.sku_no {
+        if !sku_no.is_empty() {
             set_clauses.push(format!(" sku_no = '{}' ", sku_no))
         }
-        if let Some(color) = &self.color {
+        if !color.is_empty() {
             set_clauses.push(format!(" color = '{}' ", color))
         }
-        if let Some(notes) = &self.notes {
+        if !notes.is_empty() {
             set_clauses.push(format!(" notes = '{}' ", notes))
         }
+        let update_item_sql = match set_clauses.len() {
+            0 => "".to_string(),
+            _ => format!(
+                "update skus set {} where id = {}",
+                set_clauses.join(","),
+                self.id
+            ),
+        };
 
-        format!(
-            "update skus set {} where id = {}",
-            set_clauses.join(","),
-            self.id
-        )
+        vec![update_goods_sql, update_item_sql]
     }
 }
 
@@ -402,8 +434,12 @@ async fn update_sku(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateSKUParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    sqlx::query(&payload.to_sql()).execute(&state.db).await?;
-
+    let sqls = payload.to_sqls();
+    for sql in sqls.into_iter() {
+        if !sql.is_empty() {
+            state.execute_sql(&sql).await?;
+        }
+    }
     Ok(APIEmptyResponse::new())
 }
 

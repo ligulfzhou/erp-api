@@ -50,9 +50,7 @@ impl GoodsModel {
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct SKUModel {
     pub id: i32,
-    pub goods_id: i32, // 产品ID
-    // pub image: Option<String>,   // 商品图片
-    // pub plating: Option<String>, // 电镀
+    pub goods_id: i32,         // 产品ID
     pub sku_no: String,        // sku no (这个只有L1005的有)
     pub color: String,         // 颜色
     pub color2: String,        // 颜色2
