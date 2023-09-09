@@ -22,7 +22,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if customer_no.is_empty() {
                     customer_no = cell_value.strip_prefix("客户：").unwrap_or("");
                 }
-                order_info.customer_no = customer_no.to_owned();
+                order_info.customer_no = customer_no.to_owned().to_uppercase();
             }
 
             if cell_value.contains("供应商") {
@@ -30,7 +30,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                 if customer_no.is_empty() {
                     customer_no = cell_value.strip_prefix("供应商：").unwrap_or("");
                 }
-                order_info.customer_no = customer_no.to_owned();
+                order_info.customer_no = customer_no.to_owned().to_uppercase();
             }
 
             if cell_value.contains("单号") {

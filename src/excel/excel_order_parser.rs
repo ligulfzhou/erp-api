@@ -11,9 +11,16 @@ use crate::model::order::{
 };
 use crate::{ERPError, ERPResult};
 use itertools::Itertools;
-use sqlx::{Pool, Postgres};
+use sqlx::{FromRow, Pool, Postgres};
 use std::collections::HashMap;
 use umya_spreadsheet::reader;
+
+#[derive(FromRow)]
+struct ExistingOrderGoods {
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub goods_no: String,
+}
 
 #[derive(Debug)]
 pub struct ExcelOrderParser<'a> {
@@ -130,7 +137,6 @@ impl<'a> ExcelOrderParser<'a> {
             }
         };
 
-        // check goods/skus exists.
         let mut index_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
         for item in excel_order.items.iter() {
             index_order_item

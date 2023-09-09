@@ -86,7 +86,6 @@ values ('L1004', 4);
 create table orders
 (
     id              serial,
---    customer_id     integer not null,               -- 客户ID
     customer_no     text    not null,               -- 客户ID
     order_no        text    not null,               -- 订单编号
     order_date      date    not null,               -- 订货日期

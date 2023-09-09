@@ -37,10 +37,9 @@ impl OrderModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderGoodsModel {
     pub id: i32,
+    pub index: i32,
     pub order_id: i32,
     pub goods_id: i32,
-    pub package_card: Option<String>,
-    pub package_card_des: Option<String>,
 }
 
 impl OrderGoodsModel {
