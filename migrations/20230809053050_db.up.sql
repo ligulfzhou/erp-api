@@ -1,14 +1,17 @@
 -- 商品表
 create table goods
 (
-    id          SERIAL,
-    customer_id integer not null default 0,  -- 客户ID
-    goods_no    text    not null default '', -- 类目编号(可以为空，主要来自L1005)
-    image       text    not null default '', -- 图片
-    name        text    not null default '', -- 名称
-    plating     text    not null default '', -- 电镀
-    notes       text                         -- 备注
+    id               SERIAL,
+    customer_no      text not null default '', -- 客户ID
+    goods_no         text not null default '', -- 类目编号(可以为空，主要来自L1005)
+    image            text not null default '', -- 图片
+    name             text not null default '', -- 名称
+    plating          text not null default '', -- 电镀
+    package_card     text not null default '', -- 标签图片
+    package_card_des text not null default '', -- 标签说明
+    notes            text not null default ''  -- 备注
 );
+create index idx_goods_customer_no on goods (customer_no);
 create unique index uniq_goods_goods_no on goods (goods_no);
 
 -- sku表
@@ -19,7 +22,7 @@ create table skus
     sku_no   text    not null default '', -- SKU ID
     color    text    not null default '', -- 颜色
     color2   text    not null default '', -- 颜色（只记录，只会用上面的color）
-    notes    text                         -- 备注
+    notes    text    not null default ''  -- 备注
 );
 create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 
@@ -31,7 +34,7 @@ create table customers
     name        text not null default '', -- 名称
     address     text not null default '', -- 地址
     phone       text not null default '', -- 电话
-    notes       text                      -- 备注
+    notes       text not null default ''  -- 备注
 );
 create unique index uniq_customers_customer_no on customers (customer_no);
 
@@ -83,7 +86,8 @@ values ('L1004', 4);
 create table orders
 (
     id              serial,
-    customer_id     integer not null,               -- 客户ID
+--    customer_id     integer not null,               -- 客户ID
+    customer_no     text    not null,               -- 客户ID
     order_no        text    not null,               -- 订单编号
     order_date      date    not null,               -- 订货日期
     delivery_date   date,                           -- 交货日期
@@ -91,16 +95,15 @@ create table orders
     is_return_order boolean not null default false  -- 返单
 );
 create unique index uniq_orders_order_no on orders (order_no);
+create index idx_orders_customer_no_order_date on orders (customer_no, order_date);
 
 -- 订单商品表
 create table order_goods
 (
-    id               serial,
---    index              integer not null default 0, -- 用于排序
-    order_id         integer not null, -- 订单ID
-    goods_id         integer not null, -- 商品ID
-    package_card     text,             -- 标签图片
-    package_card_des text              -- 标签说明
+    id       serial,
+    index    integer not null default 0, -- 用于排序
+    order_id integer not null,           -- 订单ID
+    goods_id integer not null            -- 商品ID
 );
 create index idx_order_goods_order_id on order_goods (order_id);
 create unique index uniq_order_goods_order_id_and_goods_id on order_goods (order_id, goods_id);
@@ -108,18 +111,19 @@ create unique index uniq_order_goods_order_id_and_goods_id on order_goods (order
 -- 订单sku表
 create table order_items
 (
-    id          serial,
-    order_id    integer not null, -- 订单ID
-    goods_id    integer not null, -- 商品ID
-    sku_id      integer not null, -- sku id
-    count       integer not null, -- 数量
-    unit        text,             -- 单位
-    unit_price  integer,          -- 单价
-    total_price integer,          -- 总价/金额
-    notes       text              -- 备注
+    id             serial,
+    order_goods_id integer not null,           -- 订单商品ID
+    order_id       integer not null,           -- 订单ID
+    sku_id         integer not null,           -- sku id
+    count          integer not null,           -- 数量
+    unit           text,                       -- 单位
+    unit_price     integer,                    -- 单价
+    total_price    integer,                    -- 总价/金额
+    notes          text    not null default '' -- 备注
 );
+--     goods_id       integer not null, -- 商品ID
+-- create index idx_order_items_goods_id on order_items (goods_id);
 create index idx_order_items_order_id on order_items (order_id);
-create index idx_order_items_goods_id on order_items (goods_id);
 create index idx_order_items_sku_id on order_items (sku_id);
 create unique index uniq_order_items_order_id_and_sku_id on order_items (order_id, sku_id);
 
@@ -174,6 +178,8 @@ create table accounts
     password      text    not null default '',
     department_id integer not null default 0
 );
+insert into accounts (name, account, password, department_id)
+values ('业务test', 'test', 'test', 1);
 insert into accounts (name, account, password, department_id)
 values ('业务小红', 'yewuxiaobai', 'yewuxiaobai', 1);
 insert into accounts (name, account, password, department_id)

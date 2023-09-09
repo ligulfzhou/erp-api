@@ -3,13 +3,15 @@ use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct GoodsModel {
-    pub id: i32,               // SERIAL,
-    pub customer_id: i32,      // 客户ID
-    pub goods_no: String,      // 类目编号
-    pub image: String,         // 图片
-    pub name: String,          // 名称
-    pub plating: String,       // 电镀
-    pub notes: Option<String>, // 备注
+    pub id: i32,                  // SERIAL,
+    pub customer_no: String,      // 客户ID
+    pub goods_no: String,         // 类目编号
+    pub image: String,            // 图片
+    pub name: String,             // 名称
+    pub plating: String,          // 电镀
+    pub package_card: String,     // 标签图片
+    pub package_card_des: String, // 标签说明
+    pub notes: String,            // 备注
 }
 
 impl GoodsModel {
@@ -31,13 +33,13 @@ impl GoodsModel {
     pub async fn insert_goods_to_db(
         db: &Pool<Postgres>,
         goods: &GoodsModel,
-        customer_id: i32,
+        customer_no: &str,
     ) -> ERPResult<i32> {
         let sql = format!(
-            r#"insert into goods (goods_no, name, image, customer_id)
-            values ('{}', '{}', '{}', {})
+            r#"insert into goods (goods_no, name, image, customer_no)
+            values ('{}', '{}', '{}', '{}')
             returning id"#,
-            goods.goods_no, goods.name, goods.image, customer_id
+            goods.goods_no, goods.name, goods.image, customer_no
         );
         let (goods_id,) = sqlx::query_as::<_, (i32,)>(&sql)
             .fetch_one(db)

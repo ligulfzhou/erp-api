@@ -34,7 +34,7 @@ impl GoodsDto {
             goods_no: goods.goods_no,
             image: goods.image,
             name: goods.name,
-            notes: goods.notes.unwrap_or("".to_string()),
+            notes: goods.notes,
             count: skus.len() as i32,
             skus,
         }

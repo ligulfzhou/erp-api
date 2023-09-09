@@ -9,10 +9,6 @@ use std::collections::HashMap;
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct OrderDto {
     pub id: i32,
-    pub customer_id: i32,
-    pub customer_name: String,
-    pub customer_address: String,
-    pub customer_phone: String,
     pub customer_no: String,
     pub order_no: String,
     pub order_date: NaiveDate,
@@ -25,10 +21,6 @@ impl OrderDto {
     pub fn from(order: OrderModel, customer: CustomerModel) -> OrderDto {
         Self {
             id: order.id,
-            customer_id: customer.id,
-            customer_name: customer.name,
-            customer_address: customer.address,
-            customer_phone: customer.phone,
             customer_no: customer.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
@@ -41,11 +33,7 @@ impl OrderDto {
     pub fn from_only(order: OrderModel) -> OrderDto {
         Self {
             id: order.id,
-            customer_id: order.customer_id,
-            customer_name: "".to_string(),
-            customer_address: "".to_string(),
-            customer_phone: "".to_string(),
-            customer_no: "".to_string(),
+            customer_no: order.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,
             delivery_date: order.delivery_date,
@@ -72,10 +60,6 @@ pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
 #[derive(Debug, Serialize)]
 pub struct OrderWithStepsDto {
     pub id: i32,
-    pub customer_id: i32,
-    pub customer_name: String,
-    pub customer_address: String,
-    pub customer_phone: String,
     pub customer_no: String,
     pub order_no: String,
     pub order_date: NaiveDate,
@@ -89,10 +73,6 @@ impl OrderWithStepsDto {
     pub fn from_order_dto_and_steps(order: OrderDto, steps: StepCount) -> OrderWithStepsDto {
         Self {
             id: order.id,
-            customer_id: order.customer_id,
-            customer_name: order.customer_name,
-            customer_address: order.customer_address,
-            customer_phone: order.customer_phone,
             customer_no: order.customer_no,
             order_no: order.order_no,
             order_date: order.order_date,

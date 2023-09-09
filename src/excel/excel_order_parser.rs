@@ -29,8 +29,8 @@ impl<'a> ExcelOrderParser<'a> {
     pub async fn parse(&self) -> ERPResult<ExcelOrder> {
         // parse order_info
         let path = std::path::Path::new(self.path);
-        let book =
-            reader::xlsx::read(path).map_err(|_| ERPError::Failed("读xlsx文件失败".to_owned()))?;
+        let book = reader::xlsx::read(path)
+            .map_err(|_| ERPError::Failed("读xlsx文件失败,不支持xls格式".to_owned()))?;
         let sheet = book.get_active_sheet();
         let order_info = parse_order_info(sheet);
 
@@ -46,30 +46,30 @@ impl<'a> ExcelOrderParser<'a> {
             ));
         }
 
-        let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-            "select * from customers where customer_no='{}'",
-            order_info.customer_no
-        ))
-        .fetch_one(&self.db)
+        // let customer = sqlx::query_as::<_, CustomerModel>(&format!(
+        //     "select * from customers where customer_no='{}'",
+        //     order_info.customer_no
+        // ))
+        // .fetch_one(&self.db)
+        // .await
+        // .map_err(|_| ERPError::NotFound(format!("客户#{}未找到", &order_info.customer_no)))?;
+
+        // let customer_id = customer.id;
+
+        tracing::info!("customer_no: {}", &order_info.customer_no);
+        let customer_excel_template_model = sqlx::query_as!(
+            CustomerExcelTemplateModel,
+            "select * from customer_excel_template where customer_no=$1",
+            &order_info.customer_no
+        )
+        .fetch_optional(&self.db)
         .await
-        .map_err(|_| ERPError::NotFound(format!("客户#{}未找到", order_info.customer_no)))?;
-
-        let customer_id = customer.id;
-
-        tracing::info!("customer_no: {}", order_info.customer_no);
-        let customer_excel_template_model =
-            sqlx::query_as::<_, CustomerExcelTemplateModel>(&format!(
-                "select * from customer_excel_template where customer_no='{}';",
-                order_info.customer_no
-            ))
-            .fetch_optional(&self.db)
-            .await
-            .map_err(ERPError::DBError)?;
+        .map_err(ERPError::DBError)?;
 
         if customer_excel_template_model.is_none() {
             return Err(ERPError::Failed(format!(
                 "请先配置{}需要使用什么模版",
-                order_info.customer_no
+                &order_info.customer_no
             )));
         }
 
@@ -118,7 +118,7 @@ impl<'a> ExcelOrderParser<'a> {
                         excel_order.info.order_no
                     );
 
-                    OrderInfo::insert_to_orders(&self.db, &excel_order.info, customer.id).await?
+                    OrderInfo::insert_to_orders(&self.db, &excel_order.info).await?
                 }
                 Some(existing_order) => {
                     tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
@@ -145,8 +145,12 @@ impl<'a> ExcelOrderParser<'a> {
         }
         tracing::info!("id_order_items: {:?}", id_order_item);
 
-        //TODO: 循环检查 商品是否已经入库
-        for (_, items) in id_order_item.iter().sorted_by_key(|x| x.0) {
+        // #[derive(Debug)]
+        // struct ExistingOrderItem {}
+        // 先获取当前所有的商品+skus
+        // let existing = sqlx::query_as::<_, (i32, )>(&format!("select id from order_goods where "))
+        // TODO: 循环检查 商品是否已经入库
+        for (index, items) in id_order_item.iter().sorted_by_key(|x| x.0) {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
             tracing::info!("picked up goods_no: {}", goods_no);
 
@@ -156,7 +160,8 @@ impl<'a> ExcelOrderParser<'a> {
             let goods_id = match goods {
                 None => {
                     let goods = OrderItemExcel::pick_up_goods(items);
-                    GoodsModel::insert_goods_to_db(&self.db, &goods, customer_id).await?
+                    GoodsModel::insert_goods_to_db(&self.db, &goods, &excel_order.info.customer_no)
+                        .await?
                 }
                 Some(some_goods) => some_goods.id,
             };
@@ -170,11 +175,13 @@ impl<'a> ExcelOrderParser<'a> {
                 tracing::info!("package: {package_card}, {package_card_des}");
 
                 // insert order_goods data
-                sqlx::query(&format!(
-                    r#"insert into order_goods(order_id, goods_id, package_card, package_card_des)
-                    values ({}, {}, '{}', '{}');"#,
-                    order_id, goods_id, package_card, package_card_des
-                ))
+                sqlx::query!(
+                    r#"insert into order_goods(index, order_id, goods_id)
+                    values ($1, $2, $3);"#,
+                    index,
+                    order_id,
+                    goods_id
+                )
                 .execute(&self.db)
                 .await
                 .map_err(ERPError::DBError)?;

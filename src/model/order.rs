@@ -9,7 +9,7 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OrderModel {
     pub id: i32,
-    pub customer_id: i32,
+    pub customer_no: String,
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
@@ -64,9 +64,8 @@ impl OrderGoodsModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
-    // pub order_goods_id: i32, // todo: 感觉应该存这个
+    pub order_goods_id: i32, // todo: done: 感觉应该存这个
     pub order_id: i32,
-    pub goods_id: i32,
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,
@@ -112,31 +111,21 @@ pub struct OrderInfo {
 }
 
 impl OrderInfo {
-    pub async fn insert_to_orders(
-        db: &Pool<Postgres>,
-        order_info: &OrderInfo,
-        customer_id: i32,
-    ) -> ERPResult<i32> {
-        let delivery_date = match order_info.delivery_date {
-            None => "null".to_string(),
-            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
-        };
-
-        let insert_sql = format!(
-            r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-                    values ({}, '{}', '{:?}', {}, {}, {}) returning id;"#,
-            customer_id,
+    pub async fn insert_to_orders(db: &Pool<Postgres>, order_info: &OrderInfo) -> ERPResult<i32> {
+        let order_id = sqlx::query!(
+            r#"
+            insert into orders (customer_no, order_no, order_date, delivery_date, is_urgent, is_return_order)
+            values ($1, $2, $3, $4, $5, $6) returning id;
+            "#,
+            order_info.customer_no,
             order_info.order_no,
             order_info.order_date,
-            delivery_date,
+            order_info.delivery_date,
             order_info.is_urgent,
             order_info.is_return_order
-        );
-        tracing::info!("insert order sql: {}", insert_sql);
-        let (order_id,) = sqlx::query_as::<_, (i32,)>(&insert_sql)
-            .fetch_one(db)
-            .await
-            .map_err(|_| ERPError::Failed("插入订单失败".to_string()))?;
+        ).fetch_one(db).await
+            .map_err(|_| ERPError::Failed("插入订单失败".to_string()))?
+            .id;
 
         Ok(order_id)
     }
@@ -243,12 +232,14 @@ impl OrderItemExcel {
     pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
         let mut goods = GoodsModel {
             id: 0,
-            customer_id: 0,
+            customer_no: "".to_string(),
             goods_no: "".to_string(),
             image: "".to_string(),
             name: "".to_string(),
             plating: "".to_string(),
-            notes: None,
+            package_card: "".to_string(),
+            package_card_des: "".to_string(),
+            notes: "".to_string(),
         };
 
         goods.goods_no = OrderItemExcel::pick_up_goods_no(&items).unwrap();

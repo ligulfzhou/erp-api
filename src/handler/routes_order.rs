@@ -15,6 +15,7 @@ use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{middleware, Extension, Json, Router};
 use axum_extra::extract::WithRejection;
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -47,7 +48,7 @@ struct OrderDatesParam {
 #[derive(Debug, FromRow, Serialize)]
 struct OrderDates {
     order_no: String,
-    date: String,
+    order_date: NaiveDate,
 }
 
 async fn get_orders_dates(
@@ -59,33 +60,38 @@ async fn get_orders_dates(
     let offset = (page - 1) * page_size;
     let customer_no = param.customer_no;
 
-    let dates = sqlx::query_as::<_, OrderDates>(&format!(
+    let dates = sqlx::query_as!(
+        OrderDates,
         r#"
-        select
-            o.order_no, o.order_date
-        from orders o, customers c
-        where o.customer_id = c.id and c.customer_no = '{}'
-            order by o.order_date desc
-        offset {} limit {};
+        select order_no, order_date
+        from orders
+        where customer_no = $1
+            order by order_date desc
+        offset $2 limit $3;
         "#,
-        customer_no, offset, page_size
-    ))
+        customer_no,
+        offset as i64,
+        page_size as i64
+    )
     .fetch_all(&state.db)
     .await
     .map_err(|_| ERPError::Failed("数据库错误，获取订单日期列表失败".to_string()))?;
 
-    let (count,) = sqlx::query_as::<_, (i64,)>(&format!(
+    let count = sqlx::query!(
         r#"
         select count(1) 
-        from orders o, customers c
-        where o.customer_id = c.id;
-        "#
-    ))
+        from orders
+        where customer_no = $1;
+        "#,
+        customer_no
+    )
     .fetch_one(&state.db)
     .await
-    .map_err(|_| ERPError::Failed("数据库错误，获取订单日期数量失败".to_string()))?;
+    .map_err(|_| ERPError::Failed("数据库错误，获取订单日期数量失败".to_string()))?
+    .count
+    .unwrap_or(0) as i32;
 
-    Ok(APIListResponse::new(dates, count as i32))
+    Ok(APIListResponse::new(dates, count))
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,17 +99,14 @@ struct DeleteOrderItemParam {
     id: i32,
 }
 
-impl DeleteOrderItemParam {
-    fn to_sql(&self) -> String {
-        format!("delete from order_items where id = {}", self.id)
-    }
-}
-
 async fn delete_order_item(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(param), _): WithRejection<Json<DeleteOrderItemParam>, ERPError>,
+    WithRejection(Json(payload), _): WithRejection<Json<DeleteOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    state.execute_sql(&param.to_sql()).await?;
+    sqlx::query!("delete from order_items where id = $1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
     Ok(APIEmptyResponse::new())
 }
 
@@ -116,19 +119,21 @@ async fn delete_order_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<DeleteOrderGoods>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    state
-        .execute_sql(&format!(
-            "delete from order_goods where id = {}",
-            payload.id
-        ))
-        .await?;
-    // // todo!
-    // state
-    // .execute_sql(&format!(
-    //     "delete from order_items where id = {}",
-    //     payload.id
-    // ))
-    // .await?;
+    // 先删 order_goods
+    sqlx::query!("delete from order_goods where id = $1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
+    // 再删 order_items
+    sqlx::query!(
+        "delete from order_items where order_goods_id=$1",
+        payload.id
+    )
+    .execute(&state.db)
+    .await
+    .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
     Ok(APIEmptyResponse::new())
 }
 
@@ -136,8 +141,8 @@ async fn delete_order_goods(
 struct CreateOrderParam {
     customer_no: String,
     order_no: String,
-    order_date: String,
-    delivery_date: Option<String>,
+    order_date: NaiveDate,
+    delivery_date: Option<NaiveDate>,
     is_urgent: bool,
     is_return_order: bool,
 }
@@ -162,40 +167,49 @@ async fn create_order(
         )));
     }
 
-    // 获取客户的ID
-    let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
-        "select id from customers where customer_no = '{}'",
-        payload.customer_no
-    ))
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    let delivery_date = {
-        if payload.delivery_date.is_none()
-            || payload.delivery_date.as_deref().unwrap_or("").is_empty()
-        {
-            "null".to_string()
-        } else {
-            format!("'{}'", payload.delivery_date.as_deref().unwrap())
-        }
-    };
-
-    // 插入订单
-    let sql = format!(
-        r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-               values ('{}', '{}', '{}', {}, {}, {});"#,
-        customer_id,
-        payload.order_no,
-        payload.order_date,
-        delivery_date,
-        payload.is_urgent,
-        payload.is_return_order
-    );
-
-    state.execute_sql(&sql).await?;
+    sqlx::query!(
+        r#"
+        insert into orders (customer_no, order_no, order_date, delivery_date, is_urgent, is_return_order)
+        values ($1, $2, $3, $4, $5, $6)
+        "#, payload.customer_no, payload.order_no, payload.order_date, payload.delivery_date, payload.is_urgent, payload.is_return_order
+    ).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())
+
+    // // 获取客户的ID
+    // let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
+    //     "select id from customers where customer_no = '{}'",
+    //     payload.customer_no
+    // ))
+    // .fetch_one(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?;
+
+    // let delivery_date = {
+    //     if payload.delivery_date.is_none()
+    //         || payload.delivery_date.as_deref().unwrap_or("").is_empty()
+    //     {
+    //         "null".to_string()
+    //     } else {
+    //         format!("'{}'", payload.delivery_date.as_deref().unwrap())
+    //     }
+    // };
+
+    // 插入订单
+    // let sql = format!(
+    //     r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
+    //            values ('{}', '{}', '{}', {}, {}, {});"#,
+    //     customer_id,
+    //     payload.order_no,
+    //     payload.order_date,
+    //     delivery_date,
+    //     payload.is_urgent,
+    //     payload.is_return_order
+    // );
+
+    // state.execute_sql(&sql).await?;
+
+    // Ok(APIEmptyResponse::new())
 }
 
 #[derive(Debug, Deserialize)]
@@ -208,27 +222,19 @@ async fn order_detail(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<OrderDto>> {
-    let mut sql = r#"
-    select 
-        o.id, o.customer_id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent,
-        c.name as customer_name, c.phone as customer_phone, c.address as customer_address, c.customer_no
-    from orders o, customers c
-    where o.customer_id = c.id
-    "#.to_string();
-
     let id = param.id.unwrap_or(0);
-    if id > 0 {
-        sql.push_str(&format!(" and o.id={id}"))
-    }
     let order_no = param.order_no.as_deref().unwrap_or("");
-    if !order_no.is_empty() {
-        sql.push_str(&format!(" and o.order_no='{order_no}'"));
-    }
 
-    let order_dto = sqlx::query_as::<_, OrderDto>(&sql)
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    let order_dto = match id {
+        0 => sqlx::query_as!(OrderDto, "select * from orders where order_no=$1", order_no)
+            .fetch_one(&state.db)
+            .await
+            .map_err(ERPError::DBError)?,
+        _ => sqlx::query_as!(OrderDto, "select * from orders where id=$1", id)
+            .fetch_one(&state.db)
+            .await
+            .map_err(ERPError::DBError)?,
+    };
 
     Ok(APIDataResponse::new(order_dto))
 }
@@ -251,24 +257,24 @@ impl ListParamToSQLTrait for ListParam {
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
 
-        let mut sql = r#"
-        select 
-            o.id, o.order_no, o.order_date, o.delivery_date, o.is_return_order, o.is_urgent, o.customer_id,
-            c.customer_no, c.address as customer_address, c.name as customer_name, c.phone as customer_phone 
-        from orders o, customers c
-        where o.customer_id = c.id
-        "#.to_string();
+        let mut sql = "select * from orders".to_string();
+        let mut where_clauses = vec![];
+
         let customer_no = self.customer_no.as_deref().unwrap_or("");
         if !customer_no.is_empty() {
-            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no));
+            where_clauses.push(format!("customer_no='{}'", customer_no));
         }
         let order_no = self.order_no.as_deref().unwrap_or("");
         if !order_no.is_empty() {
-            sql.push_str(&format!(" and o.order_no like '%{}%'", order_no));
+            where_clauses.push(format!("order_no='{}'", customer_no));
+        }
+
+        if !where_clauses.is_empty() {
+            sql.push_str(&format!(" where {}", where_clauses.join(" and ")))
         }
 
         sql.push_str(&format!(
-            " order by o.id desc offset {} limit {};",
+            " order by id desc offset {} limit {};",
             offset, page_size
         ));
 
@@ -785,12 +791,26 @@ async fn update_order_goods(
 
 #[cfg(test)]
 mod tests {
+    use crate::handler::routes_login::LoginPayload;
     use crate::handler::routes_order::CreateOrderParam;
     use anyhow::Result;
     use tokio;
 
     #[tokio::test]
     async fn test_create_order() -> Result<()> {
+        let param = LoginPayload {
+            account: "test".to_string(),
+            password: "test".to_string(),
+        };
+        let client = httpc_test::new_client("http://localhost:9100")?;
+        client
+            .do_post("/api/login", serde_json::json!(param))
+            .await?
+            .print()
+            .await?;
+
+        client.do_get("/api/account/info").await?.print().await?;
+
         let param = CreateOrderParam {
             customer_no: "L1007".to_string(),
             order_no: "order_no_101".to_string(),
@@ -799,13 +819,14 @@ mod tests {
             is_urgent: false,
             is_return_order: false,
         };
-        let client = httpc_test::new_client("http://localhost:9100")?;
 
-        client
-            .do_post("/api/orders", serde_json::json!(param))
-            .await?
-            .print()
-            .await?;
+        client.do_get("/api/orders/dates").await?.print().await?;
+
+        // client
+        //     .do_post("/api/orders", serde_json::json!(param))
+        //     .await?
+        //     .print()
+        //     .await?;
 
         Ok(())
     }
