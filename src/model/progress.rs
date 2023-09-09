@@ -43,6 +43,10 @@ impl ProgressModel {
             .iter()
             .map(|kv| kv.0.clone())
             .collect::<Vec<i32>>();
+        if order_item_ids.len() <= 0 {
+            return Ok(OrderItemSteps::new());
+        }
+
         let order_item_ids_str = order_item_ids
             .iter()
             .map(|id| id.to_string())

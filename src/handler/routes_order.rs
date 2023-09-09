@@ -8,7 +8,7 @@ use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::middleware::auth::auth;
 use crate::model::order::OrderModel;
-use crate::model::progress::ProgressModel;
+use crate::model::progress::{OrderItemSteps, ProgressModel};
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -279,10 +279,14 @@ async fn get_orders(
     let order_items_steps = ProgressModel::get_progress_status(&state.db, order_ids).await?;
     tracing::info!("{:#?}", order_items_steps);
 
+    let empty_order_item_step = HashMap::new();
     let order_with_step_dtos = order_dtos
         .into_iter()
         .map(|order_dto| {
-            let steps = order_items_steps.get(&order_dto.id).unwrap();
+            let steps = order_items_steps
+                .get(&order_dto.id)
+                .unwrap_or(&empty_order_item_step);
+
             OrderWithStepsDto::from_order_dto_and_steps(order_dto, steps.clone())
         })
         .collect::<Vec<OrderWithStepsDto>>();

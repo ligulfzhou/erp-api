@@ -19,7 +19,7 @@ struct ImageUrlResponse {
     url: String,
 }
 async fn upload_image(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> ERPResult<APIDataResponse<ImageUrlResponse>> {
     while let Some(field) = multipart.next_field().await.unwrap() {
