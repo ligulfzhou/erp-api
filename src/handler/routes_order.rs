@@ -8,7 +8,7 @@ use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::middleware::auth::auth;
 use crate::model::order::OrderModel;
-use crate::model::progress::{OrderItemSteps, ProgressModel};
+use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -16,12 +16,14 @@ use axum::routing::{get, post};
 use axum::{middleware, Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
+        .route("/api/orders/dates", get(get_orders_dates))
         .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
@@ -33,12 +35,65 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
+#[derive(Deserialize)]
+struct OrderDatesParam {
+    customer_no: String,
+
+    page: Option<i32>,
+    #[serde(rename(deserialize = "pageSize"))]
+    page_size: Option<i32>,
+}
+
+#[derive(Debug, FromRow, Serialize)]
+struct OrderDates {
+    order_no: String,
+    date: String,
+}
+
+async fn get_orders_dates(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Query(param), _): WithRejection<Query<OrderDatesParam>, ERPError>,
+) -> ERPResult<APIListResponse<OrderDates>> {
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let offset = (page - 1) * page_size;
+    let customer_no = param.customer_no;
+
+    let dates = sqlx::query_as::<_, OrderDates>(&format!(
+        r#"
+        select
+            o.order_no, o.order_date
+        from orders o, customers c
+        where o.customer_id = c.id and c.customer_no = '{}'
+            order by o.order_date desc
+        offset {} limit {};
+        "#,
+        customer_no, offset, page_size
+    ))
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| ERPError::Failed("数据库错误，获取订单日期列表失败".to_string()))?;
+
+    let (count,) = sqlx::query_as::<_, (i64,)>(&format!(
+        r#"
+        select count(1) 
+        from orders o, customers c
+        where o.customer_id = c.id;
+        "#
+    ))
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| ERPError::Failed("数据库错误，获取订单日期数量失败".to_string()))?;
+
+    Ok(APIListResponse::new(dates, count as i32))
+}
+
 #[derive(Debug, Deserialize)]
-struct DeleteOrderItem {
+struct DeleteOrderItemParam {
     id: i32,
 }
 
-impl DeleteOrderItem {
+impl DeleteOrderItemParam {
     fn to_sql(&self) -> String {
         format!("delete from order_items where id = {}", self.id)
     }
@@ -46,7 +101,7 @@ impl DeleteOrderItem {
 
 async fn delete_order_item(
     State(state): State<Arc<AppState>>,
-    WithRejection(Json(param), _): WithRejection<Json<DeleteOrderItem>, ERPError>,
+    WithRejection(Json(param), _): WithRejection<Json<DeleteOrderItemParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
     state.execute_sql(&param.to_sql()).await?;
     Ok(APIEmptyResponse::new())
