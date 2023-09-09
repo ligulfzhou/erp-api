@@ -79,7 +79,7 @@ async fn get_orders_dates(
 
     let count = sqlx::query!(
         r#"
-        select count(1) 
+        select count(1)
         from orders
         where customer_no = $1;
         "#,
@@ -285,30 +285,29 @@ impl ListParamToSQLTrait for ListParam {
     fn to_count_sql(&self) -> String {
         let customer_no = self.customer_no.as_deref().unwrap_or("");
         let order_no = self.order_no.as_deref().unwrap_or("");
+
         if customer_no.is_empty() && order_no.is_empty() {
             "select count(1) from orders;".to_string()
         } else if customer_no.is_empty() && !order_no.is_empty() {
             format!(
-                "select count(1) from orders where order_no like '%{}%';",
+                "select count(1) from orders where order_no = '{}';",
                 order_no
             )
         } else if !customer_no.is_empty() && order_no.is_empty() {
             format!(
                 r#"
-                select count(1) 
-                from orders o, customers c
-                where o.customer_id = c.id
-                and c.customer_no = '{}'
+                select count(1)
+                from orders
+                where customer_no = '{}'
                 "#,
                 customer_no
             )
         } else {
             format!(
                 r#"
-                select count(1) 
-                from orders o, customers c
-                where o.customer_id = c.id 
-                and c.customer_no = '{}' and o.order_no like '%{}%'
+                select count(1)
+                from orders
+                where customer_no = '{}' and order_no = '%{}%'
                 "#,
                 customer_no, order_no
             )
@@ -400,7 +399,7 @@ async fn get_order_items(
         OrderGoodsDto,
         r#"
         select
-            og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no, 
+            og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
             g.name as name, g.image as image, g.plating as plating, g.package_card as package_card,
             g.package_card_des as package_card_des
         from order_goods og, goods g
@@ -430,7 +429,7 @@ async fn get_order_items(
     // 用order_goods_ids去获取order_items
     let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
         r#"
-        select 
+        select
             oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
             oi.unit_price, oi.total_price, oi.notes
         from order_items oi, skus s
@@ -486,7 +485,7 @@ async fn get_order_items(
     // 获取所有的order_item的流程数据
     let progresses = sqlx::query_as::<_, OneProgress>(&format!(
         r#"
-        select 
+        select
             p.*, a.name as account_name, d.name as department
         from progress p, accounts a, departments d
         where p.account_id = a.id and a.department_id = d.id

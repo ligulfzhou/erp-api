@@ -48,8 +48,8 @@ async fn mark_progress(
     }
 
     if order_goods_id > 0 {
-        let order_goods = sqlx::query_as::<_, (i32, i32)>(&format!(
-            "select order_id, goods_id from order_goods where id = {order_goods_id}"
+        let order_goods = sqlx::query_as::<_, (i32,)>(&format!(
+            "select id from order_goods where id = {order_goods_id}"
         ))
         .fetch_optional(&state.db)
         .await
@@ -57,12 +57,13 @@ async fn mark_progress(
         if order_goods.is_none() {
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
-        let (order_id, goods_id) = order_goods.unwrap();
-        tracing::info!("order_id: {order_id}, goods_id: {goods_id}");
+
+        // let (order_id, goods_id) = order_goods.unwrap();
+        // tracing::info!("order_id: {order_id}, goods_id: {goods_id}");
 
         let order_item_ids = sqlx::query_as::<_, (i32,)>(&format!(
-            "select id from order_items where order_id={} and goods_id={}",
-            order_id, goods_id
+            "select id from order_items where order_goods_id={}",
+            order_goods_id
         ))
         .fetch_all(&state.db)
         .await
@@ -70,7 +71,9 @@ async fn mark_progress(
 
         tracing::info!("order_item_ids: {:?}", order_item_ids);
         if order_item_ids.is_empty() {
-            return Err(ERPError::NotFound("订单商品不存在".to_string()));
+            return Err(ERPError::NotFound(
+                "该商品下无添加任何颜色/款式".to_string(),
+            ));
         }
 
         let order_item_ids_vec = order_item_ids
@@ -171,9 +174,11 @@ async fn mark_progress(
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
 
-        let progress = sqlx::query_as::<_, ProgressModel>(&format!(
-            "select * from progress where order_item_id={order_item_id} order by step, id desc limit 1"
-        ))
+        let progress = sqlx::query_as!(
+            ProgressModel,
+            "select * from progress where order_item_id=$1 order by step, id desc limit 1",
+            order_item_id
+        )
         .fetch_optional(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -195,18 +200,18 @@ async fn mark_progress(
         }
 
         let now = Utc::now().naive_utc();
-        sqlx::query(&format!(
+        sqlx::query!(
             r#"
             insert into progress (order_item_id, step, account_id, done, notes, dt) 
-            values ({}, {}, {}, {}, '{}', '{}')
+            values ($1, $2, $3, $4, $5, $6)
             "#,
             order_item_id,
             step,
             account.id,
             done,
             notes,
-            format_datetime(now)
-        ))
+            now
+        )
         .execute(&state.db)
         .await
         .map_err(ERPError::DBError)?;
