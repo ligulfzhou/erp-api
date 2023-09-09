@@ -123,34 +123,29 @@ impl<'a> ExcelOrderParser<'a> {
                 Some(existing_order) => {
                     tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
                     excel_order.exists = true;
-                    OrderInfo::update_to_orders(
-                        &self.db,
-                        &excel_order.info,
-                        customer.id,
-                        existing_order.id,
-                    )
-                    .await?;
+                    OrderInfo::update_to_orders(&self.db, &excel_order.info, existing_order.id)
+                        .await?;
                     existing_order.id
                 }
             }
         };
 
         // check goods/skus exists.
-        let mut id_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
+        let mut index_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
         for item in excel_order.items.iter() {
-            id_order_item
+            index_order_item
                 .entry(item.index)
                 .or_insert(vec![])
                 .push(item.clone())
         }
-        tracing::info!("id_order_items: {:?}", id_order_item);
+        tracing::info!("index_order_item: {:?}", index_order_item);
 
         // #[derive(Debug)]
         // struct ExistingOrderItem {}
         // 先获取当前所有的商品+skus
         // let existing = sqlx::query_as::<_, (i32, )>(&format!("select id from order_goods where "))
         // TODO: 循环检查 商品是否已经入库
-        for (index, items) in id_order_item.iter().sorted_by_key(|x| x.0) {
+        for (index, items) in index_order_item.iter().sorted_by_key(|x| x.0) {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
             tracing::info!("picked up goods_no: {}", goods_no);
 

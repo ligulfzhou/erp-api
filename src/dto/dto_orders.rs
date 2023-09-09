@@ -141,7 +141,7 @@ impl OrderGoodsItemWithStepsDto {
     }
 }
 
-#[derive(Debug, Serialize, FromRow)]
+#[derive(Debug, Serialize, FromRow, Clone)]
 pub struct OrderGoodsDto {
     pub id: i32,
     pub order_id: i32,

@@ -19,10 +19,11 @@ impl GoodsModel {
         db: &Pool<Postgres>,
         goods_no: &str,
     ) -> ERPResult<Option<GoodsModel>> {
-        let goods = sqlx::query_as::<_, GoodsModel>(&format!(
-            "select * from goods where goods_no='{}'",
+        let goods = sqlx::query_as!(
+            GoodsModel,
+            "select * from goods where goods_no=$1",
             goods_no
-        ))
+        )
         .fetch_optional(db)
         .await
         .map_err(ERPError::DBError)?;

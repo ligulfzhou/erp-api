@@ -133,31 +133,22 @@ impl OrderInfo {
     pub async fn update_to_orders(
         db: &Pool<Postgres>,
         order_info: &OrderInfo,
-        customer_id: i32,
         order_id: i32,
     ) -> ERPResult<()> {
-        let delivery_date = match order_info.delivery_date {
-            None => "null".to_string(),
-            Some(dt) => dt.format("'%Y-%m-%d'").to_string(),
-        };
-
-        let update_sql = format!(
-            r#"update orders set customer_id={}, order_no='{}', order_date='{:?}', delivery_date={}, is_urgent={}, is_return_order={}
-               where id = {};"#,
-            customer_id,
+        sqlx::query!(
+            r#"
+            update orders set customer_no=$1, order_no=$2, order_date=$3, delivery_date=$4, is_urgent=$5, is_return_order=$6
+            where id = $7
+            "#,
+            order_info.customer_no,
             order_info.order_no,
             order_info.order_date,
-            delivery_date,
+            order_info.delivery_date,
             order_info.is_urgent,
             order_info.is_return_order,
             order_id
-        );
-        tracing::info!("update sql: {}", update_sql);
+        ).execute(db).await.map_err(|_| ERPError::Failed("覆盖订单信息失败".to_string()))?;
 
-        sqlx::query(&update_sql)
-            .execute(db)
-            .await
-            .map_err(|_| ERPError::Failed("覆盖订单信息失败".to_string()))?;
         Ok(())
     }
 }

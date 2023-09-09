@@ -371,20 +371,7 @@ struct OrderItemsQuery {
 
 impl ListParamToSQLTrait for OrderItemsQuery {
     fn to_pagination_sql(&self) -> String {
-        let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-        let offset = (page - 1) * page_size;
-        format!(
-            r#"
-            select 
-                og.id, og.order_id, og.goods_id, g.goods_no, g.name, g.image, 
-                g.plating, og.package_card, og.package_card_des
-            from order_goods og, goods g
-            where og.goods_id = g.id and og.order_id = {}
-            order by og.id offset {} limit {}
-            "#,
-            self.order_id, offset, page_size
-        )
+        todo!()
     }
 
     fn to_count_sql(&self) -> String {
@@ -404,45 +391,81 @@ async fn get_order_items(
         return Err(ERPError::ParamNeeded(param.order_id.to_string()));
     }
 
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let offset = (page - 1) * page_size;
+
     // 获取order_good
-    let order_goods = sqlx::query_as::<_, OrderGoodsDto>(&param.to_pagination_sql())
-        .fetch_all(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    let order_goods = sqlx::query_as!(
+        OrderGoodsDto,
+        r#"
+        select
+            og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no, 
+            g.name as name, g.image as image, g.plating as plating, g.package_card as package_card,
+            g.package_card_des as package_card_des
+        from order_goods og, goods g
+        where og.goods_id = g.id and og.order_id = $1
+        order by og.id offset $2 limit $3
+        "#,
+        param.order_id,
+        offset as i64,
+        page_size as i64
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
     if order_goods.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
     tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
-    // 从order_goods里拿出goods_ids
-    let goods_ids_str = order_goods
+    let order_goods_id_str = order_goods
         .iter()
-        .map(|goods| goods.goods_id.to_string())
+        .map(|item| item.id.to_string())
         .collect::<Vec<String>>()
         .join(",");
 
-    // 用goods_ids去获取order_items
+    tracing::info!("order_goods_id_str: {}", order_goods_id_str);
+    // 用order_goods_ids去获取order_items
     let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
         r#"
         select 
-            oi.id, oi.order_id, oi.goods_id, oi.sku_id, s.color,
-            s.sku_no, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
+            oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
+            oi.unit_price, oi.total_price, oi.notes
         from order_items oi, skus s
         where oi.sku_id = s.id
-            and oi.order_id = {} and oi.goods_id in ({})
+            and oi.order_goods_id in ({})
         order by id;
         "#,
-        param.order_id, goods_ids_str
+        &order_goods_id_str
     ))
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
+
     tracing::info!(
         "order_items: {:?}, len: {}",
         order_items_dto,
         order_items_dto.len()
     );
 
+    if order_items_dto.len() <= 0 {
+        return Ok(APIListResponse::new(
+            order_goods
+                .iter()
+                .map(|item| {
+                    OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
+                        item.clone(),
+                        HashMap::new(),
+                        vec![],
+                        false,
+                    )
+                })
+                .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>(),
+            order_goods.len() as i32,
+        ));
+    }
     // todo: order_items表应该加一个 order_goods_id 字段
     // let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
     // let order_item_id_to_goods_id = order_items_dto
@@ -592,29 +615,11 @@ async fn get_order_items(
 struct UpdateOrderParam {
     id: i32,
     order_no: String,
-    customer_id: i32,
-    order_date: String,
-    delivery_date: Option<String>,
+    customer_no: String,
+    order_date: NaiveDate,
+    delivery_date: Option<NaiveDate>,
     is_return_order: bool,
     is_urgent: bool,
-}
-
-impl UpdateOrderParam {
-    pub fn to_sql(&self) -> String {
-        let delivery_date = {
-            if self.delivery_date.is_none()
-                || self.delivery_date.as_deref().unwrap_or("").is_empty()
-            {
-                "null".to_string()
-            } else {
-                format!("'{}'", self.delivery_date.as_deref().unwrap())
-            }
-        };
-
-        format!(
-            "update orders set order_no='{}', customer_id={}, order_date='{}', delivery_date={}, is_return_order={}, is_urgent={} where id={};", 
-            self.order_no, self.customer_id, self.order_date, delivery_date, self.is_return_order, self.is_urgent, self.id)
-    }
 }
 
 async fn update_order(
@@ -626,8 +631,12 @@ async fn update_order(
         .await
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
 
-    tracing::info!("update order sql: {}", payload.to_sql());
-    state.execute_sql(&payload.to_sql()).await?;
+    sqlx::query!(
+        r#"
+        update orders set order_no=$1, customer_no=$2, order_date=$3, delivery_date=$4, is_return_order=$5, is_urgent=$6
+        where id=$7
+        "#, payload.order_no,payload.customer_no,payload.order_date,payload.delivery_date,payload.is_return_order,payload.is_urgent,payload.id
+    ).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())
 }
@@ -794,6 +803,7 @@ mod tests {
     use crate::handler::routes_login::LoginPayload;
     use crate::handler::routes_order::CreateOrderParam;
     use anyhow::Result;
+    use chrono::NaiveDate;
     use tokio;
 
     #[tokio::test]
@@ -814,7 +824,7 @@ mod tests {
         let param = CreateOrderParam {
             customer_no: "L1007".to_string(),
             order_no: "order_no_101".to_string(),
-            order_date: "2022-03-09".to_string(),
+            order_date: "2022-03-09".to_string().parse::<NaiveDate>()?,
             delivery_date: None,
             is_urgent: false,
             is_return_order: false,
