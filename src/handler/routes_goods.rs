@@ -38,7 +38,7 @@ impl ListParamToSQLTrait for SearchSkusParam {
 
         let mut sql = format!(
             r#"
-            select 
+            select
                 s.id, s.sku_no, s.goods_id, s.color,
                 g.name, g.image, g.goods_no, g.plating, s.notes
             from skus s, goods g
@@ -60,7 +60,7 @@ impl ListParamToSQLTrait for SearchSkusParam {
     fn to_count_sql(&self) -> String {
         format!(
             r#"
-            select count(1) 
+            select count(1)
             from skus s, goods g
             where s.goods_id = g.id
                 and g.goods_no like '%{}%' or s.sku_no like '%{}%'
@@ -207,9 +207,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
             r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
-                g.name, g.goods_no, g.image, g.plating, c.customer_no
-            from skus s, goods g, customers c
-            where s.goods_id = g.id and g.customer_id = c.id
+                g.name, g.goods_no, g.image, g.plating, g.customer_no
+            from skus s, goods g
+            where s.goods_id = g.id
             "#,
         );
         if !goods_no.is_empty() {
@@ -222,7 +222,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
             sql.push_str(&format!(" and s.color like '%{}%'", color));
         }
         if !customer_no.is_empty() {
-            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no))
+            sql.push_str(&format!(" and g.customer_no = '{}'", customer_no))
         }
 
         let page = self.page.unwrap_or(1);
@@ -243,9 +243,9 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let customer_no = self.customer_no.as_deref().unwrap_or("");
         let mut sql = format!(
             r#"
-            select count(1) 
-            from skus s, goods g, customers c
-            where s.goods_id = g.id and g.customer_id = c.id
+            select count(1)
+            from skus s, goods g
+            where s.goods_id = g.id
             "#,
         );
         if !goods_no.is_empty() {
@@ -258,7 +258,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
             sql.push_str(&format!(" and s.color like '%{}%'", color));
         }
         if !customer_no.is_empty() {
-            sql.push_str(&format!(" and c.customer_no = '{}'", customer_no))
+            sql.push_str(&format!(" and g.customer_no = '{}'", customer_no))
         }
 
         sql
@@ -345,7 +345,7 @@ async fn get_sku_detail(
 ) -> ERPResult<APIDataResponse<SKUModelDto>> {
     let sku_dto = sqlx::query_as::<_, SKUModelDto>(&format!(
         r#"
-        select 
+        select
             s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
             g.image, g.plating, s.color, s.color2, s.notes, c.customer_no
         from skus s, goods g, customers c

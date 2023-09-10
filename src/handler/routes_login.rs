@@ -29,10 +29,11 @@ async fn api_login(
     WithRejection(Json(payload), _): WithRejection<Json<LoginPayload>, ERPError>,
 ) -> Result<impl IntoResponse, ERPError> {
     tracing::info!("->> {:<12}, api_login", "handler");
-    let account = sqlx::query_as::<_, AccountModel>(&format!(
-        "select * from accounts where account='{}'",
+    let account = sqlx::query_as!(
+        AccountModel,
+        "select * from accounts where account=$1",
         payload.account
-    ))
+    )
     .fetch_optional(&state.db)
     .await
     .map_err(ERPError::DBError)?;
@@ -48,10 +49,11 @@ async fn api_login(
     }
 
     let account_id = account_unwrap.id;
-    let department = sqlx::query_as::<_, DepartmentModel>(&format!(
-        "select * from departments where id={}",
+    let department = sqlx::query_as!(
+        DepartmentModel,
+        "select * from departments where id=$1",
         account_unwrap.department_id
-    ))
+    )
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
