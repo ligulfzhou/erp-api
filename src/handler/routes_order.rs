@@ -175,41 +175,6 @@ async fn create_order(
     ).execute(&state.db).await?;
 
     Ok(APIEmptyResponse::new())
-
-    // // 获取客户的ID
-    // let (customer_id,) = sqlx::query_as::<_, (i32,)>(&format!(
-    //     "select id from customers where customer_no = '{}'",
-    //     payload.customer_no
-    // ))
-    // .fetch_one(&state.db)
-    // .await
-    // .map_err(ERPError::DBError)?;
-
-    // let delivery_date = {
-    //     if payload.delivery_date.is_none()
-    //         || payload.delivery_date.as_deref().unwrap_or("").is_empty()
-    //     {
-    //         "null".to_string()
-    //     } else {
-    //         format!("'{}'", payload.delivery_date.as_deref().unwrap())
-    //     }
-    // };
-
-    // 插入订单
-    // let sql = format!(
-    //     r#"insert into orders (customer_id, order_no, order_date, delivery_date, is_urgent, is_return_order)
-    //            values ('{}', '{}', '{}', {}, {}, {});"#,
-    //     customer_id,
-    //     payload.order_no,
-    //     payload.order_date,
-    //     delivery_date,
-    //     payload.is_urgent,
-    //     payload.is_return_order
-    // );
-
-    // state.execute_sql(&sql).await?;
-
-    // Ok(APIEmptyResponse::new())
 }
 
 #[derive(Debug, Deserialize)]
