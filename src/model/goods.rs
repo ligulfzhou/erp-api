@@ -65,11 +65,11 @@ impl SKUModel {
         db: &Pool<Postgres>,
         goods_id: i32,
     ) -> ERPResult<Vec<SKUModel>> {
-        let sql = format!("select * from skus where goods_id={}", goods_id);
-        let skus = sqlx::query_as::<_, SKUModel>(&sql)
+        let skus = sqlx::query_as!(SKUModel, "select * from skus where goods_id=$1", goods_id)
             .fetch_all(db)
             .await
             .map_err(ERPError::DBError)?;
+
         Ok(skus)
     }
 
