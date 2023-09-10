@@ -22,10 +22,11 @@ impl OrderModel {
         db: &Pool<Postgres>,
         order_no: &str,
     ) -> ERPResult<Option<OrderModel>> {
-        let order = sqlx::query_as::<_, OrderModel>(&format!(
-            "select * from orders where order_no='{}'",
+        let order = sqlx::query_as!(
+            OrderModel,
+            "select * from orders where order_no=$1",
             order_no
-        ))
+        )
         .fetch_optional(db)
         .await
         .map_err(ERPError::DBError)?;
@@ -48,14 +49,16 @@ impl OrderGoodsModel {
         order_id: i32,
         goods_id: i32,
     ) -> ERPResult<Option<OrderGoodsModel>> {
-        let sql = format!(
-            "select * from order_goods where order_id={} and goods_id={};",
-            order_id, goods_id
-        );
-        let row = sqlx::query_as::<_, OrderGoodsModel>(&sql)
-            .fetch_optional(db)
-            .await
-            .map_err(ERPError::DBError)?;
+        let row = sqlx::query_as!(
+            OrderGoodsModel,
+            "select * from order_goods where order_id=$1 and goods_id=$2;",
+            order_id,
+            goods_id
+        )
+        .fetch_optional(db)
+        .await
+        .map_err(ERPError::DBError)?;
+
         Ok(row)
     }
 }
@@ -96,14 +99,21 @@ impl OrderItemModel {
         order_id: i32,
         goods_id: i32,
     ) -> ERPResult<Vec<OrderItemModel>> {
-        let sql = format!(
-            "select * from order_items where order_id={} and goods_id={}",
-            order_id, goods_id
-        );
-        let items = sqlx::query_as::<_, OrderItemModel>(&sql)
-            .fetch_all(db)
-            .await
-            .map_err(ERPError::DBError)?;
+        let items = sqlx::query_as!(
+            OrderItemModel,
+            r#"
+            select oi.*
+            from order_items oi, order_goods og
+            where oi.order_goods_id = og.id
+                and oi.order_id = $1 and og.goods_id=$2
+            "#,
+            order_id,
+            goods_id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(ERPError::DBError)?;
+
         Ok(items)
     }
 }
@@ -175,8 +185,8 @@ pub struct OrderItemExcel {
     pub package_card_des: Option<String>,
     /// 商品唯一编号
     pub goods_no: String,
-    /// 商品编号
-    pub goods_no_2: Option<String>, // 反正用处并不大
+    // /// 商品编号
+    // pub goods_no_2: Option<String>, // 反正用处并不大
     /// sku编号 //只有L1005有这个字段
     pub sku_no: Option<String>,
     /// 商品图片
@@ -284,22 +294,22 @@ impl OrderItemExcel {
     }
 
     pub async fn save_to_sku(&self, db: &Pool<Postgres>, goods_id: i32) -> ERPResult<i32> {
-        let sql = format!(
-            r#"insert into skus (goods_id, sku_no, color, color2)
-            values ({}, '{}', '{}', '{}')
-            returning id;"#,
+        let id = sqlx::query!(
+            r#"
+            insert into skus (goods_id, sku_no, color, color2)
+            values ($1, $2, $3, $4)
+            returning id;
+            "#,
             goods_id,
             self.sku_no.as_deref().unwrap_or(""),
             self.color,
             self.color_2.as_deref().unwrap_or("")
-        );
-
-        let (sku_id,) = sqlx::query_as::<_, (i32,)>(&sql)
-            .fetch_one(db)
-            .await
-            .map_err(ERPError::DBError)?;
-
-        Ok(sku_id)
+        )
+        .fetch_one(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .id;
+        Ok(id)
     }
 
     pub async fn save_to_order_item(
@@ -329,27 +339,6 @@ impl OrderItemExcel {
             .id;
 
         Ok(id)
-        // let sql = format!(
-        //     r#"
-        //     insert into order_items (order_id, goods_id, sku_id, count, unit, unit_price, total_price, notes)
-        //     values ({}, {}, {}, {}, '{}', {}, {}, '{}')
-        //     returning id;
-        // "#,
-        //     order_id,
-        //     goods_id,
-        //     sku_id,
-        //     self.count,
-        //     self.unit.as_deref().unwrap_or(""),
-        //     self.unit_price.as_ref().unwrap_or(&0),
-        //     self.total_price.as_ref().unwrap_or(&0),
-        //     self.notes.as_deref().unwrap_or("")
-        // );
-        // let (id,) = sqlx::query_as::<_, (i32,)>(&sql)
-        //     .fetch_one(db)
-        //     .await
-        //     .map_err(ERPError::DBError)?;
-        // Ok(id)
-        // todo!()
     }
 }
 
