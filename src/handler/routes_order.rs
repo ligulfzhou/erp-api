@@ -431,9 +431,9 @@ async fn get_order_items(
         r#"
         select
             oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
-            oi.unit_price, oi.total_price, oi.notes
-        from order_items oi, skus s
-        where oi.sku_id = s.id
+            oi.unit_price, oi.total_price, oi.notes, og.goods_id
+        from order_items oi, skus s, order_goods og
+        where oi.sku_id = s.id and oi.order_goods_id = og.id
             and oi.order_goods_id in ({})
         order by id;
         "#,
@@ -513,12 +513,7 @@ async fn get_order_items(
 
     let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
         .iter()
-        .map(|oid_progress_vec| {
-            // let progress_vec = oid_progress_vec.1.clone();
-            // progress_vec.sort_unstable_by_key(|item| item.id);
-            // progress_vec.sort_by(|a, b| a.id.cmp(&b.id));
-            (oid_progress_vec.0.clone(), oid_progress_vec.1.clone())
-        })
+        .map(|oid_progress_vec| (oid_progress_vec.0.clone(), oid_progress_vec.1.clone()))
         .collect::<HashMap<i32, Vec<OneProgress>>>();
     tracing::info!(
         "order_item_id_to_progress_vec after ordering: {:?}",

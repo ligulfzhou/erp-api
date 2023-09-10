@@ -53,16 +53,6 @@ impl<'a> ExcelOrderParser<'a> {
             ));
         }
 
-        // let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        //     "select * from customers where customer_no='{}'",
-        //     order_info.customer_no
-        // ))
-        // .fetch_one(&self.db)
-        // .await
-        // .map_err(|_| ERPError::NotFound(format!("客户#{}未找到", &order_info.customer_no)))?;
-
-        // let customer_id = customer.id;
-
         tracing::info!("customer_no: {}", &order_info.customer_no);
         let customer_excel_template_model = sqlx::query_as!(
             CustomerExcelTemplateModel,
