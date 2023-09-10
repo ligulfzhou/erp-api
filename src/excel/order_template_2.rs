@@ -80,7 +80,7 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     items
 }
 
-pub fn checking_order_items_excel_2(order_items_excel: &Vec<OrderItemExcel>) -> ERPResult<()> {
+pub fn checking_order_items_excel_2(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
     let sku_nos = order_items_excel
         .iter()
         .map(|item| item.sku_no.as_deref().unwrap_or(""))

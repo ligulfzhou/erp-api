@@ -6,6 +6,6 @@ where
 {
     a_hash_map
         .iter()
-        .max_by(|a, b| a.1.cmp(&b.1))
+        .max_by(|a, b| a.1.cmp(b.1))
         .map(|(k, _v)| k)
 }

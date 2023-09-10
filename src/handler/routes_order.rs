@@ -369,7 +369,7 @@ async fn get_order_items(
     if order_goods.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
-    tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
+    // tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
     let order_goods_ids = order_goods.iter().map(|item| item.id).collect::<Vec<i32>>();
     tracing::info!("order_goods_ids: {:?}", order_goods_ids);
@@ -392,13 +392,13 @@ async fn get_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    tracing::info!(
-        "order_items: {:?}, len: {}",
-        order_items_dto,
-        order_items_dto.len()
-    );
+    // tracing::info!(
+    //     "order_items: {:?}, len: {}",
+    //     order_items_dto,
+    //     order_items_dto.len()
+    // );
 
-    if order_items_dto.len() <= 0 {
+    if order_items_dto.is_empty() {
         return Ok(APIListResponse::new(
             order_goods
                 .iter()
@@ -436,7 +436,7 @@ async fn get_order_items(
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-    tracing::info!("progresses: {:?}", progresses);
+    // tracing::info!("progresses: {:?}", progresses);
 
     let mut order_item_id_to_progress_vec = HashMap::new();
     for one_progress in progresses.into_iter() {
@@ -445,10 +445,10 @@ async fn get_order_items(
             .or_insert(vec![]);
         progress_vec.push(one_progress);
     }
-    tracing::info!(
-        "order_item_id_to_progress_vec: {:?}",
-        order_item_id_to_progress_vec
-    );
+    // tracing::info!(
+    //     "order_item_id_to_progress_vec: {:?}",
+    //     order_item_id_to_progress_vec
+    // );
 
     let empty: Vec<OneProgress> = vec![];
     let order_items_with_steps_dtos = order_items_dto
@@ -463,7 +463,7 @@ async fn get_order_items(
                     0 => 1,
                     _ => match steps[steps.len() - 1].done {
                         true => steps[steps.len() - 1].step + 1,
-                        false => steps[steps.len() - 1].step + 0,
+                        false => steps[steps.len() - 1].step,
                     },
                 }
             };
@@ -497,7 +497,7 @@ async fn get_order_items(
                             0 => 1,
                             _ => match &item.steps[item.steps.len() - 1].done {
                                 true => &item.steps[item.steps.len() - 1].step + 1,
-                                false => &item.steps[item.steps.len() - 1].step + 0,
+                                false => item.steps[item.steps.len() - 1].step,
                             },
                         }
                     };
@@ -519,7 +519,7 @@ async fn get_order_items(
             if steps.len() == 1 && account.steps.contains(steps[0]) {
                 is_next_action = true;
             }
-            println!("steps: {:?}, {}", steps, is_next_action);
+            // println!("steps: {:?}, {}", steps, is_next_action);
             OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
                 order_good,
                 order_item_steps_count,

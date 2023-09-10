@@ -42,9 +42,9 @@ impl ProgressModel {
 
         let order_item_ids = order_item_id_to_order_id
             .iter()
-            .map(|kv| kv.0.clone())
+            .map(|kv| *kv.0)
             .collect::<Vec<i32>>();
-        if order_item_ids.len() <= 0 {
+        if order_item_ids.is_empty() {
             return Ok(OrderItemSteps::new());
         }
 
@@ -88,12 +88,12 @@ impl ProgressModel {
             for (order_item_id, step) in order_item_step.iter() {
                 let order_id_ = order_item_id_to_order_id.get(order_item_id).unwrap_or(&0);
                 if order_id_ == order_id {
-                    let count = order_item_progress_stats.entry(step.clone()).or_insert(0);
+                    let count = order_item_progress_stats.entry(*step).or_insert(0);
                     *count += 1;
                 }
             }
 
-            order_items_steps.insert(order_id.clone(), order_item_progress_stats);
+            order_items_steps.insert(*order_id, order_item_progress_stats);
         }
 
         Ok(order_items_steps)

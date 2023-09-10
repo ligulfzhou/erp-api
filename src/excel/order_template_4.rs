@@ -81,7 +81,7 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     items
 }
 
-pub fn checking_order_items_excel_4(order_items_excel: &Vec<OrderItemExcel>) -> ERPResult<()> {
+pub fn checking_order_items_excel_4(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
     let mut index_order_items = HashMap::new();
 
     for order_item in order_items_excel.iter() {

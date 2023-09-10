@@ -220,7 +220,7 @@ pub struct OrderItemExcel {
 }
 
 impl OrderItemExcel {
-    pub fn pick_up_goods_no(items: &Vec<OrderItemExcel>) -> Option<String> {
+    pub fn pick_up_goods_no(items: &[OrderItemExcel]) -> Option<String> {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
         for item in items.iter() {
@@ -258,7 +258,7 @@ impl OrderItemExcel {
             notes: "".to_string(),
         };
 
-        goods.goods_no = OrderItemExcel::pick_up_goods_no(&items).unwrap();
+        goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
         for item in items {
             if goods.image.is_empty() && item.image.is_some() {
                 goods.image = item.image.as_ref().unwrap().to_string();
@@ -282,7 +282,7 @@ impl OrderItemExcel {
             if package_card.is_none() && item.package_card.is_some() {
                 package_card = item.package_card.clone();
             }
-            if package_card_des.is_none() && !item.package_card_des.is_some() {
+            if package_card_des.is_none() && item.package_card_des.is_some() {
                 package_card_des = item.package_card_des.clone();
             }
         }

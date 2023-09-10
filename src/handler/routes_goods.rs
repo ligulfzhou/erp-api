@@ -203,15 +203,14 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let sku_no = self.sku_no.as_deref().unwrap_or("");
         let color = self.color.as_deref().unwrap_or("");
         let customer_no = self.customer_no.as_deref().unwrap_or("");
-        let mut sql = format!(
-            r#"
+        let mut sql = r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
                 g.name, g.goods_no, g.image, g.plating, g.customer_no
             from skus s, goods g
             where s.goods_id = g.id
-            "#,
-        );
+            "#
+        .to_string();
         if !goods_no.is_empty() {
             sql.push_str(&format!(" and g.goods_no like '%{}%'", goods_no));
         }
@@ -241,13 +240,12 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let sku_no = self.sku_no.as_deref().unwrap_or("");
         let color = self.color.as_deref().unwrap_or("");
         let customer_no = self.customer_no.as_deref().unwrap_or("");
-        let mut sql = format!(
-            r#"
+        let mut sql = r#"
             select count(1)
             from skus s, goods g
             where s.goods_id = g.id
-            "#,
-        );
+            "#
+        .to_string();
         if !goods_no.is_empty() {
             sql.push_str(&format!(" and g.goods_no like '%{}%'", goods_no));
         }

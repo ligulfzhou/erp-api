@@ -28,33 +28,6 @@ struct ListCustomerParam {
     page_size: Option<i32>,
 }
 
-impl ListParamToSQLTrait for ListCustomerParam {
-    fn to_pagination_sql(&self) -> String {
-        // let mut query = QueryBuilder::new("select * from customers ");
-
-        let mut sql = "select * from customers ".to_string();
-
-        let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-        let offset = (page - 1) * page_size;
-        sql.push_str(&format!(
-            " order by id desc offset {} limit {};",
-            offset, page_size
-        ));
-
-        tracing::info!("get_customer_list sql: {sql}");
-
-        sql
-    }
-
-    fn to_count_sql(&self) -> String {
-        let mut sql = "select count(1) from customers ".to_string();
-
-        tracing::info!("get_customer_count sql: {sql}");
-        sql
-    }
-}
-
 async fn get_customers(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<ListCustomerParam>, ERPError>,
