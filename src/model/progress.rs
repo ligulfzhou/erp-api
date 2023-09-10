@@ -16,28 +16,29 @@ pub struct ProgressModel {
 
 pub type OrderItemSteps = HashMap<i32, HashMap<i32, i32>>;
 
+#[derive(sqlx::FromRow)]
+struct IdId {
+    id: i32,
+    order_id: i32,
+}
+
 impl ProgressModel {
     pub async fn get_progress_status(
         db: &Pool<Postgres>,
         order_ids: Vec<i32>,
     ) -> ERPResult<OrderItemSteps> {
         // 去获取各产品的流程
-        let order_ids_str = order_ids
-            .iter()
-            .map(|id| id.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
-
-        let order_item_id_to_order_id = sqlx::query_as::<_, (i32, i32)>(&format!(
-            "select id, order_id from order_items where order_id in ({})",
-            order_ids_str
-        ))
+        let order_item_id_to_order_id = sqlx::query_as!(
+            IdId,
+            "select id, order_id from order_items where order_id = any($1)",
+            &order_ids
+        )
         .fetch_all(db)
         .await
         .map_err(ERPError::DBError)?
         .into_iter()
+        .map(|idid| (idid.id, idid.order_id))
         .collect::<HashMap<i32, i32>>();
-        tracing::info!("order_item_id => order_id: {:?}", order_item_id_to_order_id);
 
         let order_item_ids = order_item_id_to_order_id
             .iter()
@@ -47,22 +48,17 @@ impl ProgressModel {
             return Ok(OrderItemSteps::new());
         }
 
-        let order_item_ids_str = order_item_ids
-            .iter()
-            .map(|id| id.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
-
-        let progresses = sqlx::query_as::<_, ProgressModel>(&format!(
+        let progresses = sqlx::query_as!(
+            ProgressModel,
             r#"
             select distinct on (order_item_id)
             id, order_item_id, step, account_id, done, notes, dt
             from progress
-            where order_item_id in ({})
+            where order_item_id = any($1)
             order by order_item_id, step desc, id desc;
-        "#,
-            order_item_ids_str,
-        ))
+            "#,
+            &order_item_ids,
+        )
         .fetch_all(db)
         .await
         .map_err(ERPError::DBError)?;
@@ -80,12 +76,12 @@ impl ProgressModel {
             })
             .collect::<HashMap<i32, i32>>();
 
-        tracing::info!("order_item_progress: {:?}", order_item_step);
+        tracing::info!("order_item_step: {:?}", order_item_step);
         for order_item_id in order_item_ids.iter() {
             order_item_step.entry(order_item_id.to_owned()).or_insert(1);
         }
+        tracing::info!("order_item_step: {:?}", order_item_step);
 
-        tracing::info!("after order_item_progress: {:?}", order_item_step);
         let mut order_items_steps = OrderItemSteps::new();
         for order_id in order_ids.iter() {
             let mut order_item_progress_stats = HashMap::new();
