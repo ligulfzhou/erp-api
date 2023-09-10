@@ -78,14 +78,15 @@ impl SKUModel {
         goods_id: i32,
         color: &str,
     ) -> ERPResult<Option<SKUModel>> {
-        let sql = format!(
-            "select * from skus where goods_id={} and color='{}';",
-            goods_id, color
-        );
-        let sku = sqlx::query_as::<_, SKUModel>(&sql)
-            .fetch_optional(db)
-            .await
-            .map_err(ERPError::DBError)?;
+        let sku = sqlx::query_as!(
+            SKUModel,
+            "select * from skus where goods_id=$1 and color=$2;",
+            goods_id,
+            color
+        )
+        .fetch_optional(db)
+        .await
+        .map_err(ERPError::DBError)?;
         Ok(sku)
     }
 }

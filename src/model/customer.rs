@@ -16,10 +16,11 @@ impl CustomerModel {
         db: &Pool<Postgres>,
         customer_no: &str,
     ) -> ERPResult<CustomerModel> {
-        let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-            "select * from customers where customer_no='{}'",
+        let customer = sqlx::query_as!(
+            CustomerModel,
+            "select * from customers where customer_no=$1",
             customer_no
-        ))
+        )
         .fetch_one(db)
         .await
         .map_err(ERPError::DBError)?;

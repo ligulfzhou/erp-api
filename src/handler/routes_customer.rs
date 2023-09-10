@@ -104,10 +104,11 @@ async fn create_customer(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<CreateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customers where customer_no = '{}'",
+    let customer = sqlx::query_as!(
+        CustomerModel,
+        "select * from customers where customer_no = $1",
         payload.customer_no
-    ))
+    )
     .fetch_optional(&state.db)
     .await
     .map_err(ERPError::DBError)?;
@@ -131,32 +132,30 @@ struct DetailParam {
     customer_no: Option<String>,
 }
 
-impl DetailParam {
-    pub fn to_sql(&self) -> ERPResult<String> {
-        let id = self.id.unwrap_or(0);
-        if id > 0 {
-            return Ok(format!("select * from customers where id = {id};"));
-        }
-
-        let customer_no = self.customer_no.as_deref().unwrap_or("");
-        if !customer_no.is_empty() {
-            return Ok(format!(
-                "select * from customers where customer_no = '{customer_no}';"
-            ));
-        }
-        Err(ERPError::ParamNeeded("id或customer_no".to_string()))
-    }
-}
-
 async fn detail_customer(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<DetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<CustomerModel>> {
-    let sql = param.to_sql().unwrap();
-    let customer = sqlx::query_as::<_, CustomerModel>(&sql)
+    let id = param.id.unwrap_or(0);
+    let customer_no = param.customer_no.as_deref().unwrap_or("");
+    if id == 0 && customer_no.is_empty() {
+        return Err(ERPError::ParamNeeded("id或customer_no".to_string()));
+    }
+    let customer = match id {
+        0 => sqlx::query_as!(
+            CustomerModel,
+            "select * from customers where customer_no = $1",
+            customer_no
+        )
         .fetch_optional(&state.db)
         .await
-        .map_err(ERPError::DBError)?;
+        .map_err(ERPError::DBError)?,
+
+        _ => sqlx::query_as!(CustomerModel, "select * from customers where id = $1", id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(ERPError::DBError)?,
+    };
 
     if customer.is_none() {
         return Err(ERPError::NotFound(format!(
