@@ -371,26 +371,23 @@ async fn get_order_items(
     }
     tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
-    let order_goods_id_str = order_goods
-        .iter()
-        .map(|item| item.id.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
+    let order_goods_ids = order_goods.iter().map(|item| item.id).collect::<Vec<i32>>();
 
-    tracing::info!("order_goods_id_str: {}", order_goods_id_str);
+    tracing::info!("order_goods_ids: {:?}", order_goods_ids);
     // 用order_goods_ids去获取order_items
-    let order_items_dto = sqlx::query_as::<_, OrderGoodsItemDto>(&format!(
+    let order_items_dto = sqlx::query_as!(
+        OrderGoodsItemDto,
         r#"
         select
             oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
             oi.unit_price, oi.total_price, oi.notes, og.goods_id
         from order_items oi, skus s, order_goods og
         where oi.sku_id = s.id and oi.order_goods_id = og.id
-            and oi.order_goods_id in ({})
+            and oi.order_goods_id = any($1)
         order by id;
         "#,
-        &order_goods_id_str
-    ))
+        &order_goods_ids
+    )
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
@@ -427,25 +424,22 @@ async fn get_order_items(
         .iter()
         .map(|item| item.id)
         .collect::<Vec<i32>>();
-    let order_item_ids_str = order_item_ids
-        .iter()
-        .map(|id| id.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-    tracing::info!("order_item_ids: {}", order_item_ids_str);
+
+    tracing::info!("order_item_ids: {:?}", order_item_ids);
 
     // 获取所有的order_item的流程数据
-    let progresses = sqlx::query_as::<_, OneProgress>(&format!(
+    let progresses = sqlx::query_as!(
+        OneProgress,
         r#"
         select
             p.*, a.name as account_name, d.name as department
         from progress p, accounts a, departments d
         where p.account_id = a.id and a.department_id = d.id
-            and p.order_item_id in ({})
+            and p.order_item_id = any($1)
         order by p.id;
         "#,
-        order_item_ids_str
-    ))
+        &order_item_ids
+    )
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
