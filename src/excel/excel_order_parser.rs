@@ -136,10 +136,26 @@ impl<'a> ExcelOrderParser<'a> {
         }
         tracing::info!("index_order_item: {:?}", index_order_item);
 
-        // #[derive(Debug)]
-        // struct ExistingOrderItem {}
-        // 先获取当前所有的商品+skus
-        // let existing = sqlx::query_as::<_, (i32, )>(&format!("select id from order_goods where "))
+        // 先对 goods，sku入库
+        /*
+           goods_no=> {
+              color=> sku_id
+           }
+        */
+        // let mut goods_no = vec![];
+
+        // 不应该♻️检查.
+        let _existing_order_goods = sqlx::query_as!(
+            OrderGoodsModel,
+            "select * from order_goods where order_id=$1",
+            order_id
+        )
+        .fetch_all(&self.db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        // let existing_order_items = sqlx::query_as!(OrderItemModel, "select")
+
         // TODO: 循环检查 商品是否已经入库
         for (index, items) in index_order_item.iter().sorted_by_key(|x| x.0) {
             let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
@@ -161,22 +177,26 @@ impl<'a> ExcelOrderParser<'a> {
             // 处理order_goods
             let order_goods = OrderGoodsModel::get_row(&self.db, order_id, goods_id).await?;
             tracing::info!("order_goods: {:?}", order_goods);
-            if order_goods.is_none() {
-                let (package_card, package_card_des) = OrderItemExcel::pick_up_package(&items);
-                tracing::info!("package: {package_card}, {package_card_des}");
+            let order_goods_id = match order_goods {
+                None => {
+                    let (package_card, package_card_des) = OrderItemExcel::pick_up_package(items);
+                    tracing::info!("package: {package_card}, {package_card_des}");
 
-                // insert order_goods data
-                sqlx::query!(
-                    r#"insert into order_goods(index, order_id, goods_id)
-                    values ($1, $2, $3);"#,
-                    index,
-                    order_id,
-                    goods_id
-                )
-                .execute(&self.db)
-                .await
-                .map_err(ERPError::DBError)?;
-            }
+                    // insert order_goods data
+                    sqlx::query!(
+                        r#"insert into order_goods(index, order_id, goods_id)
+                    values ($1, $2, $3) returning id"#,
+                        index,
+                        order_id,
+                        goods_id
+                    )
+                    .fetch_one(&self.db)
+                    .await
+                    .map_err(ERPError::DBError)?
+                    .id
+                }
+                Some(real_order_goods) => real_order_goods.id,
+            };
 
             // 处理items
             let skus = SKUModel::get_skus_with_goods_id(&self.db, goods_id).await?;
@@ -186,8 +206,11 @@ impl<'a> ExcelOrderParser<'a> {
                 .collect::<HashMap<String, i32>>();
 
             // 处理order_items
+            // let order_items =
+            //     OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
+            //         .await?;
             let order_items =
-                OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
+                OrderItemModel::get_order_items_with_order_goods_id(&self.db, order_goods_id)
                     .await?;
 
             let sku_id_to_order_item_id = order_items
@@ -211,7 +234,7 @@ impl<'a> ExcelOrderParser<'a> {
                 } else {
                     // 插入数据
                     let order_item_id = item
-                        .save_to_order_item(&self.db, order_id, goods_id, sku_id)
+                        .save_to_order_item(&self.db, order_id, order_goods_id, sku_id)
                         .await?;
                     tracing::info!("save to order_items#{order_item_id}");
                 }

@@ -107,32 +107,32 @@ pub fn checking_order_items_excel_1(order_items_excel: &[OrderItemExcel]) -> ERP
 }
 
 #[derive(Clone, Debug, Default)]
-struct GoodsInfo<'a> {
-    pub goods_no: &'a str,
-    pub image: &'a str,
-    pub name: &'a str,
-    pub plating: &'a str,
-    pub package_card: &'a str,
-    pub package_card_des: &'a str,
-    pub notes: &'a str,
+struct GoodsInfo {
+    pub goods_no: String,
+    pub image: String,
+    pub name: String,
+    pub plating: String,
+    pub package_card: String,
+    pub package_card_des: String,
+    pub notes: String,
 }
 
 pub async fn get_order_no_to_order_id<'a>(
     db: &Pool<Postgres>,
-    order_items_excel: &'a Vec<OrderItemExcel>,
-) -> ERPResult<HashMap<&'a str, i32>> {
-    let mut goods_no_to_goods_info: HashMap<&'a str, GoodsInfo> = HashMap::new();
+    order_items_excel: &Vec<OrderItemExcel>,
+) -> ERPResult<HashMap<String, i32>> {
+    let mut goods_no_to_goods_info: HashMap<String, GoodsInfo> = HashMap::new();
 
     for item in order_items_excel {
         let goods_info = goods_no_to_goods_info
-            .entry(&item.goods_no)
+            .entry(item.goods_no.clone())
             .or_insert(GoodsInfo::default());
     }
 
     let mut order_nos = order_items_excel
         .iter()
-        .map(|item| item.goods_no.as_str())
-        .collect::<Vec<&'a str>>();
+        .map(|item| item.goods_no.clone())
+        .collect::<Vec<String>>();
 
     if order_nos.is_empty() {
         return Ok(HashMap::new());
@@ -141,13 +141,16 @@ pub async fn get_order_no_to_order_id<'a>(
     order_nos.dedup();
     let order_nos_str = order_nos.join(",");
 
-    let existing_order_nos = sqlx::query_as::<_, (i32, String)>(&format!(
-        "select id, goods_no from goods where goods_no in ({})",
-        order_nos_str
-    ))
+    let existing_order_nos = sqlx::query!(
+        "select id, goods_no from goods where goods_no = any($1)",
+        &order_nos
+    )
     .fetch_all(db)
     .await
-    .map_err(ERPError::DBError)?;
+    .map_err(ERPError::DBError)?
+    .into_iter()
+    .map(|item| (item.goods_no, item.id))
+    .collect::<HashMap<String, i32>>();
 
     todo!()
 }
