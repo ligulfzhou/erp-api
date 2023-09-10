@@ -672,20 +672,16 @@ async fn update_order_item(
         let order_id = payload.order_id.expect("订单ID");
         let sku_id = payload.sku_id.expect("sku ID");
 
-        // check if sku_id exists
-        let ids_with_this_sku_id = sqlx::query_as::<_, (i32,)>(&format!(
-            "select id from order_items where order_id={} and sku_id={}",
-            order_id, sku_id
-        ))
-        .fetch_all(&state.db)
+        let order_item_id = sqlx::query!(
+            "select id from order_items where order_id=$1 and sku_id=$2",
+            order_id,
+            sku_id
+        )
+        .fetch_optional(&state.db)
         .await
-        .map_err(ERPError::DBError)?
-        .iter()
-        .map(|id| id.0)
-        .collect::<Vec<i32>>();
-        tracing::info!("ids_with_this_sku_id: {:?}", ids_with_this_sku_id);
+        .map_err(ERPError::DBError)?;
 
-        if !ids_with_this_sku_id.is_empty() {
+        if order_item_id.is_some() {
             return Err(ERPError::AlreadyExists("该商品已添加".to_string()));
         }
 
