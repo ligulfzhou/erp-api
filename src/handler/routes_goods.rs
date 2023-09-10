@@ -343,17 +343,17 @@ async fn get_sku_detail(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<SkuDetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<SKUModelDto>> {
-    let sku_dto = sqlx::query_as::<_, SKUModelDto>(&format!(
+    let sku_dto = sqlx::query_as!(
+        SKUModelDto,
         r#"
         select
             s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
-            g.image, g.plating, s.color, s.color2, s.notes, c.customer_no
-        from skus s, goods g, customers c
-        where s.goods_id = g.id and g.customer_id = c.id
-            and s.id = {};
-    "#,
+            g.image, g.plating, s.color, s.color2, s.notes, g.customer_no
+        from skus s, goods g
+        where s.goods_id = g.id and s.id = $1;
+        "#,
         param.id
-    ))
+    )
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
