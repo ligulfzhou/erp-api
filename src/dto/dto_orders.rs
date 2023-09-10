@@ -88,6 +88,7 @@ impl OrderWithStepsDto {
 pub struct OrderGoodsItemDto {
     pub id: i32,
     pub order_id: i32,
+    pub order_goods_id: i32,
     pub goods_id: i32,
     pub sku_id: i32,
     pub sku_no: Option<String>,
@@ -104,6 +105,7 @@ pub struct OrderGoodsItemWithStepsDto {
     pub id: i32,
     pub order_id: i32,
     pub goods_id: i32,
+    pub order_goods_id: i32,
     pub sku_id: i32,
     pub sku_no: Option<String>,
     pub color: String,
@@ -127,6 +129,7 @@ impl OrderGoodsItemWithStepsDto {
             id: ogid.id,
             order_id: ogid.order_id,
             goods_id: ogid.goods_id,
+            order_goods_id: ogid.order_goods_id,
             sku_id: ogid.sku_id,
             sku_no: ogid.sku_no,
             color: ogid.color,

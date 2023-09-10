@@ -372,15 +372,15 @@ async fn get_order_items(
     tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
     let order_goods_ids = order_goods.iter().map(|item| item.id).collect::<Vec<i32>>();
-
     tracing::info!("order_goods_ids: {:?}", order_goods_ids);
+
     // 用order_goods_ids去获取order_items
     let order_items_dto = sqlx::query_as!(
         OrderGoodsItemDto,
         r#"
         select
             oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
-            oi.unit_price, oi.total_price, oi.notes, og.goods_id
+            oi.unit_price, oi.total_price, oi.notes, og.goods_id, oi.order_goods_id
         from order_items oi, skus s, order_goods og
         where oi.sku_id = s.id and oi.order_goods_id = og.id
             and oi.order_goods_id = any($1)
@@ -414,17 +414,10 @@ async fn get_order_items(
             order_goods.len() as i32,
         ));
     }
-    // todo: order_items表应该加一个 order_goods_id 字段
-    // let mut order_item_id_to_order_goods_id: HashMap<i32, i32> = HashMap::new();
-    // let order_item_id_to_goods_id = order_items_dto
-    //     .iter()
-    //     .map(|item| (item.id, item.goods_id))
-    //     .collect::<HashMap<i32, i32>>();
     let order_item_ids = order_items_dto
         .iter()
         .map(|item| item.id)
         .collect::<Vec<i32>>();
-
     tracing::info!("order_item_ids: {:?}", order_item_ids);
 
     // 获取所有的order_item的流程数据
@@ -457,15 +450,6 @@ async fn get_order_items(
         order_item_id_to_progress_vec
     );
 
-    let order_item_id_to_sorted_progress_vec = order_item_id_to_progress_vec
-        .iter()
-        .map(|oid_progress_vec| (oid_progress_vec.0.clone(), oid_progress_vec.1.clone()))
-        .collect::<HashMap<i32, Vec<OneProgress>>>();
-    tracing::info!(
-        "order_item_id_to_progress_vec after ordering: {:?}",
-        order_item_id_to_sorted_progress_vec
-    );
-
     let empty: Vec<OneProgress> = vec![];
     let order_items_with_steps_dtos = order_items_dto
         .into_iter()
@@ -489,9 +473,11 @@ async fn get_order_items(
         })
         .collect::<Vec<OrderGoodsItemWithStepsDto>>();
 
-    let mut gid_order_item_dtos = HashMap::new();
-    for item in order_items_with_steps_dtos.into_iter() {
-        let dtos = gid_order_item_dtos.entry(item.goods_id).or_insert(vec![]);
+    let mut ogid_to_order_items_dto = HashMap::new();
+    for item in order_items_with_steps_dtos.clone().into_iter() {
+        let dtos = ogid_to_order_items_dto
+            .entry(item.order_goods_id)
+            .or_insert(vec![]);
         dtos.push(item);
     }
 
@@ -499,8 +485,8 @@ async fn get_order_items(
     let order_goods_dtos = order_goods
         .into_iter()
         .map(|order_good| {
-            let items = gid_order_item_dtos
-                .get(&order_good.goods_id)
+            let items = ogid_to_order_items_dto
+                .get(&order_good.id)
                 .unwrap_or(&empty_array);
 
             let order_item_step = items
