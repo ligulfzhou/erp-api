@@ -333,19 +333,6 @@ struct OrderItemsQuery {
     page_size: Option<i32>,
 }
 
-impl ListParamToSQLTrait for OrderItemsQuery {
-    fn to_pagination_sql(&self) -> String {
-        todo!()
-    }
-
-    fn to_count_sql(&self) -> String {
-        format!(
-            "select count(1) from order_goods where order_id = {}",
-            self.order_id
-        )
-    }
-}
-
 async fn get_order_items(
     Extension(account): Extension<AccountDto>,
     State(state): State<Arc<AppState>>,
@@ -562,12 +549,17 @@ async fn get_order_items(
         })
         .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
 
-    let count: (i64,) = sqlx::query_as(&param.to_count_sql())
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    let count = sqlx::query!(
+        "select count(1) from order_goods where order_id = $1",
+        param.order_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .count
+    .unwrap_or(0) as i32;
 
-    Ok(APIListResponse::new(order_goods_dtos, count.0 as i32))
+    Ok(APIListResponse::new(order_goods_dtos, count))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
