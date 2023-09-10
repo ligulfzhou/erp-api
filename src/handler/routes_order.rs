@@ -29,7 +29,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
-        .route("/api/order/plain/items", get(get_order_items))
+        .route("/api/order/plain/items", get(get_plain_order_items))
         .route("/api/order/goods/update", post(update_order_goods))
         .route("/api/order/item/update", post(update_order_item))
         .route("/api/order/goods/delete", post(delete_order_goods))
@@ -360,6 +360,232 @@ struct OrderItemsQuery {
 }
 
 async fn get_order_items(
+    Extension(account): Extension<AccountDto>,
+    State(state): State<Arc<AppState>>,
+    WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
+) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
+    let param_order_id = param.order_id.unwrap_or(0);
+    let order_no = param.order_no.as_deref().unwrap_or("");
+
+    if param_order_id == 0 && order_no.is_empty() {
+        return Err(ERPError::ParamNeeded(
+            "order_id和order_no至少传一个".to_string(),
+        ));
+    }
+
+    let order_id = match param_order_id {
+        0 => {
+            sqlx::query!("select id from orders where order_no=$1", order_no)
+                .fetch_one(&state.db)
+                .await
+                .map_err(ERPError::DBError)?
+                .id
+        }
+        _ => param_order_id,
+    };
+
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let offset = (page - 1) * page_size;
+
+    // 获取order_good
+    let order_goods = sqlx::query_as!(
+        OrderGoodsDto,
+        r#"
+        select
+            og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
+            g.name as name, g.image as image, g.plating as plating, g.package_card as package_card,
+            g.package_card_des as package_card_des
+        from order_goods og, goods g
+        where og.goods_id = g.id and og.order_id = $1
+        order by og.id offset $2 limit $3
+        "#,
+        order_id,
+        offset as i64,
+        page_size as i64
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    if order_goods.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+    // tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
+
+    let order_goods_ids = order_goods.iter().map(|item| item.id).collect::<Vec<i32>>();
+    tracing::info!("order_goods_ids: {:?}", order_goods_ids);
+
+    // 用order_goods_ids去获取order_items
+    let order_items_dto = sqlx::query_as!(
+        OrderGoodsItemDto,
+        r#"
+        select
+            oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
+            oi.unit_price, oi.total_price, oi.notes, og.goods_id, oi.order_goods_id
+        from order_items oi, skus s, order_goods og
+        where oi.sku_id = s.id and oi.order_goods_id = og.id
+            and oi.order_goods_id = any($1)
+        order by id;
+        "#,
+        &order_goods_ids
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    // tracing::info!(
+    //     "order_items: {:?}, len: {}",
+    //     order_items_dto,
+    //     order_items_dto.len()
+    // );
+
+    if order_items_dto.is_empty() {
+        return Ok(APIListResponse::new(
+            order_goods
+                .iter()
+                .map(|item| {
+                    OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
+                        item.clone(),
+                        HashMap::new(),
+                        vec![],
+                        false,
+                    )
+                })
+                .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>(),
+            order_goods.len() as i32,
+        ));
+    }
+    let order_item_ids = order_items_dto
+        .iter()
+        .map(|item| item.id)
+        .collect::<Vec<i32>>();
+    tracing::info!("order_item_ids: {:?}", order_item_ids);
+
+    // 获取所有的order_item的流程数据
+    let progresses = sqlx::query_as!(
+        OneProgress,
+        r#"
+        select
+            p.*, a.name as account_name, d.name as department
+        from progress p, accounts a, departments d
+        where p.account_id = a.id and a.department_id = d.id
+            and p.order_item_id = any($1)
+        order by p.id;
+        "#,
+        &order_item_ids
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+    // tracing::info!("progresses: {:?}", progresses);
+
+    let mut order_item_id_to_progress_vec = HashMap::new();
+    for one_progress in progresses.into_iter() {
+        let progress_vec = order_item_id_to_progress_vec
+            .entry(one_progress.order_item_id)
+            .or_insert(vec![]);
+        progress_vec.push(one_progress);
+    }
+    // tracing::info!(
+    //     "order_item_id_to_progress_vec: {:?}",
+    //     order_item_id_to_progress_vec
+    // );
+
+    let empty: Vec<OneProgress> = vec![];
+    let order_items_with_steps_dtos = order_items_dto
+        .into_iter()
+        .map(|item| {
+            let steps = order_item_id_to_progress_vec
+                .get(&item.id)
+                .unwrap_or(&empty);
+
+            let step = {
+                match steps.len() {
+                    0 => 1,
+                    _ => match steps[steps.len() - 1].done {
+                        true => steps[steps.len() - 1].step + 1,
+                        false => steps[steps.len() - 1].step,
+                    },
+                }
+            };
+            let is_next_action = account.steps.contains(&step);
+
+            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action)
+        })
+        .collect::<Vec<OrderGoodsItemWithStepsDto>>();
+
+    let mut ogid_to_order_items_dto = HashMap::new();
+    for item in order_items_with_steps_dtos.clone().into_iter() {
+        let dtos = ogid_to_order_items_dto
+            .entry(item.order_goods_id)
+            .or_insert(vec![]);
+        dtos.push(item);
+    }
+
+    let empty_array: Vec<OrderGoodsItemWithStepsDto> = vec![];
+    let order_goods_dtos = order_goods
+        .into_iter()
+        .map(|order_good| {
+            let items = ogid_to_order_items_dto
+                .get(&order_good.id)
+                .unwrap_or(&empty_array);
+
+            let order_item_step = items
+                .iter()
+                .map(|item| {
+                    let step = {
+                        match &item.steps.len() {
+                            0 => 1,
+                            _ => match &item.steps[item.steps.len() - 1].done {
+                                true => &item.steps[item.steps.len() - 1].step + 1,
+                                false => item.steps[item.steps.len() - 1].step,
+                            },
+                        }
+                    };
+                    (item.id, step)
+                })
+                .collect::<HashMap<i32, i32>>();
+
+            let mut order_item_steps_count: HashMap<i32, i32> = HashMap::new();
+            for (_, step) in order_item_step.iter() {
+                let count = order_item_steps_count.entry(step.to_owned()).or_insert(0);
+                *count += 1;
+            }
+
+            let mut is_next_action = false;
+            let steps = order_item_steps_count
+                .iter()
+                .map(|sc| sc.0)
+                .collect::<Vec<&i32>>();
+            if steps.len() == 1 && account.steps.contains(steps[0]) {
+                is_next_action = true;
+            }
+            // println!("steps: {:?}, {}", steps, is_next_action);
+            OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
+                order_good,
+                order_item_steps_count,
+                items.clone(),
+                is_next_action,
+            )
+        })
+        .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
+
+    let count = sqlx::query!(
+        "select count(1) from order_goods where order_id = $1",
+        order_id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .count
+    .unwrap_or(0) as i32;
+
+    Ok(APIListResponse::new(order_goods_dtos, count))
+}
+
+// todo:
+async fn get_plain_order_items(
     Extension(account): Extension<AccountDto>,
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
