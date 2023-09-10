@@ -93,10 +93,10 @@ pub struct OrderGoodsItemDto {
     pub sku_no: Option<String>,
     pub color: String,
     pub count: i32,
-    pub unit: String,
+    pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
-    pub notes: Option<String>,
+    pub notes: String,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -108,10 +108,10 @@ pub struct OrderGoodsItemWithStepsDto {
     pub sku_no: Option<String>,
     pub color: String,
     pub count: i32,
-    pub unit: String,
+    pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
-    pub notes: Option<String>,
+    pub notes: String,
 
     pub is_next_action: bool,
     pub steps: Vec<OneProgress>,
