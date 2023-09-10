@@ -89,9 +89,9 @@ async fn mark_progress(
 
         let progresses = sqlx::query_as::<_, ProgressModel>(&format!(
             r#"
-            select distinct on (order_item_id) 
+            select distinct on (order_item_id)
             id, order_item_id, step, account_id, done, notes, dt
-            from progress 
+            from progress
             where order_item_id in ({})
             order by order_item_id, step, id desc;
             "#,
@@ -100,7 +100,7 @@ async fn mark_progress(
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
-        tracing::info!("progresses: {:?}", progresses);
+        // tracing::info!("progresses: {:?}", progresses);
 
         let mut order_item_progress = progresses
             .into_iter()
@@ -202,7 +202,7 @@ async fn mark_progress(
         let now = Utc::now().naive_utc();
         sqlx::query!(
             r#"
-            insert into progress (order_item_id, step, account_id, done, notes, dt) 
+            insert into progress (order_item_id, step, account_id, done, notes, dt)
             values ($1, $2, $3, $4, $5, $6)
             "#,
             order_item_id,

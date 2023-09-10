@@ -30,6 +30,7 @@ clap = { version = "4.3.19", features = ["derive"] }
 dotenv = "0.15.0"
 
 lazy_static = "1.4.0"
+rand = "0.8.5"
 
 # read excel
 # calamine = {version = "0.21.2", features = ["picture"]}

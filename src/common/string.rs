@@ -1,3 +1,7 @@
+use itertools::Itertools;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 pub fn common_prefix(strs: Vec<String>) -> Option<String> {
     if strs.is_empty() {
         return None;
@@ -61,6 +65,15 @@ pub fn remove_whitespace_string(s: &mut String) {
 
 pub fn remove_whitespace_str(s: &str) -> String {
     s.chars().filter(|c| !c.is_whitespace()).collect()
+}
+
+pub fn random_string(n: usize) -> String {
+    let s: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(n)
+        .map(|x| x as char)
+        .collect();
+    s
 }
 
 #[cfg(test)]

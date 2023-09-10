@@ -16,6 +16,7 @@ use axum::routing::{get, post};
 use axum::{middleware, Extension, Json, Router};
 use axum_extra::extract::WithRejection;
 use chrono::NaiveDate;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -24,7 +25,7 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
-        .route("/api/orders/dates", get(get_orders_dates))
+        .route("/api/orders/by/dates", get(get_orders_dates))
         .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
@@ -51,23 +52,30 @@ struct OrderDates {
     order_date: NaiveDate,
 }
 
+// type OrderByDate = HashMap<NaiveDate, Vec<OrderModel>>;
+#[derive(Debug, Serialize)]
+struct OrdersWithDate {
+    date: NaiveDate,
+    orders: Vec<OrderModel>,
+}
+type OrdersByDate = Vec<OrdersWithDate>;
+
 async fn get_orders_dates(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderDatesParam>, ERPError>,
-) -> ERPResult<APIListResponse<OrderDates>> {
+) -> ERPResult<APIListResponse<OrdersWithDate>> {
     let page = param.page.unwrap_or(1);
     let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
     let customer_no = param.customer_no;
 
-    let dates = sqlx::query_as!(
-        OrderDates,
+    let dates = sqlx::query!(
         r#"
-        select order_no, order_date
-        from orders
-        where customer_no = $1
-            order by order_date desc
-        offset $2 limit $3;
+        select order_date from orders
+        where customer_no=$1
+        group by order_date
+        order by order_date desc
+        offset $2 limit $3
         "#,
         customer_no,
         offset as i64,
@@ -75,14 +83,41 @@ async fn get_orders_dates(
     )
     .fetch_all(&state.db)
     .await
-    .map_err(|_| ERPError::Failed("数据库错误，获取订单日期列表失败".to_string()))?;
+    .map_err(ERPError::DBError)?
+    .iter()
+    .map(|record| record.order_date)
+    .collect::<Vec<NaiveDate>>();
+    if dates.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let orders = sqlx::query_as!(
+        OrderModel,
+        "select * from orders where order_date = any($1) order by order_date desc, id desc",
+        &dates
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    let mut order_by_dates = HashMap::new();
+    for order in orders.into_iter() {
+        let orders_of_date = order_by_dates.entry(order.order_date).or_insert(vec![]);
+        orders_of_date.push(order);
+    }
+
+    let mut orders_by_date = OrdersByDate::new();
+    let empty_orders: Vec<OrderModel> = vec![];
+    for key in order_by_dates.keys().sorted().rev() {
+        let orders_of_key = order_by_dates.get(key).unwrap_or(&empty_orders);
+        orders_by_date.push(OrdersWithDate {
+            date: *key,
+            orders: orders_of_key.clone(),
+        })
+    }
 
     let count = sqlx::query!(
-        r#"
-        select count(1)
-        from orders
-        where customer_no = $1;
-        "#,
+        "select count(order_date) from orders where customer_no=$1 group by order_date;",
         customer_no
     )
     .fetch_one(&state.db)
@@ -91,7 +126,7 @@ async fn get_orders_dates(
     .count
     .unwrap_or(0) as i32;
 
-    Ok(APIListResponse::new(dates, count))
+    Ok(APIListResponse::new(orders_by_date, count))
 }
 
 #[derive(Debug, Deserialize)]
@@ -231,7 +266,7 @@ impl ListParamToSQLTrait for ListParam {
         }
         let order_no = self.order_no.as_deref().unwrap_or("");
         if !order_no.is_empty() {
-            where_clauses.push(format!("order_no='{}'", customer_no));
+            where_clauses.push(format!("order_no='{}'", order_no));
         }
 
         if !where_clauses.is_empty() {
@@ -251,32 +286,21 @@ impl ListParamToSQLTrait for ListParam {
         let customer_no = self.customer_no.as_deref().unwrap_or("");
         let order_no = self.order_no.as_deref().unwrap_or("");
 
-        if customer_no.is_empty() && order_no.is_empty() {
-            "select count(1) from orders;".to_string()
-        } else if customer_no.is_empty() && !order_no.is_empty() {
-            format!(
-                "select count(1) from orders where order_no = '{}';",
-                order_no
-            )
-        } else if !customer_no.is_empty() && order_no.is_empty() {
-            format!(
-                r#"
-                select count(1)
-                from orders
-                where customer_no = '{}'
-                "#,
-                customer_no
-            )
-        } else {
-            format!(
-                r#"
-                select count(1)
-                from orders
-                where customer_no = '{}' and order_no = '%{}%'
-                "#,
-                customer_no, order_no
-            )
+        let mut sql = "select count(1) from orders".to_string();
+        let mut where_clauses = vec![];
+
+        if !customer_no.is_empty() {
+            where_clauses.push(format!("customer_no='{}'", customer_no));
         }
+        if !order_no.is_empty() {
+            where_clauses.push(format!("order_no='{}'", order_no));
+        }
+
+        if !where_clauses.is_empty() {
+            sql.push_str(&format!(" where {}", where_clauses.join(" and ")))
+        }
+
+        sql
     }
 }
 
@@ -757,13 +781,11 @@ mod tests {
             is_return_order: false,
         };
 
-        client.do_get("/api/orders/dates").await?.print().await?;
-
-        // client
-        //     .do_post("/api/orders", serde_json::json!(param))
-        //     .await?
-        //     .print()
-        //     .await?;
+        client
+            .do_get("/api/orders/by/dates?customer_no=L1001")
+            .await?
+            .print()
+            .await?;
 
         Ok(())
     }

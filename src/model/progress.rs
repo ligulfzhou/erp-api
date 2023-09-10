@@ -63,7 +63,7 @@ impl ProgressModel {
         .await
         .map_err(ERPError::DBError)?;
 
-        tracing::info!("progresses: {:?}", progresses);
+        // tracing::info!("progresses: {:?}", progresses);
 
         let mut order_item_step = progresses
             .into_iter()
