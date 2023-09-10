@@ -351,7 +351,8 @@ async fn get_orders(
 
 #[derive(Debug, Deserialize)]
 struct OrderItemsQuery {
-    order_id: i32,
+    order_id: Option<i32>,
+    order_no: Option<String>,
     page: Option<i32>,
 
     #[serde(rename(deserialize = "pageSize"))]
@@ -363,9 +364,25 @@ async fn get_order_items(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
-    if param.order_id == 0 {
-        return Err(ERPError::ParamNeeded(param.order_id.to_string()));
+    let param_order_id = param.order_id.unwrap_or(0);
+    let order_no = param.order_no.as_deref().unwrap_or("");
+
+    if param_order_id == 0 && order_no.is_empty() {
+        return Err(ERPError::ParamNeeded(
+            "order_id和order_no至少传一个".to_string(),
+        ));
     }
+
+    let order_id = match param_order_id {
+        0 => {
+            sqlx::query!("select id from orders where order_no=$1", order_no)
+                .fetch_one(&state.db)
+                .await
+                .map_err(ERPError::DBError)?
+                .id
+        }
+        _ => param_order_id,
+    };
 
     let page = param.page.unwrap_or(1);
     let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
@@ -383,7 +400,7 @@ async fn get_order_items(
         where og.goods_id = g.id and og.order_id = $1
         order by og.id offset $2 limit $3
         "#,
-        param.order_id,
+        order_id,
         offset as i64,
         page_size as i64
     )
@@ -556,7 +573,7 @@ async fn get_order_items(
 
     let count = sqlx::query!(
         "select count(1) from order_goods where order_id = $1",
-        param.order_id
+        order_id
     )
     .fetch_one(&state.db)
     .await

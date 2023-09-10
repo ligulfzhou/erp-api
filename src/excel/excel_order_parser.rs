@@ -37,7 +37,7 @@ impl<'a> ExcelOrderParser<'a> {
         // parse order_info
         let path = std::path::Path::new(self.path);
         let book = reader::xlsx::read(path)
-            .map_err(|_| ERPError::Failed("读xlsx文件失败,不支持xls格式".to_owned()))?;
+            .map_err(|_| ERPError::Failed("读xlsx文件失败,不支持xls格式".to_string()))?;
         let sheet = book.get_active_sheet();
         let order_info = parse_order_info(sheet);
 
