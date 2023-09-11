@@ -1,8 +1,8 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
-    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto,
-    OrderGoodsWithStepsWithItemStepDto, OrderWithStepsDto,
+    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithCurrentStepDto,
+    OrderGoodsItemWithStepsDto, OrderGoodsWithStepsWithItemStepDto, OrderWithStepsDto,
 };
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
@@ -584,12 +584,11 @@ async fn get_order_items(
     Ok(APIListResponse::new(order_goods_dtos, count))
 }
 
-// todo:
 async fn get_plain_order_items(
     Extension(account): Extension<AccountDto>,
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
-) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
+) -> ERPResult<APIListResponse<OrderGoodsItemWithCurrentStepDto>> {
     let param_order_id = param.order_id.unwrap_or(0);
     let order_no = param.order_no.as_deref().unwrap_or("");
 
@@ -614,17 +613,16 @@ async fn get_plain_order_items(
     let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
-    // 获取order_good
-    let order_goods = sqlx::query_as!(
-        OrderGoodsDto,
+    let order_items_dto = sqlx::query_as!(
+        OrderGoodsItemDto,
         r#"
         select
-            og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
-            g.name as name, g.image as image, g.plating as plating, g.package_card as package_card,
-            g.package_card_des as package_card_des
-        from order_goods og, goods g
-        where og.goods_id = g.id and og.order_id = $1
-        order by og.id offset $2 limit $3
+            oi.id, oi.order_id, oi.order_goods_id, og.goods_id, oi.sku_id, s.sku_no,
+            s.color, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
+        from order_items oi, order_goods og, skus s
+        where oi.order_goods_id = og.id and oi.sku_id = s.id
+            and oi.order_id = $1
+        order by oi.id offset $2 limit $3
         "#,
         order_id,
         offset as i64,
@@ -634,70 +632,23 @@ async fn get_plain_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    if order_goods.is_empty() {
+    if order_items_dto.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
-    // tracing::info!("order_goods: {:?}, len: {}", order_goods, order_goods.len());
 
-    let order_goods_ids = order_goods.iter().map(|item| item.id).collect::<Vec<i32>>();
-    tracing::info!("order_goods_ids: {:?}", order_goods_ids);
-
-    // 用order_goods_ids去获取order_items
-    let order_items_dto = sqlx::query_as!(
-        OrderGoodsItemDto,
-        r#"
-        select
-            oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
-            oi.unit_price, oi.total_price, oi.notes, og.goods_id, oi.order_goods_id
-        from order_items oi, skus s, order_goods og
-        where oi.sku_id = s.id and oi.order_goods_id = og.id
-            and oi.order_goods_id = any($1)
-        order by id;
-        "#,
-        &order_goods_ids
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    // tracing::info!(
-    //     "order_items: {:?}, len: {}",
-    //     order_items_dto,
-    //     order_items_dto.len()
-    // );
-
-    if order_items_dto.is_empty() {
-        return Ok(APIListResponse::new(
-            order_goods
-                .iter()
-                .map(|item| {
-                    OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
-                        item.clone(),
-                        HashMap::new(),
-                        vec![],
-                        false,
-                    )
-                })
-                .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>(),
-            order_goods.len() as i32,
-        ));
-    }
     let order_item_ids = order_items_dto
         .iter()
         .map(|item| item.id)
         .collect::<Vec<i32>>();
-    tracing::info!("order_item_ids: {:?}", order_item_ids);
 
-    // 获取所有的order_item的流程数据
     let progresses = sqlx::query_as!(
-        OneProgress,
+        ProgressModel,
         r#"
-        select
-            p.*, a.name as account_name, d.name as department
-        from progress p, accounts a, departments d
-        where p.account_id = a.id and a.department_id = d.id
-            and p.order_item_id = any($1)
-        order by p.id;
+        select distinct on (order_item_id)
+        id, order_item_id, step, account_id, done, notes, dt
+        from progress
+        where order_item_id = any($1)
+        order by order_item_id, step desc, id desc;
         "#,
         &order_item_ids
     )
@@ -706,99 +657,28 @@ async fn get_plain_order_items(
     .map_err(ERPError::DBError)?;
     // tracing::info!("progresses: {:?}", progresses);
 
-    let mut order_item_id_to_progress_vec = HashMap::new();
-    for one_progress in progresses.into_iter() {
-        let progress_vec = order_item_id_to_progress_vec
-            .entry(one_progress.order_item_id)
-            .or_insert(vec![]);
-        progress_vec.push(one_progress);
-    }
-    // tracing::info!(
-    //     "order_item_id_to_progress_vec: {:?}",
-    //     order_item_id_to_progress_vec
-    // );
+    let order_item_step = progresses
+        .into_iter()
+        .map(|progress| {
+            if progress.done {
+                (progress.order_item_id, progress.step + 1)
+            } else {
+                (progress.order_item_id, progress.step)
+            }
+        })
+        .collect::<HashMap<i32, i32>>();
 
-    let empty: Vec<OneProgress> = vec![];
-    let order_items_with_steps_dtos = order_items_dto
+    let list = order_items_dto
         .into_iter()
         .map(|item| {
-            let steps = order_item_id_to_progress_vec
-                .get(&item.id)
-                .unwrap_or(&empty);
-
-            let step = {
-                match steps.len() {
-                    0 => 1,
-                    _ => match steps[steps.len() - 1].done {
-                        true => steps[steps.len() - 1].step + 1,
-                        false => steps[steps.len() - 1].step,
-                    },
-                }
-            };
+            let step = order_item_step.get(&item.id).unwrap_or(&1);
             let is_next_action = account.steps.contains(&step);
-
-            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action)
+            OrderGoodsItemWithCurrentStepDto::from(item, is_next_action, *step)
         })
-        .collect::<Vec<OrderGoodsItemWithStepsDto>>();
-
-    let mut ogid_to_order_items_dto = HashMap::new();
-    for item in order_items_with_steps_dtos.clone().into_iter() {
-        let dtos = ogid_to_order_items_dto
-            .entry(item.order_goods_id)
-            .or_insert(vec![]);
-        dtos.push(item);
-    }
-
-    let empty_array: Vec<OrderGoodsItemWithStepsDto> = vec![];
-    let order_goods_dtos = order_goods
-        .into_iter()
-        .map(|order_good| {
-            let items = ogid_to_order_items_dto
-                .get(&order_good.id)
-                .unwrap_or(&empty_array);
-
-            let order_item_step = items
-                .iter()
-                .map(|item| {
-                    let step = {
-                        match &item.steps.len() {
-                            0 => 1,
-                            _ => match &item.steps[item.steps.len() - 1].done {
-                                true => &item.steps[item.steps.len() - 1].step + 1,
-                                false => item.steps[item.steps.len() - 1].step,
-                            },
-                        }
-                    };
-                    (item.id, step)
-                })
-                .collect::<HashMap<i32, i32>>();
-
-            let mut order_item_steps_count: HashMap<i32, i32> = HashMap::new();
-            for (_, step) in order_item_step.iter() {
-                let count = order_item_steps_count.entry(step.to_owned()).or_insert(0);
-                *count += 1;
-            }
-
-            let mut is_next_action = false;
-            let steps = order_item_steps_count
-                .iter()
-                .map(|sc| sc.0)
-                .collect::<Vec<&i32>>();
-            if steps.len() == 1 && account.steps.contains(steps[0]) {
-                is_next_action = true;
-            }
-            // println!("steps: {:?}, {}", steps, is_next_action);
-            OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
-                order_good,
-                order_item_steps_count,
-                items.clone(),
-                is_next_action,
-            )
-        })
-        .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
+        .collect::<Vec<OrderGoodsItemWithCurrentStepDto>>();
 
     let count = sqlx::query!(
-        "select count(1) from order_goods where order_id = $1",
+        "select count(1) from order_items where order_id = $1",
         order_id
     )
     .fetch_one(&state.db)
@@ -807,7 +687,7 @@ async fn get_plain_order_items(
     .count
     .unwrap_or(0) as i32;
 
-    Ok(APIListResponse::new(order_goods_dtos, count))
+    Ok(APIListResponse::new(list, count))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -1027,6 +907,12 @@ mod tests {
 
         client
             .do_get("/api/orders/by/dates?customer_no=L1001")
+            .await?
+            .print()
+            .await?;
+
+        client
+            .do_get("/api/order/plain/items?order_id=10&page=10&pageSize=10")
             .await?
             .print()
             .await?;

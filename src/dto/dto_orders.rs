@@ -101,6 +101,50 @@ pub struct OrderGoodsItemDto {
 }
 
 #[derive(Debug, Serialize, Clone)]
+pub struct OrderGoodsItemWithCurrentStepDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub order_goods_id: i32,
+    pub sku_id: i32,
+    pub sku_no: Option<String>,
+    pub color: String,
+    pub count: i32,
+    pub unit: Option<String>,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: String,
+
+    pub is_next_action: bool,
+    pub step: i32,
+}
+
+impl OrderGoodsItemWithCurrentStepDto {
+    pub fn from(
+        item: OrderGoodsItemDto,
+        is_next_action: bool,
+        step: i32,
+    ) -> OrderGoodsItemWithCurrentStepDto {
+        Self {
+            id: item.id,
+            order_id: item.order_id,
+            goods_id: item.goods_id,
+            order_goods_id: item.order_goods_id,
+            sku_id: item.sku_id,
+            sku_no: item.sku_no,
+            color: item.color,
+            count: item.count,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            notes: item.notes,
+            is_next_action,
+            step,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
 pub struct OrderGoodsItemWithStepsDto {
     pub id: i32,
     pub order_id: i32,

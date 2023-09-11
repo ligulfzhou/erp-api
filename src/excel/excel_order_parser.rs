@@ -80,6 +80,7 @@ impl<'a> ExcelOrderParser<'a> {
             _ => parse_order_excel_t1(sheet),
         };
 
+        tracing::info!("order_items: {:?}", order_items);
         match template_id {
             1 => checking_order_items_excel_1(&order_items)?,
             2 => checking_order_items_excel_2(&order_items)?,
