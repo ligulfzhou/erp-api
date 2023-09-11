@@ -142,7 +142,8 @@ pub struct OrderPlainItemWithCurrentStepDto {
     pub notes: String,
 
     pub is_next_action: bool,
-    pub step: i32,
+    pub step_id: i32,
+    pub step: String,
 }
 
 impl OrderPlainItemWithCurrentStepDto {
@@ -170,7 +171,8 @@ impl OrderPlainItemWithCurrentStepDto {
             total_price: item.total_price,
             notes: item.notes,
             is_next_action,
-            step,
+            step_id: step,
+            step: STEP_TO_DEPARTMENT.get(&step).unwrap_or(&"").to_string(),
         }
     }
 }
