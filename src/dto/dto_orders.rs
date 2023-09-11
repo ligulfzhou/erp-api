@@ -100,11 +100,37 @@ pub struct OrderGoodsItemDto {
     pub notes: String,
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub struct OrderGoodsItemWithCurrentStepDto {
+#[derive(Debug, Serialize, Clone, FromRow)]
+pub struct OrderPlainItemDto {
     pub id: i32,
     pub order_id: i32,
     pub goods_id: i32,
+    pub goods_no: String,
+    pub name: String,
+    pub image: String,
+    pub package_card: String,
+    pub package_card_des: String,
+    pub order_goods_id: i32,
+    pub sku_id: i32,
+    pub sku_no: Option<String>,
+    pub color: String,
+    pub count: i32,
+    pub unit: Option<String>,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct OrderPlainItemWithCurrentStepDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub goods_no: String,
+    pub name: String,
+    pub image: String,
+    pub package_card: String,
+    pub package_card_des: String,
     pub order_goods_id: i32,
     pub sku_id: i32,
     pub sku_no: Option<String>,
@@ -119,16 +145,21 @@ pub struct OrderGoodsItemWithCurrentStepDto {
     pub step: i32,
 }
 
-impl OrderGoodsItemWithCurrentStepDto {
+impl OrderPlainItemWithCurrentStepDto {
     pub fn from(
-        item: OrderGoodsItemDto,
+        item: OrderPlainItemDto,
         is_next_action: bool,
         step: i32,
-    ) -> OrderGoodsItemWithCurrentStepDto {
+    ) -> OrderPlainItemWithCurrentStepDto {
         Self {
             id: item.id,
             order_id: item.order_id,
             goods_id: item.goods_id,
+            goods_no: item.goods_no,
+            name: item.name,
+            image: item.image,
+            package_card: item.package_card,
+            package_card_des: item.package_card_des,
             order_goods_id: item.order_goods_id,
             sku_id: item.sku_id,
             sku_no: item.sku_no,

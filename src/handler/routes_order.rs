@@ -1,8 +1,9 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
-    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithCurrentStepDto,
-    OrderGoodsItemWithStepsDto, OrderGoodsWithStepsWithItemStepDto, OrderWithStepsDto,
+    OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto,
+    OrderGoodsWithStepsWithItemStepDto, OrderPlainItemDto, OrderPlainItemWithCurrentStepDto,
+    OrderWithStepsDto,
 };
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
@@ -588,7 +589,7 @@ async fn get_plain_order_items(
     Extension(account): Extension<AccountDto>,
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemsQuery>, ERPError>,
-) -> ERPResult<APIListResponse<OrderGoodsItemWithCurrentStepDto>> {
+) -> ERPResult<APIListResponse<OrderPlainItemWithCurrentStepDto>> {
     let param_order_id = param.order_id.unwrap_or(0);
     let order_no = param.order_no.as_deref().unwrap_or("");
 
@@ -614,13 +615,14 @@ async fn get_plain_order_items(
     let offset = (page - 1) * page_size;
 
     let order_items_dto = sqlx::query_as!(
-        OrderGoodsItemDto,
+        OrderPlainItemDto,
         r#"
         select
             oi.id, oi.order_id, oi.order_goods_id, og.goods_id, oi.sku_id, s.sku_no,
-            s.color, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes
-        from order_items oi, order_goods og, skus s
-        where oi.order_goods_id = og.id and oi.sku_id = s.id
+            s.color, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes, g.name,
+            g.image, g.goods_no, g.package_card, g.package_card_des
+        from order_items oi, order_goods og, skus s, goods g
+        where oi.order_goods_id = og.id and oi.sku_id = s.id and og.goods_id = g.id
             and oi.order_id = $1
         order by oi.id offset $2 limit $3
         "#,
@@ -673,9 +675,9 @@ async fn get_plain_order_items(
         .map(|item| {
             let step = order_item_step.get(&item.id).unwrap_or(&1);
             let is_next_action = account.steps.contains(&step);
-            OrderGoodsItemWithCurrentStepDto::from(item, is_next_action, *step)
+            OrderPlainItemWithCurrentStepDto::from(item, is_next_action, *step)
         })
-        .collect::<Vec<OrderGoodsItemWithCurrentStepDto>>();
+        .collect::<Vec<OrderPlainItemWithCurrentStepDto>>();
 
     let count = sqlx::query!(
         "select count(1) from order_items where order_id = $1",
