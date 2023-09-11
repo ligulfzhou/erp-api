@@ -8,7 +8,7 @@ use crate::dto::dto_orders::{
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::middleware::auth::auth;
-use crate::model::order::OrderModel;
+use crate::model::order::{OrderGoodsModel, OrderModel};
 use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
@@ -835,42 +835,35 @@ async fn update_order_item(
 
 #[derive(Debug, Deserialize)]
 struct UpdateOrderGoodsParam {
-    id: Option<i32>,
-    package_card: Option<String>,
-    package_card_des: Option<String>,
-}
-
-impl UpdateOrderGoodsParam {
-    fn to_update_sql(&self) -> String {
-        let mut where_clauses = vec![];
-        where_clauses.push(format!(
-            "package_card='{}'",
-            self.package_card.as_deref().unwrap_or("")
-        ));
-        where_clauses.push(format!(
-            "package_card_des='{}'",
-            self.package_card_des.as_deref().unwrap_or("")
-        ));
-
-        let sql = format!(
-            "update order_goods set {} where id={}",
-            where_clauses.join(","),
-            self.id.unwrap()
-        );
-
-        sql
-    }
+    id: i32,
+    package_card: String,
+    package_card_des: String,
 }
 
 async fn update_order_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    tracing::info!(
-        "=> handler update_order_goods: update sql: {:?}",
-        payload.to_update_sql()
-    );
-    state.execute_sql(&payload.to_update_sql()).await?;
+    tracing::info!("=> handler update_order_goods: update sql: {:?}", "");
+
+    let og = sqlx::query_as!(
+        OrderGoodsModel,
+        "select * from order_goods where id=$1",
+        payload.id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    sqlx::query!(
+        "update goods set package_card=$1, package_card_des=$2 where id=$3",
+        payload.package_card,
+        payload.package_card_des,
+        og.goods_id
+    )
+    .execute(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
     Ok(APIEmptyResponse::new())
 }
