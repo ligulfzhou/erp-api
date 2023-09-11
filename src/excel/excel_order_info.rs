@@ -72,6 +72,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
         }
     }
 
+    order_info.order_no = random_string(5);
     order_info
 }
 
