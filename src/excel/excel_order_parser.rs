@@ -3,6 +3,7 @@ use crate::excel::parse_order_template_1::parse_order_excel_t1;
 use crate::excel::parse_order_template_2::parse_order_excel_t2;
 use crate::excel::parse_order_template_3::parse_order_excel_t3;
 use crate::excel::parse_order_template_4::parse_order_excel_t4;
+use crate::excel::process_order_excel_goods_no_with_sku_no::process_order_excel_with_goods_no_and_sku_no;
 use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::goods::{GoodsModel, SKUModel};
@@ -34,7 +35,7 @@ impl<'a> ExcelOrderParser<'a> {
         Self { path, db }
     }
 
-    pub async fn parse(&self) -> ERPResult<ExcelOrder> {
+    pub async fn parse(&self) -> ERPResult<ExcelOrderV2> {
         // parse order_info
         let path = std::path::Path::new(self.path);
         let book = reader::xlsx::read(path)
@@ -79,13 +80,24 @@ impl<'a> ExcelOrderParser<'a> {
             _ => parse_order_excel_t1(sheet)?,
         };
 
+        match template_id {
+            1 => {
+                process_order_excel_with_goods_no_and_sku_no(&self.db, &order_items, &order_info)
+                    .await?
+            }
+            _ => {
+                process_order_excel_with_goods_no_and_sku_no(&self.db, &order_items, &order_info)
+                    .await?
+            }
+        };
+
         let mut excel_order = ExcelOrderV2 {
             info: order_info,
             items: order_items,
             exists: false,
         };
 
-        tracing::info!("excel_order: {:?}", excel_order);
+        // tracing::info!("excel_order: {:?}", excel_order);
 
         // 判断order_no是否已经存在
         let order =
@@ -118,14 +130,14 @@ impl<'a> ExcelOrderParser<'a> {
             }
         };
 
-        let mut index_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
-        for item in excel_order.items.iter() {
-            index_order_item
-                .entry(item.index)
-                .or_insert(vec![])
-                .push(item.clone())
-        }
-        tracing::info!("index_order_item: {:?}", index_order_item);
+        // let mut index_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
+        // for item in excel_order.items.iter() {
+        //     index_order_item
+        //         .entry(item.index)
+        //         .or_insert(vec![])
+        //         .push(item.clone())
+        // }
+        // tracing::info!("index_order_item: {:?}", index_order_item);
 
         // 先对 goods，sku入库
         /*
@@ -136,101 +148,101 @@ impl<'a> ExcelOrderParser<'a> {
         // let mut goods_no = vec![];
 
         // 不应该♻️检查.
-        let _existing_order_goods = sqlx::query_as!(
-            OrderGoodsModel,
-            "select * from order_goods where order_id=$1",
-            order_id
-        )
-        .fetch_all(&self.db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-        // let existing_order_items = sqlx::query_as!(OrderItemModel, "select")
-
-        // TODO: 循环检查 商品是否已经入库
-        for (index, items) in index_order_item.iter().sorted_by_key(|x| x.0) {
-            let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
-            tracing::info!("picked up goods_no: {}", goods_no);
-
-            let goods = GoodsModel::get_goods_with_goods_no(&self.db, &goods_no).await?;
-            tracing::info!("goods: {:?}", goods);
-
-            let goods_id = match goods {
-                None => {
-                    let goods = OrderItemExcel::pick_up_goods(items);
-                    GoodsModel::insert_goods_to_db(&self.db, &goods, &excel_order.info.customer_no)
-                        .await?
-                }
-                Some(some_goods) => some_goods.id,
-            };
-            tracing::info!("goods_id: {goods_id}");
-
-            // 处理order_goods
-            let order_goods = OrderGoodsModel::get_row(&self.db, order_id, goods_id).await?;
-            tracing::info!("order_goods: {:?}", order_goods);
-            let order_goods_id = match order_goods {
-                None => {
-                    let (package_card, package_card_des) = OrderItemExcel::pick_up_package(items);
-                    tracing::info!("package: {package_card}, {package_card_des}");
-
-                    // insert order_goods data
-                    sqlx::query!(
-                        r#"insert into order_goods(index, order_id, goods_id)
-                    values ($1, $2, $3) returning id"#,
-                        index,
-                        order_id,
-                        goods_id
-                    )
-                    .fetch_one(&self.db)
-                    .await
-                    .map_err(ERPError::DBError)?
-                    .id
-                }
-                Some(real_order_goods) => real_order_goods.id,
-            };
-
-            // 处理items
-            let skus = SKUModel::get_skus_with_goods_id(&self.db, goods_id).await?;
-            let mut color_to_id = skus
-                .iter()
-                .map(|sku| (sku.color.clone(), sku.id))
-                .collect::<HashMap<String, i32>>();
-
-            // 处理order_items
-            // let order_items =
-            //     OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
-            //         .await?;
-            let order_items =
-                OrderItemModel::get_order_items_with_order_goods_id(&self.db, order_goods_id)
-                    .await?;
-
-            let sku_id_to_order_item_id = order_items
-                .iter()
-                .map(|item| (item.sku_id, item.id))
-                .collect::<HashMap<i32, i32>>();
-
-            for item in items.iter() {
-                let sku_id = match color_to_id.get(&item.color) {
-                    None => {
-                        // insert to table items
-                        let id = item.save_to_sku(&self.db, goods_id).await?;
-                        color_to_id.insert(item.color.to_owned(), id);
-                        id
-                    }
-                    Some(sku_id) => sku_id.to_owned(),
-                };
-                if sku_id_to_order_item_id.contains_key(&sku_id) {
-                    // 更新数据
-                    // todo,感觉可以不做
-                } else {
-                    // 插入数据
-                    let order_item_id = item
-                        .save_to_order_item(&self.db, order_id, order_goods_id, sku_id)
-                        .await?;
-                    tracing::info!("save to order_items#{order_item_id}");
-                }
-            }
-        }
+        // let _existing_order_goods = sqlx::query_as!(
+        //     OrderGoodsModel,
+        //     "select * from order_goods where order_id=$1",
+        //     order_id
+        // )
+        // .fetch_all(&self.db)
+        // .await
+        // .map_err(ERPError::DBError)?;
+        //
+        // // let existing_order_items = sqlx::query_as!(OrderItemModel, "select")
+        //
+        // // TODO: 循环检查 商品是否已经入库
+        // for (index, items) in index_order_item.iter().sorted_by_key(|x| x.0) {
+        //     let goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
+        //     tracing::info!("picked up goods_no: {}", goods_no);
+        //
+        //     let goods = GoodsModel::get_goods_with_goods_no(&self.db, &goods_no).await?;
+        //     tracing::info!("goods: {:?}", goods);
+        //
+        //     let goods_id = match goods {
+        //         None => {
+        //             let goods = OrderItemExcel::pick_up_goods(items);
+        //             GoodsModel::insert_goods_to_db(&self.db, &goods, &excel_order.info.customer_no)
+        //                 .await?
+        //         }
+        //         Some(some_goods) => some_goods.id,
+        //     };
+        //     tracing::info!("goods_id: {goods_id}");
+        //
+        //     // 处理order_goods
+        //     let order_goods = OrderGoodsModel::get_row(&self.db, order_id, goods_id).await?;
+        //     tracing::info!("order_goods: {:?}", order_goods);
+        //     let order_goods_id = match order_goods {
+        //         None => {
+        //             let (package_card, package_card_des) = OrderItemExcel::pick_up_package(items);
+        //             tracing::info!("package: {package_card}, {package_card_des}");
+        //
+        //             // insert order_goods data
+        //             sqlx::query!(
+        //                 r#"insert into order_goods(index, order_id, goods_id)
+        //             values ($1, $2, $3) returning id"#,
+        //                 index,
+        //                 order_id,
+        //                 goods_id
+        //             )
+        //             .fetch_one(&self.db)
+        //             .await
+        //             .map_err(ERPError::DBError)?
+        //             .id
+        //         }
+        //         Some(real_order_goods) => real_order_goods.id,
+        //     };
+        //
+        //     // 处理items
+        //     let skus = SKUModel::get_skus_with_goods_id(&self.db, goods_id).await?;
+        //     let mut color_to_id = skus
+        //         .iter()
+        //         .map(|sku| (sku.color.clone(), sku.id))
+        //         .collect::<HashMap<String, i32>>();
+        //
+        //     // 处理order_items
+        //     // let order_items =
+        //     //     OrderItemModel::get_rows_with_order_id_and_goods_id(&self.db, order_id, goods_id)
+        //     //         .await?;
+        //     let order_items =
+        //         OrderItemModel::get_order_items_with_order_goods_id(&self.db, order_goods_id)
+        //             .await?;
+        //
+        //     let sku_id_to_order_item_id = order_items
+        //         .iter()
+        //         .map(|item| (item.sku_id, item.id))
+        //         .collect::<HashMap<i32, i32>>();
+        //
+        //     for item in items.iter() {
+        //         let sku_id = match color_to_id.get(&item.color) {
+        //             None => {
+        //                 // insert to table items
+        //                 let id = item.save_to_sku(&self.db, goods_id).await?;
+        //                 color_to_id.insert(item.color.to_owned(), id);
+        //                 id
+        //             }
+        //             Some(sku_id) => sku_id.to_owned(),
+        //         };
+        //         if sku_id_to_order_item_id.contains_key(&sku_id) {
+        //             // 更新数据
+        //             // todo,感觉可以不做
+        //         } else {
+        //             // 插入数据
+        //             let order_item_id = item
+        //                 .save_to_order_item(&self.db, order_id, order_goods_id, sku_id)
+        //                 .await?;
+        //             tracing::info!("save to order_items#{order_item_id}");
+        //         }
+        //     }
+        // }
 
         Ok(excel_order)
     }

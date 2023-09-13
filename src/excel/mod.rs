@@ -2,12 +2,13 @@ use crate::common::datetime::parse_date;
 use crate::model::order::{OrderInfo, OrderItemExcel};
 use umya_spreadsheet::Worksheet;
 
-pub mod excel_order_info;
+mod excel_order_info;
 pub mod excel_order_parser;
-pub mod parse_order_template_1;
-pub mod parse_order_template_2;
-pub mod parse_order_template_3;
-pub mod parse_order_template_4;
+mod parse_order_template_1;
+mod parse_order_template_2;
+mod parse_order_template_3;
+mod parse_order_template_4;
+mod process_order_excel_goods_no_with_sku_no;
 
 pub trait OrderExcelHandler {
     fn parse_order_info(&self, sheet: &Worksheet) -> OrderInfo {

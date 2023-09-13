@@ -5,6 +5,7 @@ create table goods
     customer_no      text not null default '', -- 客户ID
     goods_no         text not null default '', -- 类目编号(可以为空，主要来自L1005)
     image            text not null default '', -- 图片
+    image_des        text not null default '', -- 图片
     name             text not null default '', -- 名称
     plating          text not null default '', -- 电镀
     package_card     text not null default '', -- 标签图片

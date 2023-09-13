@@ -11,6 +11,14 @@ if __name__ == '__main__':
     sheet = wb.active
     image_loader = SheetImageLoader(sheet)
     cell = sheet.cell(7, 2)
+    pdb.set_trace()
+    cell = sheet.cell(7, 1)
+
+    pdb.set_trace()
+    cell = sheet.cell(8, 1)
+
+    pdb.set_trace()
+    cell = sheet.cell(9, 1)
 
     pdb.set_trace()
     image_loader.get('B8').show()

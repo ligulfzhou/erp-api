@@ -2,7 +2,6 @@ use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::{ExcelOrderGoodsWithItems, OrderItemExcel};
 use crate::{ERPError, ERPResult};
-use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
@@ -11,8 +10,13 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
 
     // 先获得了 index=> vec<Row>
     let mut index_to_items = HashMap::new();
+    let mut pre: Option<OrderItemExcel> = None;
+
     for i in 7..rows + 1 {
         let mut cur = OrderItemExcel::default();
+        if let Some(previous) = pre.as_ref() {
+            cur = previous.clone();
+        }
 
         let mut package_image: Option<Image> = None;
         let mut goods_image: Option<Image> = None;
@@ -34,15 +38,15 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
             }
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
-            if cell_value.is_empty() {
-                if j == 1 {
-                    // 如果是第一格是空的，就当作是空行/
-                    return Err(ERPError::ExcelError(format!(
-                        "第{i}行可能有空行，因为没有读到index的数据"
-                    )));
-                }
-                continue;
-            }
+            // if cell_value.is_empty() {
+            //     if j == 1 {
+            //         // 如果是第一格是空的，就当作是空行/
+            //         return Err(ERPError::ExcelError(format!(
+            //             "第{i}行可能有空行，因为没有读到index的数据"
+            //         )));
+            //     }
+            //     continue;
+            // }
 
             match j {
                 1 => cur.index = cell_value.parse::<i32>().unwrap_or(0),
@@ -76,23 +80,24 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
             ));
         }
 
-        if cur.index == 0 {
-            return Err(ERPError::ExcelError(format!(
-                "第{i}行可能有空行，因为没有读到index的数据"
-            )));
-        }
+        // if cur.index == 0 {
+        //     return Err(ERPError::ExcelError(format!(
+        //         "第{i}行可能有空行，因为没有读到index的数据"
+        //     )));
+        // }
 
-        index_to_items.entry(cur.index).or_insert(vec![]).push(cur);
+        index_to_items
+            .entry(cur.index)
+            .or_insert(vec![])
+            .push(cur.clone());
+        pre = Some(cur);
     }
 
     // index=> vec<Row>
     // 变成 ExcelOrderGoods
-    let empty: Vec<OrderItemExcel> = vec![];
 
     let mut res = vec![];
     for (index, items) in index_to_items.into_iter() {
-        // let items = index_to_items.get(index).unwrap_or(&empty);
-
         // 检查数据是否有问题
         let mut goods_nos = items
             .iter()
@@ -112,55 +117,6 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
     }
 
     Ok(res)
-}
-
-#[derive(Clone, Debug, Default)]
-struct GoodsInfo {
-    pub goods_no: String,
-    pub image: String,
-    pub name: String,
-    pub plating: String,
-    pub package_card: String,
-    pub package_card_des: String,
-    pub notes: String,
-}
-
-pub async fn get_order_no_to_order_id(
-    db: &Pool<Postgres>,
-    order_items_excel: &Vec<ExcelOrderGoodsWithItems>,
-) -> ERPResult<HashMap<String, i32>> {
-    let mut goods_no_to_goods_info: HashMap<String, GoodsInfo> = HashMap::new();
-
-    for item in order_items_excel {
-        let goods_info = goods_no_to_goods_info
-            .entry(item.goods_no.clone())
-            .or_insert(GoodsInfo::default());
-    }
-
-    let mut order_nos = order_items_excel
-        .iter()
-        .map(|item| item.goods_no.clone())
-        .collect::<Vec<String>>();
-
-    if order_nos.is_empty() {
-        return Ok(HashMap::new());
-    }
-
-    order_nos.dedup();
-    let order_nos_str = order_nos.join(",");
-
-    let existing_order_nos = sqlx::query!(
-        "select id, goods_no from goods where goods_no = any($1)",
-        &order_nos
-    )
-    .fetch_all(db)
-    .await
-    .map_err(ERPError::DBError)?
-    .into_iter()
-    .map(|item| (item.goods_no, item.id))
-    .collect::<HashMap<String, i32>>();
-
-    todo!()
 }
 
 #[cfg(test)]

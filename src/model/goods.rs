@@ -7,6 +7,7 @@ pub struct GoodsModel {
     pub customer_no: String,      // 客户ID
     pub goods_no: String,         // 类目编号
     pub image: String,            // 图片
+    pub image_des: String,        // 图片描述
     pub name: String,             // 名称
     pub plating: String,          // 电镀
     pub package_card: String,     // 标签图片

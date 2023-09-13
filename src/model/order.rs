@@ -1,9 +1,9 @@
 use crate::common::hashmap::key_of_max_value;
 use crate::common::string::common_prefix;
-use crate::model::goods::GoodsModel;
+use crate::model::goods::{GoodsModel, SKUModel};
 use crate::{ERPError, ERPResult};
 use chrono::NaiveDate;
-use sqlx::{Pool, Postgres};
+use sqlx::{Execute, FromRow, Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
@@ -13,10 +13,10 @@ pub struct OrderModel {
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
-    // todo: 添加一个“返单，加急配送的”状态字段
     pub is_urgent: bool,       //紧急 ‼️
     pub is_return_order: bool, // 返单
 }
+
 impl OrderModel {
     pub async fn get_order_with_order_no(
         db: &Pool<Postgres>,
@@ -116,6 +116,128 @@ impl OrderItemModel {
 
         Ok(items)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExcelOrderGoods {
+    pub index: i32,
+    pub goods_no: String,
+    pub image: Option<String>,
+    pub image_des: Option<String>,
+    pub name: String,
+    pub plating: String,
+    pub package_card: Option<String>,
+    pub package_card_des: Option<String>,
+}
+
+#[derive(Debug, FromRow)]
+struct GoodsNoId {
+    pub goods_no: String,
+    pub id: i32,
+}
+
+#[derive(Debug, FromRow)]
+struct SKUNoId {
+    pub sku_no: String,
+    pub id: i32,
+}
+
+impl ExcelOrderGoods {
+    pub async fn insert_into_goods_table(
+        db: &Pool<Postgres>,
+        items: &[ExcelOrderGoods],
+        customer_no: &str,
+    ) -> ERPResult<HashMap<String, i32>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into goods (customer_no, goods_no, image, image_des, name, plating, package_card, package_card_des) ");
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(customer_no)
+                .push_bind(&item.goods_no)
+                .push_bind(item.image.as_deref().unwrap_or(""))
+                .push_bind(item.image_des.as_deref().unwrap_or(""))
+                .push_bind(&item.name)
+                .push_bind(&item.plating)
+                .push_bind(item.package_card.as_deref().unwrap_or(""))
+                .push_bind(item.package_card_des.as_deref().unwrap_or(""));
+        });
+        query_builder.push(" returning goods_no, id;");
+
+        let res = query_builder
+            .build_query_as::<GoodsNoId>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?
+            .into_iter()
+            .map(|item| (item.goods_no, item.id))
+            .collect::<HashMap<String, i32>>();
+
+        Ok(res)
+    }
+
+    pub async fn insert_into_skus_table(
+        db: &Pool<Postgres>,
+        items: &[SKUModel],
+    ) -> ERPResult<HashMap<String, i32>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into skus (goods_id, sku_no, color, color2) ");
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.goods_id)
+                .push_bind(&item.sku_no)
+                .push_bind(&item.color)
+                .push_bind(&item.color2);
+        });
+        query_builder.push(" returning sku_no, id;");
+
+        let res = query_builder
+            .build_query_as::<SKUNoId>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?
+            .into_iter()
+            .map(|item| (item.sku_no, item.id))
+            .collect::<HashMap<String, i32>>();
+
+        Ok(res)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExcelOrderItems {
+    /// 颜色
+    pub color: String,
+    /// 颜色
+    pub color_2: Option<String>,
+    /// 尺寸
+    pub size: Option<String>,
+    /// 条码
+    pub barcode: Option<String>,
+    /// 数量
+    pub count: i32,
+    /// 进货价
+    pub purchase_price: Option<i32>,
+    /// 单位
+    pub unit: Option<String>,
+    /// 单价
+    pub unit_price: Option<i32>,
+    /// 金额
+    pub total_price: Option<i32>,
+    /// 备注
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExcelOrderGoodsWithItems {
+    pub goods: ExcelOrderGoods,
+    pub items: Vec<OrderItemExcel>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExcelOrderV2 {
+    pub info: OrderInfo,
+    pub items: Vec<ExcelOrderGoodsWithItems>,
+    pub exists: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -245,12 +367,53 @@ impl OrderItemExcel {
         Some(key)
     }
 
+    pub fn pick_up_excel_goods(items: &Vec<OrderItemExcel>) -> ExcelOrderGoods {
+        let mut goods = ExcelOrderGoods {
+            index: 0,
+            goods_no: "".to_string(),
+            image: None,
+            image_des: None,
+            name: "".to_string(),
+            plating: "".to_string(),
+            package_card: None,
+            package_card_des: None,
+        };
+
+        goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
+        for item in items {
+            if goods.index == 0 && item.index > 0 {
+                goods.index = item.index;
+            }
+            if goods.image.is_none() && item.image.is_some() {
+                goods.image = item.image.clone();
+            }
+            if goods.image_des.is_none() && item.image_des.is_some() {
+                goods.image_des = item.image_des.clone();
+            }
+            if goods.name.is_empty() && !item.name.is_empty() {
+                goods.name = item.name.clone();
+            }
+            if goods.plating.is_empty() && !item.plating.is_empty() {
+                goods.plating = item.plating.clone();
+            }
+            if goods.package_card.is_none() && item.package_card.is_some() {
+                goods.package_card = item.package_card.clone();
+            }
+            if goods.package_card_des.is_none() && item.package_card_des.is_some() {
+                goods.package_card_des = item.package_card_des.clone();
+            }
+        }
+
+        goods
+    }
+
     pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
         let mut goods = GoodsModel {
             id: 0,
             customer_no: "".to_string(),
             goods_no: "".to_string(),
             image: "".to_string(),
+            image_des: "".to_string(),
             name: "".to_string(),
             plating: "".to_string(),
             package_card: "".to_string(),
