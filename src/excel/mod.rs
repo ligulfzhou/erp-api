@@ -4,10 +4,10 @@ use umya_spreadsheet::Worksheet;
 
 pub mod excel_order_info;
 pub mod excel_order_parser;
-pub mod order_template_1;
-pub mod order_template_2;
-pub mod order_template_3;
-pub mod order_template_4;
+pub mod parse_order_template_1;
+pub mod parse_order_template_2;
+pub mod parse_order_template_3;
+pub mod parse_order_template_4;
 
 pub trait OrderExcelHandler {
     fn parse_order_info(&self, sheet: &Worksheet) -> OrderInfo {

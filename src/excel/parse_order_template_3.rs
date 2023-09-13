@@ -106,7 +106,7 @@ pub fn checking_order_items_excel_3(order_items_excel: &[OrderItemExcel]) -> ERP
 
 #[cfg(test)]
 mod tests {
-    use crate::excel::order_template_3::parse_order_excel_t3;
+    use crate::excel::parse_order_template_3::parse_order_excel_t3;
     use umya_spreadsheet::*;
 
     #[test]

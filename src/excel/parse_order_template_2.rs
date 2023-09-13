@@ -7,6 +7,8 @@ use umya_spreadsheet::*;
 
 pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
     let (cols, rows) = sheet.get_highest_column_and_row();
+    tracing::info!("cols: {cols}, rows: {rows}");
+
     let mut items = vec![];
 
     let mut pre: Option<OrderItemExcel> = None;
@@ -139,7 +141,7 @@ pub fn checking_order_items_excel_2(order_items_excel: &[OrderItemExcel]) -> ERP
 
 #[cfg(test)]
 mod tests {
-    use crate::excel::order_template_2::parse_order_excel_t2;
+    use crate::excel::parse_order_template_2::parse_order_excel_t2;
     use umya_spreadsheet::*;
 
     #[test]

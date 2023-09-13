@@ -1,21 +1,18 @@
 use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
-use crate::model::order::OrderItemExcel;
+use crate::model::order::{ExcelOrderGoodsWithItems, OrderItemExcel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
+pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {
     let (cols, rows) = sheet.get_highest_column_and_row();
-    let mut items = vec![];
 
-    let mut pre: Option<OrderItemExcel> = None;
+    // 先获得了 index=> vec<Row>
+    let mut index_to_items = HashMap::new();
     for i in 7..rows + 1 {
         let mut cur = OrderItemExcel::default();
-        if let Some(previous) = pre.as_ref() {
-            cur = previous.clone();
-        }
 
         let mut package_image: Option<Image> = None;
         let mut goods_image: Option<Image> = None;
@@ -38,6 +35,12 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
+                if j == 1 {
+                    // 如果是第一格是空的，就当作是空行/
+                    return Err(ERPError::ExcelError(format!(
+                        "第{i}行可能有空行，因为没有读到index的数据"
+                    )));
+                }
                 continue;
             }
 
@@ -73,37 +76,42 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> Vec<OrderItemExcel> {
             ));
         }
 
-        items.push(cur.clone());
-        pre = Some(cur);
+        if cur.index == 0 {
+            return Err(ERPError::ExcelError(format!(
+                "第{i}行可能有空行，因为没有读到index的数据"
+            )));
+        }
+
+        index_to_items.entry(cur.index).or_insert(vec![]).push(cur);
     }
 
-    items
-}
+    // index=> vec<Row>
+    // 变成 ExcelOrderGoods
+    let empty: Vec<OrderItemExcel> = vec![];
 
-pub fn checking_order_items_excel_1(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
-    let mut index_order_items = HashMap::new();
+    let mut res = vec![];
+    for (index, items) in index_to_items.into_iter() {
+        // let items = index_to_items.get(index).unwrap_or(&empty);
 
-    for order_item in order_items_excel.iter() {
-        index_order_items
-            .entry(order_item.index)
-            .or_insert(vec![])
-            .push(order_item);
-    }
-
-    for (index, order_items) in index_order_items.iter() {
-        let mut goods_nos = order_items
+        // 检查数据是否有问题
+        let mut goods_nos = items
             .iter()
             .map(|item| item.goods_no.as_str())
             .collect::<Vec<&str>>();
+
         goods_nos.dedup();
         if goods_nos.len() > 1 {
             return Err(ERPError::ExcelError(format!(
                 "Excel内序号#{index}可能重复,或者有多余总计的行"
             )));
         }
+
+        let goods = OrderItemExcel::pick_up_excel_goods(&items);
+        let excel_order_goods_with_items = ExcelOrderGoodsWithItems { goods, items };
+        res.push(excel_order_goods_with_items);
     }
 
-    Ok(())
+    Ok(res)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -117,9 +125,9 @@ struct GoodsInfo {
     pub notes: String,
 }
 
-pub async fn get_order_no_to_order_id<'a>(
+pub async fn get_order_no_to_order_id(
     db: &Pool<Postgres>,
-    order_items_excel: &Vec<OrderItemExcel>,
+    order_items_excel: &Vec<ExcelOrderGoodsWithItems>,
 ) -> ERPResult<HashMap<String, i32>> {
     let mut goods_no_to_goods_info: HashMap<String, GoodsInfo> = HashMap::new();
 
@@ -157,7 +165,7 @@ pub async fn get_order_no_to_order_id<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::excel::order_template_1::parse_order_excel_t1;
+    use crate::excel::parse_order_template_1::parse_order_excel_t1;
     use umya_spreadsheet::*;
 
     #[test]

@@ -1,13 +1,14 @@
 use crate::excel::excel_order_info::parse_order_info;
-use crate::excel::order_template_1::{checking_order_items_excel_1, parse_order_excel_t1};
-use crate::excel::order_template_2::{checking_order_items_excel_2, parse_order_excel_t2};
-use crate::excel::order_template_3::{checking_order_items_excel_3, parse_order_excel_t3};
-use crate::excel::order_template_4::{checking_order_items_excel_4, parse_order_excel_t4};
+use crate::excel::parse_order_template_1::parse_order_excel_t1;
+use crate::excel::parse_order_template_2::parse_order_excel_t2;
+use crate::excel::parse_order_template_3::parse_order_excel_t3;
+use crate::excel::parse_order_template_4::parse_order_excel_t4;
 use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::model::order::{
-    ExcelOrder, OrderGoodsModel, OrderInfo, OrderItemExcel, OrderItemModel, OrderModel,
+    ExcelOrder, ExcelOrderV2, OrderGoodsModel, OrderInfo, OrderItemExcel, OrderItemModel,
+    OrderModel,
 };
 use crate::{ERPError, ERPResult};
 use itertools::Itertools;
@@ -41,7 +42,6 @@ impl<'a> ExcelOrderParser<'a> {
         let sheet = book.get_active_sheet();
         let order_info = parse_order_info(sheet);
 
-        // find which template is for this customer.
         if order_info.customer_no.is_empty() {
             return Err(ERPError::Failed(
                 "客户编号未找到，请检查一下excel表格".to_string(),
@@ -53,7 +53,7 @@ impl<'a> ExcelOrderParser<'a> {
             ));
         }
 
-        tracing::info!("customer_no: {}", &order_info.customer_no);
+        // find which template is for this customer.
         let customer_excel_template_model = sqlx::query_as!(
             CustomerExcelTemplateModel,
             "select * from customer_excel_template where customer_no=$1",
@@ -71,25 +71,15 @@ impl<'a> ExcelOrderParser<'a> {
         }
 
         let template_id = customer_excel_template_model.unwrap().template_id;
-
         let order_items = match template_id {
-            1 => parse_order_excel_t1(sheet),
-            2 => parse_order_excel_t2(sheet),
-            3 => parse_order_excel_t3(sheet),
-            4 => parse_order_excel_t4(sheet),
-            _ => parse_order_excel_t1(sheet),
+            1 => parse_order_excel_t1(sheet)?,
+            // 2 => parse_order_excel_t2(sheet),
+            // 3 => parse_order_excel_t3(sheet),
+            // 4 => parse_order_excel_t4(sheet),
+            _ => parse_order_excel_t1(sheet)?,
         };
 
-        tracing::info!("order_items: {:?}", order_items);
-        match template_id {
-            1 => checking_order_items_excel_1(&order_items)?,
-            2 => checking_order_items_excel_2(&order_items)?,
-            3 => checking_order_items_excel_3(&order_items)?,
-            4 => checking_order_items_excel_4(&order_items)?,
-            _ => checking_order_items_excel_1(&order_items)?,
-        };
-
-        let mut excel_order = ExcelOrder {
+        let mut excel_order = ExcelOrderV2 {
             info: order_info,
             items: order_items,
             exists: false,
