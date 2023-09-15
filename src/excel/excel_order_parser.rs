@@ -3,7 +3,7 @@ use crate::excel::parse_order_template_1::parse_order_excel_t1;
 use crate::excel::parse_order_template_2::parse_order_excel_t2;
 use crate::excel::parse_order_template_3::parse_order_excel_t3;
 use crate::excel::parse_order_template_4::parse_order_excel_t4;
-use crate::excel::process_order_excel_goods_no_with_sku_no::process_order_excel_with_goods_no_and_sku_no;
+use crate::excel::process_order_excel_goods::process_order_excel_with_goods_no_and_sku_color;
 use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::goods::{GoodsModel, SKUModel};
@@ -80,14 +80,46 @@ impl<'a> ExcelOrderParser<'a> {
             _ => parse_order_excel_t1(sheet)?,
         };
 
+        println!("order_items: {:?}", order_items);
+
+        // 判断order_no是否已经存在
+        let mut order_exists = false;
+        let order = OrderModel::get_order_with_order_no(&self.db, &order_info.order_no).await?;
+
+        let order_id = {
+            match order {
+                None => {
+                    tracing::info!("order#{} not exists, we will save", &order_info.order_no);
+
+                    OrderInfo::insert_to_orders(&self.db, &order_info).await?
+                }
+                Some(existing_order) => {
+                    tracing::info!("订单#{}已存在,尝试更新数据", &order_info.order_no);
+                    order_exists = true;
+                    OrderInfo::update_to_orders(&self.db, &order_info, existing_order.id).await?;
+                    existing_order.id
+                }
+            }
+        };
+
         match template_id {
             1 => {
-                process_order_excel_with_goods_no_and_sku_no(&self.db, &order_items, &order_info)
-                    .await?
+                process_order_excel_with_goods_no_and_sku_color(
+                    &self.db,
+                    &order_items,
+                    &order_info,
+                    order_id,
+                )
+                .await?
             }
             _ => {
-                process_order_excel_with_goods_no_and_sku_no(&self.db, &order_items, &order_info)
-                    .await?
+                process_order_excel_with_goods_no_and_sku_color(
+                    &self.db,
+                    &order_items,
+                    &order_info,
+                    order_id,
+                )
+                .await?
             }
         };
 

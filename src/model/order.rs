@@ -3,7 +3,7 @@ use crate::common::string::common_prefix;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::{ERPError, ERPResult};
 use chrono::NaiveDate;
-use sqlx::{Execute, FromRow, Pool, Postgres, QueryBuilder};
+use sqlx::{FromRow, Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
@@ -44,6 +44,29 @@ pub struct OrderGoodsModel {
 }
 
 impl OrderGoodsModel {
+    pub async fn add_rows(
+        db: &Pool<Postgres>,
+        rows: &[OrderGoodsModel],
+    ) -> ERPResult<Vec<OrderGoodsModel>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into order_goods (index, order_id, goods_id) ");
+
+        query_builder.push_values(rows, |mut b, item| {
+            b.push_bind(item.index)
+                .push_bind(item.order_id)
+                .push_bind(item.goods_id);
+        });
+        query_builder.push(" returning *;");
+
+        let res = query_builder
+            .build_query_as::<OrderGoodsModel>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(res)
+    }
+
     pub async fn get_row(
         db: &Pool<Postgres>,
         order_id: i32,
@@ -66,7 +89,7 @@ impl OrderGoodsModel {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct OrderItemModel {
     pub id: i32,
-    pub order_goods_id: i32, // todo: done: 感觉应该存这个
+    pub order_goods_id: i32, // todo: 应该是比存goods_id好
     pub order_id: i32,
     pub sku_id: i32,
     pub count: i32,
@@ -78,6 +101,32 @@ pub struct OrderItemModel {
 }
 
 impl OrderItemModel {
+    pub async fn save_to_order_item_table(
+        db: &Pool<Postgres>,
+        items: &[OrderItemModel],
+    ) -> ERPResult<Vec<OrderItemModel>> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("insert into order_items (order_goods_id, order_id, sku_id, count, unit, unit_price, total_price) ");
+
+        query_builder.push_values(items, |mut b, item| {
+            b.push_bind(item.order_goods_id)
+                .push_bind(item.order_id)
+                .push_bind(item.sku_id)
+                .push_bind(item.count)
+                .push_bind(item.unit.as_deref().unwrap_or(""))
+                .push_bind(item.unit_price.unwrap_or(0))
+                .push_bind(item.total_price.unwrap_or(0));
+        });
+        query_builder.push(" returning *;");
+
+        let res = query_builder
+            .build_query_as::<OrderItemModel>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(res)
+    }
     pub async fn get_order_items_with_order_goods_id(
         db: &Pool<Postgres>,
         order_goods_id: i32,
@@ -153,11 +202,11 @@ impl ExcelOrderGoods {
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(customer_no)
-                .push_bind(&item.goods_no)
+                .push_bind(item.goods_no.clone())
                 .push_bind(item.image.as_deref().unwrap_or(""))
                 .push_bind(item.image_des.as_deref().unwrap_or(""))
-                .push_bind(&item.name)
-                .push_bind(&item.plating)
+                .push_bind(item.name.clone())
+                .push_bind(item.plating.clone())
                 .push_bind(item.package_card.as_deref().unwrap_or(""))
                 .push_bind(item.package_card_des.as_deref().unwrap_or(""));
         });
@@ -178,7 +227,7 @@ impl ExcelOrderGoods {
     pub async fn insert_into_skus_table(
         db: &Pool<Postgres>,
         items: &[SKUModel],
-    ) -> ERPResult<HashMap<String, i32>> {
+    ) -> ERPResult<Vec<SKUModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
             QueryBuilder::new("insert into skus (goods_id, sku_no, color, color2) ");
 
@@ -188,16 +237,13 @@ impl ExcelOrderGoods {
                 .push_bind(&item.color)
                 .push_bind(&item.color2);
         });
-        query_builder.push(" returning sku_no, id;");
+        query_builder.push(" returning *;");
 
         let res = query_builder
-            .build_query_as::<SKUNoId>()
+            .build_query_as::<SKUModel>()
             .fetch_all(db)
             .await
-            .map_err(ERPError::DBError)?
-            .into_iter()
-            .map(|item| (item.sku_no, item.id))
-            .collect::<HashMap<String, i32>>();
+            .map_err(ERPError::DBError)?;
 
         Ok(res)
     }
