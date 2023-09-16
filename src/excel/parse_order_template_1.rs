@@ -4,7 +4,6 @@ use crate::model::order::{ExcelOrderGoodsWithItems, OrderItemExcel};
 use crate::{ERPError, ERPResult};
 use itertools::Itertools;
 use std::collections::HashMap;
-use std::fmt::format;
 use umya_spreadsheet::*;
 
 pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {

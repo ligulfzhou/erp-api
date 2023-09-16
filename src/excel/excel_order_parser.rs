@@ -123,44 +123,13 @@ impl<'a> ExcelOrderParser<'a> {
             }
         };
 
-        let mut excel_order = ExcelOrderV2 {
+        let excel_order = ExcelOrderV2 {
             info: order_info,
             items: order_items,
-            exists: false,
+            exists: order_exists,
         };
 
-        // tracing::info!("excel_order: {:?}", excel_order);
-
-        // 判断order_no是否已经存在
-        let order =
-            OrderModel::get_order_with_order_no(&self.db, &excel_order.info.order_no).await?;
-
-        tracing::info!("order: {:?}", order);
-        let customer =
-            CustomerModel::get_customer_with_customer_no(&self.db, &excel_order.info.customer_no)
-                .await?;
-
-        // 订单是否已经存在
-        // 如果已经存在，则更新一下，如果不存在则 保存
-        let order_id = {
-            match order {
-                None => {
-                    tracing::info!(
-                        "order#{} not exists, we will save",
-                        excel_order.info.order_no
-                    );
-
-                    OrderInfo::insert_to_orders(&self.db, &excel_order.info).await?
-                }
-                Some(existing_order) => {
-                    tracing::info!("订单#{}已存在,尝试更新数据", excel_order.info.order_no);
-                    excel_order.exists = true;
-                    OrderInfo::update_to_orders(&self.db, &excel_order.info, existing_order.id)
-                        .await?;
-                    existing_order.id
-                }
-            }
-        };
+        Ok(excel_order)
 
         // let mut index_order_item: HashMap<i32, Vec<OrderItemExcel>> = HashMap::new();
         // for item in excel_order.items.iter() {
@@ -275,7 +244,5 @@ impl<'a> ExcelOrderParser<'a> {
         //         }
         //     }
         // }
-
-        Ok(excel_order)
     }
 }
