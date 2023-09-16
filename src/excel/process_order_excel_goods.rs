@@ -113,7 +113,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_no(
     if !skus_to_add.is_empty() {
         let new_skus = ExcelOrderGoods::insert_into_skus_table(db, &skus_to_add).await?;
         for new_sku in new_skus.iter() {
-            sku_no_to_id.insert(&new_sku.sku_no.as_str(), new_sku.id);
+            sku_no_to_id.insert(new_sku.sku_no.as_str(), new_sku.id);
         }
     }
 

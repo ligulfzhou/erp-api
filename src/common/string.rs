@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
@@ -82,7 +81,7 @@ pub fn is_empty_string_vec(str_vec: Vec<&str>) -> bool {
             return false;
         }
     }
-    return true;
+    true
 }
 
 #[cfg(test)]

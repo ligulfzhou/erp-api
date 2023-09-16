@@ -1,6 +1,5 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_customer::CustomerDto;
-use crate::handler::ListParamToSQLTrait;
 use crate::model::customer::CustomerModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};

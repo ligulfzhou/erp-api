@@ -4,17 +4,11 @@ use crate::excel::parse_order_template_2::parse_order_excel_t2;
 use crate::excel::parse_order_template_3::parse_order_excel_t3;
 use crate::excel::parse_order_template_4::parse_order_excel_t4;
 use crate::excel::process_order_excel_goods::process_order_excel_with_goods_no_and_sku_color;
-use crate::model::customer::CustomerModel;
 use crate::model::excel::CustomerExcelTemplateModel;
-use crate::model::goods::{GoodsModel, SKUModel};
-use crate::model::order::{
-    ExcelOrder, ExcelOrderV2, OrderGoodsModel, OrderInfo, OrderItemExcel, OrderItemModel,
-    OrderModel,
-};
+use crate::model::order::{ExcelOrderV2, OrderInfo, OrderModel};
 use crate::{ERPError, ERPResult};
 use itertools::Itertools;
 use sqlx::{FromRow, Pool, Postgres};
-use std::collections::HashMap;
 use umya_spreadsheet::reader;
 
 #[derive(FromRow)]

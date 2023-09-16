@@ -1,4 +1,3 @@
-use crate::common::datetime::{format_date, format_datetime};
 use crate::common::db::sorter_order_to_db_sorter_order;
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
@@ -729,7 +728,7 @@ async fn get_plain_order_items(
         .into_iter()
         .map(|item| {
             let step = order_item_step.get(&item.id).unwrap_or(&1);
-            let is_next_action = account.steps.contains(&step);
+            let is_next_action = account.steps.contains(step);
             OrderPlainItemWithCurrentStepDto::from(item, is_next_action, *step)
         })
         .collect::<Vec<OrderPlainItemWithCurrentStepDto>>();

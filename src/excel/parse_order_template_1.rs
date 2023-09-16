@@ -130,7 +130,7 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
             )));
         }
 
-        let goods = OrderItemExcel::pick_up_excel_goods(&items);
+        let goods = OrderItemExcel::pick_up_excel_goods(items);
         println!("pick_up_excel_goods: {:?}", goods);
         let excel_order_goods_with_items = ExcelOrderGoodsWithItems {
             goods,
