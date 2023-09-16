@@ -330,6 +330,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
             }
         }
     }
+
     if !order_items_to_add.is_empty() {
         OrderItemModel::save_to_order_item_table(db, &order_items_to_add).await?;
     }

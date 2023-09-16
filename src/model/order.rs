@@ -392,7 +392,9 @@ impl OrderItemExcel {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
         for item in items.iter() {
-            *goods_no_cnt.entry(&item.goods_no).or_insert(0) += 1;
+            if !item.goods_no.is_empty() {
+                *goods_no_cnt.entry(&item.goods_no).or_insert(0) += 1;
+            }
         }
         tracing::info!("goods_no_cnt: {:?}", goods_no_cnt);
 

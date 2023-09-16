@@ -76,6 +76,15 @@ pub fn random_string(n: usize) -> String {
     s
 }
 
+pub fn is_empty_string_vec(str_vec: Vec<&str>) -> bool {
+    for x in str_vec {
+        if !x.is_empty() {
+            return false;
+        }
+    }
+    return true;
+}
+
 #[cfg(test)]
 mod tests {
     use crate::common::string::common_prefix;

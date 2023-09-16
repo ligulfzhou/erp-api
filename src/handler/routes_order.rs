@@ -1,3 +1,4 @@
+use crate::common::db::sorter_order_to_db_sorter_order;
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
@@ -249,8 +250,8 @@ struct ListParam {
 
     customer_no: Option<String>,
     order_no: Option<String>,
-    sort_col: Option<String>,
-    sort: Option<String>, // desc/asc: default desc
+    sorter_field: Option<String>,
+    sorter_order: Option<String>, // ascend/descend: default: descend
 }
 
 impl ListParamToSQLTrait for ListParam {
@@ -258,6 +259,10 @@ impl ListParamToSQLTrait for ListParam {
         let page = self.page.unwrap_or(1);
         let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let offset = (page - 1) * page_size;
+
+        let sorter_field = self.sorter_field.as_deref().unwrap_or("id");
+        let sorter_order =
+            sorter_order_to_db_sorter_order(self.sorter_order.as_deref().unwrap_or("descend"));
 
         let mut sql = "select * from orders".to_string();
         let mut where_clauses = vec![];
@@ -276,8 +281,8 @@ impl ListParamToSQLTrait for ListParam {
         }
 
         sql.push_str(&format!(
-            " order by id desc offset {} limit {};",
-            offset, page_size
+            " order by {} {} offset {} limit {};",
+            sorter_field, sorter_order, offset, page_size
         ));
 
         tracing::info!("get orders sql: {:?}", sql);
