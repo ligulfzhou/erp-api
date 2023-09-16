@@ -1,3 +1,4 @@
+use crate::common::datetime::{format_date, format_datetime};
 use crate::common::db::sorter_order_to_db_sorter_order;
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
@@ -250,6 +251,13 @@ struct ListParam {
 
     customer_no: Option<String>,
     order_no: Option<String>,
+    order_date_start: Option<String>,
+    order_date_end: Option<String>,
+    delivery_date_start: Option<String>,
+    delivery_date_end: Option<String>,
+    is_return_order: Option<bool>,
+    is_urgent: Option<bool>,
+
     sorter_field: Option<String>,
     sorter_order: Option<String>, // ascend/descend: default: descend
 }
@@ -274,6 +282,28 @@ impl ListParamToSQLTrait for ListParam {
         let order_no = self.order_no.as_deref().unwrap_or("");
         if !order_no.is_empty() {
             where_clauses.push(format!("order_no='{}'", order_no));
+        }
+        if self.is_return_order.unwrap_or(false) {
+            where_clauses.push("is_return_order=true".to_string())
+        }
+        if self.is_urgent.unwrap_or(false) {
+            where_clauses.push("is_urgent=true".to_string())
+        }
+
+        if self.order_date_start.is_some() && self.order_date_end.is_some() {
+            where_clauses.push(format!(
+                "order_date>'{}' and order_date<='{}'",
+                self.order_date_start.as_deref().unwrap(),
+                self.order_date_end.as_deref().unwrap()
+            ))
+        }
+
+        if self.delivery_date_start.is_some() && self.delivery_date_end.is_some() {
+            where_clauses.push(format!(
+                "delivery_date > '{}' and delivery_date <= '{}'",
+                self.delivery_date_start.as_deref().unwrap(),
+                self.delivery_date_end.as_deref().unwrap()
+            ))
         }
 
         if !where_clauses.is_empty() {
@@ -302,7 +332,27 @@ impl ListParamToSQLTrait for ListParam {
         if !order_no.is_empty() {
             where_clauses.push(format!("order_no='{}'", order_no));
         }
+        if self.is_return_order.unwrap_or(false) {
+            where_clauses.push("is_return_order=true".to_string())
+        }
+        if self.is_urgent.unwrap_or(false) {
+            where_clauses.push("is_urgent=true".to_string())
+        }
+        if self.order_date_start.is_some() && self.order_date_end.is_some() {
+            where_clauses.push(format!(
+                "order_date>'{}' and order_date<='{}'",
+                self.order_date_start.as_deref().unwrap(),
+                self.order_date_end.as_deref().unwrap()
+            ))
+        }
 
+        if self.delivery_date_start.is_some() && self.delivery_date_end.is_some() {
+            where_clauses.push(format!(
+                "delivery_date > '{}' and delivery_date <= '{}'",
+                self.delivery_date_start.as_deref().unwrap(),
+                self.delivery_date_end.as_deref().unwrap()
+            ))
+        }
         if !where_clauses.is_empty() {
             sql.push_str(&format!(" where {}", where_clauses.join(" and ")))
         }
