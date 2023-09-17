@@ -9,7 +9,6 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
     let (cols, rows) = sheet.get_highest_column_and_row();
     tracing::info!("cols: {cols}, rows: {rows}");
 
-    // let mut items = vec![];
     let mut index_to_items = HashMap::new();
 
     let mut pre: Option<OrderItemExcel> = None;

@@ -1,9 +1,7 @@
-use crate::common::string::{is_empty_string_vec, remove_whitespace_str};
+use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
-use crate::excel::process_order_excel_goods::convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items;
-use crate::model::order::{ExcelOrderGoodsWithItems, OrderItemExcel};
+use crate::model::order::OrderItemExcel;
 use crate::{ERPError, ERPResult};
-use itertools::Itertools;
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
