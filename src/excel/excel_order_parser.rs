@@ -7,15 +7,8 @@ use crate::excel::process_order_excel_goods::process_order_excel_with_goods_no_a
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::order::{ExcelOrderV2, OrderInfo, OrderModel};
 use crate::{ERPError, ERPResult};
-use sqlx::{FromRow, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use umya_spreadsheet::reader;
-
-#[derive(FromRow)]
-struct ExistingOrderGoods {
-    pub order_id: i32,
-    pub goods_id: i32,
-    pub goods_no: String,
-}
 
 #[derive(Debug)]
 pub struct ExcelOrderParser<'a> {
