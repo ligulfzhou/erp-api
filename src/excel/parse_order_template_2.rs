@@ -103,62 +103,63 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
     Ok(index_to_items)
 }
 
-pub fn checking_order_items_excel_2(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
-    let sku_nos = order_items_excel
-        .iter()
-        .map(|item| item.sku_no.as_deref().unwrap_or(""))
-        .collect::<Vec<&str>>();
-
-    let mut sku_nos_clone = sku_nos.clone();
-    sku_nos_clone.dedup();
-    if sku_nos_clone.len() != sku_nos.len() {
-        let mut sku_no_to_count = HashMap::new();
-        for sku_no in sku_nos {
-            *sku_no_to_count.entry(sku_no).or_insert(0) += 1;
-        }
-
-        let dup_sku_nos = sku_no_to_count
-            .iter()
-            .filter_map(|item| {
-                if item.1 > &1 {
-                    Some(item.0.to_owned())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<&str>>()
-            .join(",");
-
-        return Err(ERPError::ExcelError(format!(
-            "编号#{dup_sku_nos}可能重复,或者有多余总计的行"
-        )));
-    }
-
-    let mut index_order_items = HashMap::new();
-
-    for order_item in order_items_excel.iter() {
-        index_order_items
-            .entry(order_item.index)
-            .or_insert(vec![])
-            .push(order_item);
-    }
-
-    for (index, order_items) in index_order_items.iter() {
-        let sku_nos = order_items
-            .iter()
-            .map(|item| item.sku_no.as_deref().unwrap_or("").to_string())
-            .collect::<Vec<String>>();
-
-        let goods_no = common_prefix(sku_nos);
-        if goods_no.is_none() || goods_no.unwrap().len() != 6 {
-            return Err(ERPError::ExcelError(format!(
-                "序号#{index}的编号可能有错误"
-            )));
-        }
-    }
-
-    Ok(())
-}
+// see: convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items
+// pub fn checking_order_items_excel_2(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
+//     let sku_nos = order_items_excel
+//         .iter()
+//         .map(|item| item.sku_no.as_deref().unwrap_or(""))
+//         .collect::<Vec<&str>>();
+//
+//     let mut sku_nos_clone = sku_nos.clone();
+//     sku_nos_clone.dedup();
+//     if sku_nos_clone.len() != sku_nos.len() {
+//         let mut sku_no_to_count = HashMap::new();
+//         for sku_no in sku_nos {
+//             *sku_no_to_count.entry(sku_no).or_insert(0) += 1;
+//         }
+//
+//         let dup_sku_nos = sku_no_to_count
+//             .iter()
+//             .filter_map(|item| {
+//                 if item.1 > &1 {
+//                     Some(item.0.to_owned())
+//                 } else {
+//                     None
+//                 }
+//             })
+//             .collect::<Vec<&str>>()
+//             .join(",");
+//
+//         return Err(ERPError::ExcelError(format!(
+//             "编号#{dup_sku_nos}可能重复,或者有多余总计的行"
+//         )));
+//     }
+//
+//     let mut index_order_items = HashMap::new();
+//
+//     for order_item in order_items_excel.iter() {
+//         index_order_items
+//             .entry(order_item.index)
+//             .or_insert(vec![])
+//             .push(order_item);
+//     }
+//
+//     for (index, order_items) in index_order_items.iter() {
+//         let sku_nos = order_items
+//             .iter()
+//             .map(|item| item.sku_no.as_deref().unwrap_or("").to_string())
+//             .collect::<Vec<String>>();
+//
+//         let goods_no = common_prefix(sku_nos);
+//         if goods_no.is_none() || goods_no.unwrap().len() != 6 {
+//             return Err(ERPError::ExcelError(format!(
+//                 "序号#{index}的编号可能有错误"
+//             )));
+//         }
+//     }
+//
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {

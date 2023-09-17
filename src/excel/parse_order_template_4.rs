@@ -104,40 +104,41 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
     Ok(index_to_items)
 }
 
-pub fn checking_order_items_excel_4(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
-    let mut index_order_items = HashMap::new();
-
-    for order_item in order_items_excel.iter() {
-        index_order_items
-            .entry(order_item.index)
-            .or_insert(vec![])
-            .push(order_item);
-    }
-
-    for (index, order_items) in index_order_items.iter() {
-        let mut goods_nos = order_items
-            .iter()
-            .map(|item| item.goods_no.as_str())
-            .collect::<Vec<&str>>();
-        goods_nos.dedup();
-        if goods_nos.len() > 1 {
-            return Err(ERPError::ExcelError(format!(
-                "Excel内序号#{index}可能重复,或者有 多余总计的行"
-            )));
-        }
-    }
-
-    for order_item in order_items_excel.iter() {
-        if order_item.color.is_empty() {
-            return Err(ERPError::ExcelError(format!(
-                "序列#{}可能有重复，或者有多余的总计的行",
-                order_item.index
-            )));
-        }
-    }
-
-    Ok(())
-}
+// see: convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items
+// pub fn checking_order_items_excel_4(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
+//     let mut index_order_items = HashMap::new();
+//
+//     for order_item in order_items_excel.iter() {
+//         index_order_items
+//             .entry(order_item.index)
+//             .or_insert(vec![])
+//             .push(order_item);
+//     }
+//
+//     for (index, order_items) in index_order_items.iter() {
+//         let mut goods_nos = order_items
+//             .iter()
+//             .map(|item| item.goods_no.as_str())
+//             .collect::<Vec<&str>>();
+//         goods_nos.dedup();
+//         if goods_nos.len() > 1 {
+//             return Err(ERPError::ExcelError(format!(
+//                 "Excel内序号#{index}可能重复,或者有 多余总计的行"
+//             )));
+//         }
+//     }
+//
+//     for order_item in order_items_excel.iter() {
+//         if order_item.color.is_empty() {
+//             return Err(ERPError::ExcelError(format!(
+//                 "序列#{}可能有重复，或者有多余的总计的行",
+//                 order_item.index
+//             )));
+//         }
+//     }
+//
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {

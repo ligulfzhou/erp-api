@@ -84,46 +84,47 @@ pub fn parse_order_excel_t3(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
     Ok(index_to_items)
 }
 
-pub fn checking_order_items_excel_3(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
-    let mut index_order_items = HashMap::new();
-
-    for order_item in order_items_excel.iter() {
-        index_order_items
-            .entry(order_item.index)
-            .or_insert(vec![])
-            .push(order_item);
-    }
-
-    for (index, order_items) in index_order_items.iter() {
-        let mut goods_nos = order_items
-            .iter()
-            .map(|item| item.goods_no.as_str())
-            .collect::<Vec<&str>>();
-        goods_nos.dedup();
-        if goods_nos.len() > 1 {
-            return Err(ERPError::ExcelError(format!(
-                "Excel内序号#{index}可能重复,或者有多余总计的行"
-            )));
-        }
-    }
-
-    let mut sku_count = HashMap::new();
-    for order_item in order_items_excel.iter() {
-        let str = format!("{}+{}", order_item.goods_no, order_item.color);
-        *sku_count.entry(str).or_insert(0) += 1;
-    }
-    println!("{:?}", sku_count);
-
-    for (sku, count) in sku_count.iter() {
-        if count > &1 {
-            return Err(ERPError::ExcelError(format!(
-                "{sku}可能有重复，或者有多余的总计的行"
-            )));
-        }
-    }
-
-    Ok(())
-}
+// see: convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items
+// pub fn checking_order_items_excel_3(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {
+//     let mut index_order_items = HashMap::new();
+//
+//     for order_item in order_items_excel.iter() {
+//         index_order_items
+//             .entry(order_item.index)
+//             .or_insert(vec![])
+//             .push(order_item);
+//     }
+//
+//     for (index, order_items) in index_order_items.iter() {
+//         let mut goods_nos = order_items
+//             .iter()
+//             .map(|item| item.goods_no.as_str())
+//             .collect::<Vec<&str>>();
+//         goods_nos.dedup();
+//         if goods_nos.len() > 1 {
+//             return Err(ERPError::ExcelError(format!(
+//                 "Excel内序号#{index}可能重复,或者有多余总计的行"
+//             )));
+//         }
+//     }
+//
+//     let mut sku_count = HashMap::new();
+//     for order_item in order_items_excel.iter() {
+//         let str = format!("{}+{}", order_item.goods_no, order_item.color);
+//         *sku_count.entry(str).or_insert(0) += 1;
+//     }
+//     println!("{:?}", sku_count);
+//
+//     for (sku, count) in sku_count.iter() {
+//         if count > &1 {
+//             return Err(ERPError::ExcelError(format!(
+//                 "{sku}可能有重复，或者有多余的总计的行"
+//             )));
+//         }
+//     }
+//
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {

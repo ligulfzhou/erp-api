@@ -100,7 +100,6 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
     }
 
     Ok(index_to_items)
-    // convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(index_to_items)
 }
 
 #[cfg(test)]
