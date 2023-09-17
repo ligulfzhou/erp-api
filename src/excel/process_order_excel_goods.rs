@@ -1,123 +1,61 @@
+use crate::common::string::is_empty_string_vec;
 use crate::error::ERPResult;
 use crate::model::goods::SKUModel;
 use crate::model::order::{
-    ExcelOrderGoods, ExcelOrderGoodsWithItems, OrderGoodsModel, OrderInfo, OrderItemModel,
+    ExcelOrderGoods, ExcelOrderGoodsWithItems, OrderGoodsModel, OrderInfo, OrderItemExcel,
+    OrderItemModel,
 };
 use crate::ERPError;
+use itertools::Itertools;
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 
-pub async fn process_order_excel_with_goods_no_and_sku_no(
-    db: &Pool<Postgres>,
-    order_goods_excel: &Vec<ExcelOrderGoodsWithItems>,
-    order_info: &OrderInfo,
-) -> ERPResult<()> {
-    let goods_nos = order_goods_excel
-        .iter()
-        .map(|item| item.goods.goods_no.clone())
-        .collect::<Vec<String>>();
+pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
+    index_to_order_item_excel: HashMap<i32, Vec<OrderItemExcel>>,
+) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {
+    let empty_order_item_excel_vec: Vec<OrderItemExcel> = vec![];
+    let mut res = vec![];
+    for index in index_to_order_item_excel.keys().sorted() {
+        let items = index_to_order_item_excel
+            .get(index)
+            .unwrap_or(&empty_order_item_excel_vec);
 
-    let mut existing_goods_no_to_id = sqlx::query!(
-        "select id, goods_no from goods where goods_no = any($1)",
-        &goods_nos
-    )
-    .fetch_all(db)
-    .await
-    .map_err(ERPError::DBError)?
-    .into_iter()
-    .map(|item| (item.goods_no, item.id))
-    .collect::<HashMap<String, i32>>();
-    println!("existing_id_goods_no: {:?}", existing_goods_no_to_id);
+        // todo: 检查数据是否有问题
+        // let mut goods_nos = items
+        //     .iter()
+        //     .map(|item| item.goods_no.as_str())
+        //     .collect::<Vec<&str>>();
+        //
+        // println!("goods_no: {:?}", goods_nos);
+        // goods_nos.dedup();
+        // println!("goods_no: {:?}", goods_nos);
+        // if goods_nos.len() > 1 {
+        //     return Err(ERPError::ExcelError(format!(
+        //         "Excel内序号#{index}可能重复,或者有多余总计的行"
+        //     )));
+        // }
 
-    let to_add_goods_nos = goods_nos
-        .iter()
-        .filter(|item| !existing_goods_no_to_id.contains_key(*item))
-        .map(|item| item.as_str())
-        .collect::<Vec<&str>>();
-
-    println!(
-        "to_add_goods_nos: {:?}, len: {}",
-        to_add_goods_nos,
-        to_add_goods_nos.len()
-    );
-
-    if !to_add_goods_nos.is_empty() {
-        let to_add_goods = order_goods_excel
+        // 检查数据是否有问题(goods_no至少有一个值）
+        let goods_nos = items
             .iter()
-            .filter(|item| to_add_goods_nos.contains(&item.goods.goods_no.as_str()))
-            .map(|item| item.goods.clone())
-            .collect::<Vec<ExcelOrderGoods>>();
-
-        println!(
-            "to_add_goods: {:?}, len: {}",
-            to_add_goods,
-            to_add_goods.len()
-        );
-
-        let new_goods_no_to_id =
-            ExcelOrderGoods::insert_into_goods_table(db, &to_add_goods, &order_info.customer_no)
-                .await?;
-
-        println!("new_goods_no_to_id: {:?}", new_goods_no_to_id);
-
-        for (goods_no, id) in new_goods_no_to_id.into_iter() {
-            existing_goods_no_to_id.insert(goods_no, id);
+            .map(|item| item.goods_no.as_str())
+            .collect::<Vec<&str>>();
+        if is_empty_string_vec(goods_nos) {
+            return Err(ERPError::ExcelError(format!(
+                "Excel内序号#{index},没有读到商品编号"
+            )));
         }
-    }
-    println!("goods_no_to_id: {:?}", existing_goods_no_to_id);
 
-    // 用goods_ids去获取所有的skus，如果数据没有入库，则入库
-    let goods_ids = existing_goods_no_to_id
-        .iter()
-        .map(|item| *item.1)
-        .collect::<Vec<i32>>();
-
-    let skus = sqlx::query_as!(
-        SKUModel,
-        "select * from skus where goods_id = any($1)",
-        &goods_ids
-    )
-    .fetch_all(db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    let mut sku_no_to_id = skus
-        .iter()
-        .map(|item| (item.sku_no.as_str(), item.id))
-        .collect::<HashMap<&str, i32>>();
-    let sku_nos = skus
-        .iter()
-        .map(|item| item.sku_no.as_str())
-        .collect::<Vec<&str>>();
-
-    let mut skus_to_add = vec![];
-    for order_goods in order_goods_excel {
-        let goods_id = existing_goods_no_to_id
-            .get(&order_goods.goods.goods_no)
-            .unwrap_or(&0);
-        for order_goods_sku in order_goods.items.iter() {
-            let sku_no = order_goods_sku.sku_no.as_deref().unwrap_or("");
-            if !sku_nos.contains(&sku_no) {
-                skus_to_add.push(SKUModel {
-                    id: 0,
-                    goods_id: *goods_id,
-                    sku_no: sku_no.to_string(),
-                    color: order_goods_sku.color.to_string(),
-                    color2: order_goods_sku.color_2.as_deref().unwrap_or("").to_string(),
-                    notes: None,
-                })
-            }
-        }
+        let goods = OrderItemExcel::pick_up_excel_goods(items);
+        println!("pick_up_excel_goods: {:?}", goods);
+        let excel_order_goods_with_items = ExcelOrderGoodsWithItems {
+            goods,
+            items: items.clone(),
+        };
+        res.push(excel_order_goods_with_items);
     }
 
-    if !skus_to_add.is_empty() {
-        let new_skus = ExcelOrderGoods::insert_into_skus_table(db, &skus_to_add).await?;
-        for new_sku in new_skus.iter() {
-            sku_no_to_id.insert(new_sku.sku_no.as_str(), new_sku.id);
-        }
-    }
-
-    Ok(())
+    Ok(res)
 }
 
 pub async fn process_order_excel_with_goods_no_and_sku_color(

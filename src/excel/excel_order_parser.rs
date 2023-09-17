@@ -3,7 +3,10 @@ use crate::excel::parse_order_template_1::parse_order_excel_t1;
 use crate::excel::parse_order_template_2::parse_order_excel_t2;
 use crate::excel::parse_order_template_3::parse_order_excel_t3;
 use crate::excel::parse_order_template_4::parse_order_excel_t4;
-use crate::excel::process_order_excel_goods::process_order_excel_with_goods_no_and_sku_color;
+use crate::excel::process_order_excel_goods::{
+    convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items,
+    process_order_excel_with_goods_no_and_sku_color,
+};
 use crate::model::excel::CustomerExcelTemplateModel;
 use crate::model::order::{ExcelOrderV2, OrderInfo, OrderModel};
 use crate::{ERPError, ERPResult};
@@ -60,13 +63,15 @@ impl<'a> ExcelOrderParser<'a> {
         let template_id = customer_excel_template_model.unwrap().template_id;
         let order_items = match template_id {
             1 => parse_order_excel_t1(sheet)?,
-            // 2 => parse_order_excel_t2(sheet),
-            // 3 => parse_order_excel_t3(sheet),
-            // 4 => parse_order_excel_t4(sheet),
+            2 => parse_order_excel_t2(sheet)?,
+            3 => parse_order_excel_t3(sheet)?,
+            4 => parse_order_excel_t4(sheet)?,
             _ => parse_order_excel_t1(sheet)?,
         };
 
         println!("order_items: {:?}", order_items);
+        let order_goods_item =
+            convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(order_items)?;
 
         // 判断order_no是否已经存在
         let mut order_exists = false;
@@ -92,7 +97,7 @@ impl<'a> ExcelOrderParser<'a> {
             1 => {
                 process_order_excel_with_goods_no_and_sku_color(
                     &self.db,
-                    &order_items,
+                    &order_goods_item,
                     &order_info,
                     order_id,
                 )
@@ -101,7 +106,7 @@ impl<'a> ExcelOrderParser<'a> {
             _ => {
                 process_order_excel_with_goods_no_and_sku_color(
                     &self.db,
-                    &order_items,
+                    &order_goods_item,
                     &order_info,
                     order_id,
                 )
@@ -111,7 +116,7 @@ impl<'a> ExcelOrderParser<'a> {
 
         let excel_order = ExcelOrderV2 {
             info: order_info,
-            items: order_items,
+            items: order_goods_item,
             exists: order_exists,
         };
 

@@ -5,11 +5,12 @@ use crate::{ERPError, ERPResult};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
+pub fn parse_order_excel_t2(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
     let (cols, rows) = sheet.get_highest_column_and_row();
     tracing::info!("cols: {cols}, rows: {rows}");
 
-    let mut items = vec![];
+    // let mut items = vec![];
+    let mut index_to_items = HashMap::new();
 
     let mut pre: Option<OrderItemExcel> = None;
     for i in 7..rows + 1 {
@@ -33,11 +34,23 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
 
             let cell = sheet.get_cell((j, i));
             if cell.is_none() {
+                if j == 1 {
+                    // 如果是第一格是空的，就当作是空行/
+                    return Err(ERPError::ExcelError(format!(
+                        "第{i}行可能有空行，因为没有读到index的数据"
+                    )));
+                }
                 continue;
             }
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
+                if j == 1 {
+                    // 如果是第一格是空的，就当作是空行/
+                    return Err(ERPError::ExcelError(format!(
+                        "第{i}行可能有空行，因为没有读到index的数据"
+                    )));
+                }
                 continue;
             }
 
@@ -75,11 +88,20 @@ pub fn parse_order_excel_t2(sheet: &Worksheet) -> Vec<OrderItemExcel> {
             cur.package_card = Some(format!("{}/package/{}.png", STORAGE_URL_PREFIX, identifier));
         }
 
-        items.push(cur.clone());
+        if cur.index == 0 {
+            return Err(ERPError::ExcelError(format!(
+                "第{i}行可能有空行，因为没有读到index的数据"
+            )));
+        }
+
+        index_to_items
+            .entry(cur.index)
+            .or_insert(vec![])
+            .push(cur.clone());
         pre = Some(cur);
     }
 
-    items
+    Ok(index_to_items)
 }
 
 pub fn checking_order_items_excel_2(order_items_excel: &[OrderItemExcel]) -> ERPResult<()> {

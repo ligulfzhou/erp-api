@@ -1,15 +1,16 @@
 use crate::common::string::{is_empty_string_vec, remove_whitespace_str};
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
+use crate::excel::process_order_excel_goods::convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items;
 use crate::model::order::{ExcelOrderGoodsWithItems, OrderItemExcel};
 use crate::{ERPError, ERPResult};
 use itertools::Itertools;
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {
+pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
     let (cols, rows) = sheet.get_highest_column_and_row();
 
-    // 先获得了 index=> vec<Row>
+    // 先获得了 HashMap<index, vec<Row>>
     let mut index_to_items = HashMap::new();
     let mut pre: Option<OrderItemExcel> = None;
 
@@ -35,6 +36,12 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
 
             let cell = sheet.get_cell((j, i));
             if cell.is_none() {
+                if j == 1 {
+                    // 如果是第一格是空的，就当作是空行/
+                    return Err(ERPError::ExcelError(format!(
+                        "第{i}行可能有空行，因为没有读到index的数据"
+                    )));
+                }
                 continue;
             }
 
@@ -94,52 +101,8 @@ pub fn parse_order_excel_t1(sheet: &Worksheet) -> ERPResult<Vec<ExcelOrderGoodsW
         pre = Some(cur);
     }
 
-    // index=> vec<Row>
-    // 变成 ExcelOrderGoods
-
-    let empty_order_item_excel_vec: Vec<OrderItemExcel> = vec![];
-    let mut res = vec![];
-    for index in index_to_items.keys().sorted() {
-        let items = index_to_items
-            .get(index)
-            .unwrap_or(&empty_order_item_excel_vec);
-
-        // todo: 检查数据是否有问题
-        // let mut goods_nos = items
-        //     .iter()
-        //     .map(|item| item.goods_no.as_str())
-        //     .collect::<Vec<&str>>();
-        //
-        // println!("goods_no: {:?}", goods_nos);
-        // goods_nos.dedup();
-        // println!("goods_no: {:?}", goods_nos);
-        // if goods_nos.len() > 1 {
-        //     return Err(ERPError::ExcelError(format!(
-        //         "Excel内序号#{index}可能重复,或者有多余总计的行"
-        //     )));
-        // }
-
-        // 检查数据是否有问题(goods_no至少有一个值）
-        let goods_nos = items
-            .iter()
-            .map(|item| item.goods_no.as_str())
-            .collect::<Vec<&str>>();
-        if is_empty_string_vec(goods_nos) {
-            return Err(ERPError::ExcelError(format!(
-                "Excel内序号#{index},没有读到商品编号"
-            )));
-        }
-
-        let goods = OrderItemExcel::pick_up_excel_goods(items);
-        println!("pick_up_excel_goods: {:?}", goods);
-        let excel_order_goods_with_items = ExcelOrderGoodsWithItems {
-            goods,
-            items: items.clone(),
-        };
-        res.push(excel_order_goods_with_items);
-    }
-
-    Ok(res)
+    Ok(index_to_items)
+    // convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(index_to_items)
 }
 
 #[cfg(test)]
