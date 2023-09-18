@@ -81,7 +81,6 @@ impl<'a> ExcelOrderParser<'a> {
             match order {
                 None => {
                     tracing::info!("order#{} not exists, we will save", &order_info.order_no);
-
                     OrderInfo::insert_to_orders(&self.db, &order_info).await?
                 }
                 Some(existing_order) => {

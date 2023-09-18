@@ -31,23 +31,23 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
 
             let cell = sheet.get_cell((j, i));
             if cell.is_none() {
-                if j == 1 {
-                    // 如果是第一格是空的，就当作是空行/
-                    return Err(ERPError::ExcelError(format!(
-                        "第{i}行可能有空行，因为没有读到index的数据"
-                    )));
-                }
+                // if j == 1 {
+                //     // 如果是第一格是空的，就当作是空行/
+                //     return Err(ERPError::ExcelError(format!(
+                //         "第{i}行可能有空行，因为没有读到index的数据"
+                //     )));
+                // }
                 continue;
             }
 
             let cell_value = cell.unwrap().get_raw_value().to_string();
             if cell_value.is_empty() {
-                if j == 1 {
-                    // 如果是第一格是空的，就当作是空行/
-                    return Err(ERPError::ExcelError(format!(
-                        "第{i}行可能有空行，因为没有读到index的数据"
-                    )));
-                }
+                // if j == 1 {
+                //     // 如果是第一格是空的，就当作是空行/
+                //     return Err(ERPError::ExcelError(format!(
+                //         "第{i}行可能有空行，因为没有读到index的数据"
+                //     )));
+                // }
                 continue;
             }
 

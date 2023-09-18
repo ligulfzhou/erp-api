@@ -12,6 +12,7 @@ use std::collections::HashMap;
 
 pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
     index_to_order_item_excel: HashMap<i32, Vec<OrderItemExcel>>,
+    // template_id: i32
 ) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {
     let empty_order_item_excel_vec: Vec<OrderItemExcel> = vec![];
     let mut res = vec![];
@@ -40,6 +41,8 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
             .iter()
             .map(|item| item.goods_no.as_str())
             .collect::<Vec<&str>>();
+        println!("goods_nos: {goods_nos:?}");
+
         if is_empty_string_vec(goods_nos) {
             return Err(ERPError::ExcelError(format!(
                 "Excel内序号#{index},没有读到商品编号"
