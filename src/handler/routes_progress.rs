@@ -12,6 +12,7 @@ use axum::{Extension, Router};
 use axum_extra::extract::WithRejection;
 use chrono::Utc;
 use std::collections::HashMap;
+use std::os::macos::raw::stat;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
@@ -144,25 +145,39 @@ async fn mark_progress(
         }
 
         let now = Utc::now().naive_utc();
-        let now_str = format_datetime(now);
-        let sql = "insert into progress (order_item_id, step, index, account_id, done, notes, dt) values ";
-
-        let done = DONE_INDEX == payload.index;
-        let multi_items = order_item_ids_vec
+        // let now_str = format_datetime(now);
+        let to_insert_progress_models = order_item_ids_vec
             .iter()
-            .map(|oii| {
-                format!(
-                    "({}, {}, {}, {}, {}, '{}', '{}')",
-                    oii, step, payload.index, account.id, done, payload.notes, now_str
-                )
+            .map(|oii| ProgressModel {
+                id: 0,
+                order_item_id,
+                step,
+                index: payload.index,
+                account_id: account.id,
+                done: payload.index == DONE_INDEX,
+                notes: payload.notes.clone(),
+                dt: now,
             })
-            .collect::<Vec<String>>()
-            .join(",");
-
-        sqlx::query(&format!("{sql} {multi_items}"))
-            .execute(&state.db)
-            .await
-            .map_err(ERPError::DBError)?;
+            .collect::<Vec<ProgressModel>>();
+        ProgressModel::insert_multiple(&state.db, &to_insert_progress_models).await?;
+        // let sql = "insert into progress (order_item_id, step, index, account_id, done, notes, dt) values ";
+        //
+        // let done = DONE_INDEX == payload.index;
+        // let multi_items = order_item_ids_vec
+        //     .iter()
+        //     .map(|oii| {
+        //         format!(
+        //             "({}, {}, {}, {}, {}, '{}', '{}')",
+        //             oii, step, payload.index, account.id, done, payload.notes, now_str
+        //         )
+        //     })
+        //     .collect::<Vec<String>>()
+        //     .join(",");
+        //
+        // sqlx::query(&format!("{sql} {multi_items}"))
+        //     .execute(&state.db)
+        //     .await
+        //     .map_err(ERPError::DBError)?;
     } else {
         // 获得上一个 节点 在什么步骤
         let order_item = sqlx::query_as::<_, (i32,)>(&format!(

@@ -1,6 +1,6 @@
 use crate::{ERPError, ERPResult};
 use chrono::NaiveDateTime;
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
@@ -24,6 +24,33 @@ struct IdId {
 }
 
 impl ProgressModel {
+    pub async fn insert_multiple(
+        db: &Pool<Postgres>,
+        rows: &[ProgressModel],
+    ) -> ERPResult<Vec<ProgressModel>> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "insert into progress (order_item_id, step, index, account_id, done, notes, dt) ",
+        );
+
+        query_builder.push_values(rows, |mut b, item| {
+            b.push_bind(item.order_item_id)
+                .push_bind(item.step)
+                .push_bind(item.index)
+                .push_bind(item.account_id)
+                .push_bind(item.done)
+                .push_bind(item.notes.clone())
+                .push_bind(item.dt);
+        });
+        query_builder.push(" returning *;");
+
+        let res = query_builder
+            .build_query_as::<ProgressModel>()
+            .fetch_all(db)
+            .await
+            .map_err(ERPError::DBError)?;
+
+        Ok(res)
+    }
     pub async fn get_progress_status(
         db: &Pool<Postgres>,
         order_ids: Vec<i32>,
