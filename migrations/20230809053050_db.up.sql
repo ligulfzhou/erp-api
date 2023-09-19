@@ -131,13 +131,13 @@ create unique index uniq_order_items_order_id_and_sku_id on order_items (order_i
 create table progress
 (
     id            serial,
-    order_item_id integer   not null default 0,
-    step          integer   not null default 0, -- 哪一步
-    index         integer   not null default 0,
-    account_id    integer   not null default 0,
-    done          boolean   not null default false,
-    notes         text      not null default '',
-    dt            timestamp not null
+    order_item_id integer     not null default 0,
+    step          integer     not null default 0, -- 哪一步
+    index         integer     not null default 0,
+    account_id    integer     not null default 0,
+    done          boolean     not null default false,
+    notes         text        not null default '',
+    dt            timestamptz not null
 );
 
 -- -- 订单sku的的材料单 * N

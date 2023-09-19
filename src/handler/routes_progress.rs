@@ -1,4 +1,3 @@
-use crate::common::datetime::format_datetime;
 use crate::constants::DONE_INDEX;
 use crate::dto::dto_account::AccountDto;
 use crate::middleware::auth::auth;
@@ -12,7 +11,6 @@ use axum::{Extension, Router};
 use axum_extra::extract::WithRejection;
 use chrono::Utc;
 use std::collections::HashMap;
-use std::os::macos::raw::stat;
 use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
@@ -144,7 +142,7 @@ async fn mark_progress(
             ));
         }
 
-        let now = Utc::now().naive_utc();
+        let now = Utc::now();
         // let now_str = format_datetime(now);
         let to_insert_progress_models = order_item_ids_vec
             .iter()
@@ -197,7 +195,7 @@ async fn mark_progress(
             ));
         }
 
-        let now = Utc::now().naive_utc();
+        let now = Utc::now();
         sqlx::query!(
             r#"
             insert into progress (order_item_id, step, index, account_id, done, notes, dt)

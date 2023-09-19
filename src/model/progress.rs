@@ -1,5 +1,5 @@
 use crate::{ERPError, ERPResult};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
@@ -12,7 +12,7 @@ pub struct ProgressModel {
     pub account_id: i32,    // 操作人ID
     pub done: bool,         // 完成
     pub notes: String,      // 备注
-    pub dt: NaiveDateTime,  // 操作日期
+    pub dt: DateTime<Utc>,  // 操作日期
 }
 
 pub type OrderItemSteps = HashMap<i32, HashMap<i32, i32>>;
