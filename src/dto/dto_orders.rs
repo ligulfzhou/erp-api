@@ -253,6 +253,7 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub package_card_des: String,
 
     pub is_next_action: bool,
+    pub current_step: i32, // 如果 is_next_action=false，这里的值则没有意义
     pub steps: StepCountUF,
     pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
@@ -263,6 +264,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
         steps: StepCount,
         items: Vec<OrderGoodsItemWithStepsDto>,
         is_next_action: bool,
+        current_step: i32,
     ) -> OrderGoodsWithStepsWithItemStepDto {
         Self {
             id: order_goods.id,
@@ -275,6 +277,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             package_card: order_goods.package_card,
             package_card_des: order_goods.package_card_des,
             is_next_action,
+            current_step,
             steps: to_step_count_user_friendly(steps),
             items,
         }

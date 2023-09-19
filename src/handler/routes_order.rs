@@ -499,6 +499,7 @@ async fn get_order_items(
                         HashMap::new(),
                         vec![],
                         false,
+                        0,
                     )
                 })
                 .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>(),
@@ -599,12 +600,14 @@ async fn get_order_items(
             }
 
             let mut is_next_action = false;
+            let mut current_step = 0;
             let steps = order_item_steps_count
                 .iter()
                 .map(|sc| sc.0)
                 .collect::<Vec<&i32>>();
             if steps.len() == 1 && account.steps.contains(steps[0]) {
                 is_next_action = true;
+                current_step = *steps[0];
             }
             // println!("steps: {:?}, {}", steps, is_next_action);
             OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
@@ -612,6 +615,7 @@ async fn get_order_items(
                 order_item_steps_count,
                 items.clone(),
                 is_next_action,
+                current_step,
             )
         })
         .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
@@ -701,7 +705,6 @@ async fn get_plain_order_items(
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-    // tracing::info!("progresses: {:?}", progresses);
 
     let order_item_step = progresses
         .into_iter()
