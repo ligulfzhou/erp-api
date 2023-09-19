@@ -150,7 +150,7 @@ async fn mark_progress(
             .iter()
             .map(|oii| ProgressModel {
                 id: 0,
-                order_item_id,
+                order_item_id: *oii,
                 step,
                 index: payload.index,
                 account_id: account.id,
