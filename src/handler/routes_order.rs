@@ -55,7 +55,6 @@ struct OrderDates {
     order_date: NaiveDate,
 }
 
-// type OrderByDate = HashMap<NaiveDate, Vec<OrderModel>>;
 #[derive(Debug, Serialize)]
 struct OrdersWithDate {
     date: NaiveDate,

@@ -133,6 +133,7 @@ create table progress
     id            serial,
     order_item_id integer   not null default 0,
     step          integer   not null default 0, -- 哪一步
+    index         integer   not null default 0,
     account_id    integer   not null default 0,
     done          boolean   not null default false,
     notes         text      not null default '',
