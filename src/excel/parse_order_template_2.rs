@@ -1,4 +1,4 @@
-use crate::common::string::{common_prefix, remove_whitespace_str};
+use crate::common::string::remove_whitespace_str;
 use crate::constants::{STORAGE_FILE_PATH, STORAGE_URL_PREFIX};
 use crate::model::order::OrderItemExcel;
 use crate::{ERPError, ERPResult};

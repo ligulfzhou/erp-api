@@ -143,7 +143,6 @@ async fn mark_progress(
         }
 
         let now = Utc::now();
-        // let now_str = format_datetime(now);
         let to_insert_progress_models = order_item_ids_vec
             .iter()
             .map(|oii| ProgressModel {
