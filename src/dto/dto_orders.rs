@@ -142,7 +142,7 @@ pub struct OrderPlainItemWithCurrentStepDto {
     pub notes: String,
 
     pub is_next_action: bool,
-    pub step_id: i32,
+    pub current_step: i32,
     pub step: String,
 }
 
@@ -150,7 +150,7 @@ impl OrderPlainItemWithCurrentStepDto {
     pub fn from(
         item: OrderPlainItemDto,
         is_next_action: bool,
-        step: i32,
+        current_step: i32,
     ) -> OrderPlainItemWithCurrentStepDto {
         Self {
             id: item.id,
@@ -171,8 +171,11 @@ impl OrderPlainItemWithCurrentStepDto {
             total_price: item.total_price,
             notes: item.notes,
             is_next_action,
-            step_id: step,
-            step: STEP_TO_DEPARTMENT.get(&step).unwrap_or(&"").to_string(),
+            current_step,
+            step: STEP_TO_DEPARTMENT
+                .get(&current_step)
+                .unwrap_or(&"")
+                .to_string(),
         }
     }
 }
@@ -193,6 +196,7 @@ pub struct OrderGoodsItemWithStepsDto {
     pub notes: String,
 
     pub is_next_action: bool,
+    pub current_step: i32,
     pub steps: Vec<OneProgress>,
 }
 
@@ -201,6 +205,7 @@ impl OrderGoodsItemWithStepsDto {
         ogid: OrderGoodsItemDto,
         steps: Vec<OneProgress>,
         is_next_action: bool,
+        current_step: i32,
     ) -> OrderGoodsItemWithStepsDto {
         Self {
             id: ogid.id,
@@ -216,6 +221,7 @@ impl OrderGoodsItemWithStepsDto {
             total_price: ogid.total_price,
             notes: ogid.notes,
             is_next_action,
+            current_step,
             steps,
         }
     }

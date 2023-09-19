@@ -489,12 +489,6 @@ async fn get_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    // tracing::info!(
-    //     "order_items: {:?}, len: {}",
-    //     order_items_dto,
-    //     order_items_dto.len()
-    // );
-
     if order_items_dto.is_empty() {
         return Ok(APIListResponse::new(
             order_goods
@@ -542,10 +536,6 @@ async fn get_order_items(
             .or_insert(vec![]);
         progress_vec.push(one_progress);
     }
-    // tracing::info!(
-    //     "order_item_id_to_progress_vec: {:?}",
-    //     order_item_id_to_progress_vec
-    // );
 
     let empty: Vec<OneProgress> = vec![];
     let order_items_with_steps_dtos = order_items_dto
@@ -566,7 +556,7 @@ async fn get_order_items(
             };
             let is_next_action = account.steps.contains(&step);
 
-            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action)
+            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action, step)
         })
         .collect::<Vec<OrderGoodsItemWithStepsDto>>();
 
