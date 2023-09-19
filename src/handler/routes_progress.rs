@@ -1,4 +1,5 @@
 use crate::common::datetime::format_datetime;
+use crate::constants::DONE_INDEX;
 use crate::dto::dto_account::AccountDto;
 use crate::middleware::auth::auth;
 use crate::model::progress::ProgressModel;
@@ -85,22 +86,17 @@ async fn mark_progress(
             .map(|item| item.0)
             .collect::<Vec<i32>>();
 
-        let order_item_ids_str = order_item_ids_vec
-            .iter()
-            .map(|item| item.to_string())
-            .collect::<Vec<String>>()
-            .join(",");
-
-        let progresses = sqlx::query_as::<_, ProgressModel>(&format!(
+        let progresses = sqlx::query_as!(
+            ProgressModel,
             r#"
             select distinct on (order_item_id)
-            id, order_item_id, step, account_id, done, notes, dt
+            id, order_item_id, step, account_id, done, notes, dt, index
             from progress
-            where order_item_id in ({})
+            where order_item_id = any($1)
             order by order_item_id, step, id desc;
             "#,
-            order_item_ids_str,
-        ))
+            &order_item_ids_vec,
+        )
         .fetch_all(&state.db)
         .await
         .map_err(ERPError::DBError)?;
@@ -149,14 +145,15 @@ async fn mark_progress(
 
         let now = Utc::now().naive_utc();
         let now_str = format_datetime(now);
-        let sql = "insert into progress (order_item_id, step, account_id, done, notes, dt) values ";
+        let sql = "insert into progress (order_item_id, step, index, account_id, done, notes, dt) values ";
 
+        let done = DONE_INDEX == payload.index;
         let multi_items = order_item_ids_vec
             .iter()
             .map(|oii| {
                 format!(
-                    "({}, {}, {}, {}, '{}', '{}')",
-                    oii, step, account.id, done, notes, now_str
+                    "({}, {}, {}, {}, {}, '{}', '{}')",
+                    oii, step, payload.index, account.id, done, payload.notes, now_str
                 )
             })
             .collect::<Vec<String>>()
@@ -206,14 +203,15 @@ async fn mark_progress(
         let now = Utc::now().naive_utc();
         sqlx::query!(
             r#"
-            insert into progress (order_item_id, step, account_id, done, notes, dt)
-            values ($1, $2, $3, $4, $5, $6)
+            insert into progress (order_item_id, step, index, account_id, done, notes, dt)
+            values ($1, $2, $3, $4, $5, $6, $7)
             "#,
             order_item_id,
             step,
+            payload.index,
             account.id,
-            done,
-            notes,
+            DONE_INDEX == payload.index,
+            payload.notes,
             now
         )
         .execute(&state.db)

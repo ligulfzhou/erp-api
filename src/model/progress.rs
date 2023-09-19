@@ -8,6 +8,7 @@ pub struct ProgressModel {
     pub id: i32,            // SERIAL,
     pub order_item_id: i32, // 订单商品ID
     pub step: i32,          // 当前是第几步
+    pub index: i32,         // 部门内的具体某流程
     pub account_id: i32,    // 操作人ID
     pub done: bool,         // 完成
     pub notes: String,      // 备注
@@ -52,7 +53,7 @@ impl ProgressModel {
             ProgressModel,
             r#"
             select distinct on (order_item_id)
-            id, order_item_id, step, account_id, done, notes, dt
+            id, order_item_id, step, account_id, done, notes, dt, index
             from progress
             where order_item_id = any($1)
             order by order_item_id, step desc, id desc;

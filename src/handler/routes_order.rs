@@ -527,7 +527,7 @@ async fn get_order_items(
     .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-    // tracing::info!("progresses: {:?}", progresses);
+    tracing::info!("progresses: {:?}", progresses);
 
     let mut order_item_id_to_progress_vec = HashMap::new();
     for one_progress in progresses.into_iter() {
@@ -694,7 +694,7 @@ async fn get_plain_order_items(
         ProgressModel,
         r#"
         select distinct on (order_item_id)
-        id, order_item_id, step, account_id, done, notes, dt
+        id, order_item_id, step, account_id, done, notes, dt, index
         from progress
         where order_item_id = any($1)
         order by order_item_id, step desc, id desc;
