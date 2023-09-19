@@ -51,10 +51,10 @@ insert into customers (customer_no, name, address, phone, notes)
 values ('L1005', '', '', '', '');
 insert into customers (customer_no, name, address, phone, notes)
 values ('L1006', '', '', '', '');
-insert into customers (customer_no, name, address, phone, notes)
-values ('L1007', '', '', '', '');
-insert into customers (customer_no, name, address, phone, notes)
-values ('L1012', '', '', '', '');
+-- insert into customers (customer_no, name, address, phone, notes)
+-- values ('L1007', '', '', '', '');
+-- insert into customers (customer_no, name, address, phone, notes)
+-- values ('L1012', '', '', '', '');
 
 create table customer_excel_template
 (
@@ -138,7 +138,6 @@ create table progress
     notes         text      not null default '',
     dt            timestamp not null
 );
-
 
 -- -- 订单sku的的材料单 * N
 -- create table order_item_materials

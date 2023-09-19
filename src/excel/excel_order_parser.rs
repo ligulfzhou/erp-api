@@ -70,8 +70,12 @@ impl<'a> ExcelOrderParser<'a> {
         };
 
         println!("order_items: {:?}", order_items);
+        let no_goods_no = matches!(template_id, 2);
         let order_goods_item =
-            convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(order_items)?;
+            convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
+                order_items,
+                no_goods_no,
+            )?;
 
         // 判断order_no是否已经存在
         let mut order_exists = false;

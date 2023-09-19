@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
     index_to_order_item_excel: HashMap<i32, Vec<OrderItemExcel>>,
-    // template_id: i32
+    no_goods_no: bool, // template_id: i32
 ) -> ERPResult<Vec<ExcelOrderGoodsWithItems>> {
     let empty_order_item_excel_vec: Vec<OrderItemExcel> = vec![];
     let mut res = vec![];
@@ -21,6 +21,20 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
             .get(index)
             .unwrap_or(&empty_order_item_excel_vec);
 
+        if !no_goods_no {
+            // 检查数据是否有问题(goods_no至少有一个值）
+            let goods_nos = items
+                .iter()
+                .map(|item| item.goods_no.as_str())
+                .collect::<Vec<&str>>();
+            println!("goods_nos: {goods_nos:?}");
+
+            if is_empty_string_vec(goods_nos) {
+                return Err(ERPError::ExcelError(format!(
+                    "Excel内序号#{index},没有读到商品编号"
+                )));
+            }
+        }
         // todo: 检查数据是否有问题
         // let mut goods_nos = items
         //     .iter()
@@ -35,19 +49,6 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
         //         "Excel内序号#{index}可能重复,或者有多余总计的行"
         //     )));
         // }
-
-        // 检查数据是否有问题(goods_no至少有一个值）
-        let goods_nos = items
-            .iter()
-            .map(|item| item.goods_no.as_str())
-            .collect::<Vec<&str>>();
-        println!("goods_nos: {goods_nos:?}");
-
-        if is_empty_string_vec(goods_nos) {
-            return Err(ERPError::ExcelError(format!(
-                "Excel内序号#{index},没有读到商品编号"
-            )));
-        }
 
         let goods = OrderItemExcel::pick_up_excel_goods(items);
         println!("pick_up_excel_goods: {:?}", goods);
@@ -164,7 +165,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                 skus_to_add.push(SKUModel {
                     id: 0,
                     goods_id: *goods_id,
-                    sku_no: "".to_string(),
+                    sku_no: order_goods_sku.sku_no.as_deref().unwrap_or("").to_string(),
                     color: order_goods_sku.color.to_string(),
                     color2: order_goods_sku.color_2.as_deref().unwrap_or("").to_string(),
                     notes: None,
