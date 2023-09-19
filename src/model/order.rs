@@ -179,17 +179,12 @@ pub struct ExcelOrderGoods {
     pub package_card_des: Option<String>,
 }
 
-#[derive(Debug, FromRow)]
-struct GoodsNoId {
-    pub goods_no: String,
-    pub id: i32,
-}
-
-#[derive(Debug, FromRow)]
-struct SKUNoId {
-    pub sku_no: String,
-    pub id: i32,
-}
+// #[derive(Debug, FromRow)]
+// struct GoodsNoId {
+//     pub goods_no: String,
+//     pub id: i32,
+// }
+// .build_query_as::<GoodsNoId>()
 
 impl ExcelOrderGoods {
     pub async fn insert_into_goods_table(
@@ -213,12 +208,12 @@ impl ExcelOrderGoods {
         query_builder.push(" returning goods_no, id;");
 
         let res = query_builder
-            .build_query_as::<GoodsNoId>()
+            .build_query_as::<(String, i32)>()
             .fetch_all(db)
             .await
             .map_err(ERPError::DBError)?
             .into_iter()
-            .map(|item| (item.goods_no, item.id))
+            .map(|item| (item.0, item.1))
             .collect::<HashMap<String, i32>>();
 
         Ok(res)

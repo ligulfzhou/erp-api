@@ -18,7 +18,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ListCustomerParam {
     customer_no: Option<String>,
 
