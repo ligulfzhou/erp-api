@@ -160,24 +160,6 @@ async fn mark_progress(
             })
             .collect::<Vec<ProgressModel>>();
         ProgressModel::insert_multiple(&state.db, &to_insert_progress_models).await?;
-        // let sql = "insert into progress (order_item_id, step, index, account_id, done, notes, dt) values ";
-        //
-        // let done = DONE_INDEX == payload.index;
-        // let multi_items = order_item_ids_vec
-        //     .iter()
-        //     .map(|oii| {
-        //         format!(
-        //             "({}, {}, {}, {}, {}, '{}', '{}')",
-        //             oii, step, payload.index, account.id, done, payload.notes, now_str
-        //         )
-        //     })
-        //     .collect::<Vec<String>>()
-        //     .join(",");
-        //
-        // sqlx::query(&format!("{sql} {multi_items}"))
-        //     .execute(&state.db)
-        //     .await
-        //     .map_err(ERPError::DBError)?;
     } else {
         // 获得上一个 节点 在什么步骤
         let order_item = sqlx::query_as::<_, (i32,)>(&format!(
