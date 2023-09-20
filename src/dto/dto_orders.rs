@@ -46,6 +46,32 @@ impl OrderDto {
 type StepCount = HashMap<i32, i32>;
 type StepCountUF = HashMap<String, i32>;
 
+type StepIndexCount = HashMap<(i32, i32), i32>;
+
+#[derive(Debug, Serialize)]
+pub struct StepIndexCountUF {
+    pub step: i32,
+    pub index: i32,
+    pub count: i32,
+}
+
+impl StepIndexCountUF {
+    pub fn from_step_index_count(step_index_count: StepIndexCount) -> Vec<StepIndexCountUF> {
+        let mut ufs = step_index_count
+            .iter()
+            .map(|kv| StepIndexCountUF {
+                step: kv.0 .0,
+                index: kv.0 .1,
+                count: *kv.1,
+            })
+            .collect::<Vec<StepIndexCountUF>>();
+
+        ufs.sort_by_key(|kv| (kv.step, kv.index));
+
+        ufs
+    }
+}
+
 pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
     sc.into_iter()
         .map(|item| {
@@ -66,11 +92,11 @@ pub struct OrderWithStepsDto {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
-    pub steps: StepCountUF,
+    pub steps: Vec<StepIndexCountUF>,
 }
 
 impl OrderWithStepsDto {
-    pub fn from_order_dto_and_steps(order: OrderDto, steps: StepCount) -> OrderWithStepsDto {
+    pub fn from_order_dto_and_steps(order: OrderDto, steps: StepIndexCount) -> OrderWithStepsDto {
         Self {
             id: order.id,
             customer_no: order.customer_no,
@@ -79,7 +105,7 @@ impl OrderWithStepsDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
-            steps: to_step_count_user_friendly(steps),
+            steps: StepIndexCountUF::from_step_index_count(steps),
         }
     }
 }

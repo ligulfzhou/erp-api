@@ -15,7 +15,8 @@ pub struct ProgressModel {
     pub dt: DateTime<Utc>,  // 操作日期
 }
 
-pub type OrderItemSteps = HashMap<i32, HashMap<i32, i32>>;
+// order_id, (step, index), count
+pub type OrderItemSteps = HashMap<i32, HashMap<(i32, i32), i32>>;
 
 #[derive(sqlx::FromRow)]
 struct IdId {
@@ -96,17 +97,20 @@ impl ProgressModel {
         let mut order_item_step = progresses
             .into_iter()
             .map(|progress| {
-                if progress.done {
-                    (progress.order_item_id, progress.step + 1)
-                } else {
-                    (progress.order_item_id, progress.step)
-                }
+                (progress.order_item_id, (progress.step, progress.index))
+                // if progress.done {
+                //     (progress.order_item_id, progress.step + 1)
+                // } else {
+                //     (progress.order_item_id, progress.step)
+                // }
             })
-            .collect::<HashMap<i32, i32>>();
+            .collect::<HashMap<i32, (i32, i32)>>();
 
         tracing::info!("order_item_step: {:?}", order_item_step);
         for order_item_id in order_item_ids.iter() {
-            order_item_step.entry(order_item_id.to_owned()).or_insert(1);
+            order_item_step
+                .entry(order_item_id.to_owned())
+                .or_insert((1, 0));
         }
         tracing::info!("order_item_step: {:?}", order_item_step);
 
