@@ -546,7 +546,7 @@ async fn get_order_items(
                 .get(&item.id)
                 .unwrap_or(&empty);
 
-            let step = {
+            let step_for_checking_next_action = {
                 match steps.len() {
                     0 => 1,
                     _ => match steps[steps.len() - 1].done {
@@ -555,9 +555,14 @@ async fn get_order_items(
                     },
                 }
             };
-            let is_next_action = account.steps.contains(&step);
+            let is_next_action = account.steps.contains(&step_for_checking_next_action);
 
-            OrderGoodsItemWithStepsDto::from(item, steps.clone(), is_next_action, step)
+            OrderGoodsItemWithStepsDto::from(
+                item,
+                steps.clone(),
+                is_next_action,
+                step_for_checking_next_action,
+            )
         })
         .collect::<Vec<OrderGoodsItemWithStepsDto>>();
 
@@ -577,42 +582,60 @@ async fn get_order_items(
                 .get(&order_good.id)
                 .unwrap_or(&empty_array);
 
-            let order_item_step = items
+            let order_item_to_step_index = items
                 .iter()
                 .map(|item| {
-                    let step = {
-                        match &item.steps.len() {
-                            0 => 1,
-                            _ => match &item.steps[item.steps.len() - 1].done {
-                                true => &item.steps[item.steps.len() - 1].step + 1,
-                                false => item.steps[item.steps.len() - 1].step,
-                            },
-                        }
+                    // let step = {
+                    //     match &item.steps.len() {
+                    //         0 => 1,
+                    //         _ => match &item.steps[item.steps.len() - 1].done {
+                    //             true => &item.steps[item.steps.len() - 1].step + 1,
+                    //             false => item.steps[item.steps.len() - 1].step,
+                    //         },
+                    //     }
+                    // };
+                    // (item.id, step)
+                    let step_index = match &item.steps.len() {
+                        0 => (1, 0),
+                        _ => (
+                            item.steps[item.steps.len() - 1].step,
+                            item.steps[item.steps.len() - 1].index,
+                        ),
                     };
-                    (item.id, step)
+                    (item.id, step_index)
                 })
-                .collect::<HashMap<i32, i32>>();
+                .collect::<HashMap<i32, (i32, i32)>>();
 
-            let mut order_item_steps_count: HashMap<i32, i32> = HashMap::new();
-            for (_, step) in order_item_step.iter() {
-                let count = order_item_steps_count.entry(step.to_owned()).or_insert(0);
+            let mut order_item_to_step_index_count: HashMap<(i32, i32), i32> = HashMap::new();
+            for (_, step) in order_item_to_step_index.iter() {
+                let count = order_item_to_step_index_count
+                    .entry(step.to_owned())
+                    .or_insert(0);
                 *count += 1;
             }
 
             let mut is_next_action = false;
             let mut current_step = 0;
-            let steps = order_item_steps_count
+
+            // 如果这个款式下的进度一样，才能做一起做
+            let step_indexs = order_item_to_step_index_count
                 .iter()
-                .map(|sc| sc.0)
-                .collect::<Vec<&i32>>();
-            if steps.len() == 1 && account.steps.contains(steps[0]) {
-                is_next_action = true;
-                current_step = *steps[0];
+                .map(|sc| sc.0.to_owned())
+                .collect::<Vec<(i32, i32)>>();
+            if step_indexs.len() == 1 {
+                if step_indexs[0].1 == 2 {
+                    current_step = step_indexs[0].0 + 1;
+                } else {
+                    current_step = step_indexs[0].0;
+                }
+                if account.steps.contains(&current_step) {
+                    is_next_action = true;
+                }
             }
             // println!("steps: {:?}, {}", steps, is_next_action);
             OrderGoodsWithStepsWithItemStepDto::from_order_with_goods_and_steps_and_items(
                 order_good,
-                order_item_steps_count,
+                order_item_to_step_index_count,
                 items.clone(),
                 is_next_action,
                 current_step,

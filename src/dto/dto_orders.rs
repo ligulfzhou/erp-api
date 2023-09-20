@@ -287,14 +287,14 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub is_next_action: bool,
     pub current_step: i32, // 如果 is_next_action=false，这里的值则没有意义
     pub current_index: i32,
-    pub steps: StepCountUF,
+    pub steps: Vec<StepIndexCountUF>,
     pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
 
 impl OrderGoodsWithStepsWithItemStepDto {
     pub fn from_order_with_goods_and_steps_and_items(
         order_goods: OrderGoodsDto,
-        steps: StepCount,
+        steps: StepIndexCount,
         items: Vec<OrderGoodsItemWithStepsDto>,
         is_next_action: bool,
         current_step: i32,
@@ -313,7 +313,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             is_next_action,
             current_step,
             current_index,
-            steps: to_step_count_user_friendly(steps),
+            steps: StepIndexCountUF::from_step_index_count(steps),
             items,
         }
     }
