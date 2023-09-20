@@ -179,23 +179,25 @@ async fn update_customer(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateCustomerParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let customer = sqlx::query_as::<_, CustomerModel>(&format!(
-        "select * from customers where id = {}",
+    let customer = sqlx::query_as!(
+        CustomerModel,
+        "select * from customers where id = $1",
         payload.id
-    ))
+    )
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
 
     if customer.customer_no != payload.customer_no
-        && sqlx::query_as::<_, CustomerModel>(&format!(
-            "select * from customers where customer_no='{}'",
+        && sqlx::query_as!(
+            CustomerModel,
+            "select * from customers where customer_no=$1",
             payload.customer_no
-        ))
+        )
         .fetch_optional(&state.db)
         .await
-        .map_err(ERPError::DBError)
-        .is_ok()
+        .map_err(ERPError::DBError)?
+        .is_some()
     {
         return Err(ERPError::Collision(format!(
             "{} 已存在",

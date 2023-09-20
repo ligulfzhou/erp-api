@@ -41,11 +41,6 @@ async fn mark_progress(
             "order_goods_id/order_item_id".to_string(),
         ));
     }
-    // let done = payload.done.unwrap_or(false);
-    // let notes = payload.notes.as_deref().unwrap_or("");
-    // if !done && notes.is_empty() {
-    //     return Err(ERPError::ParamError("done和notes，至少要有一样".to_owned()));
-    // }
 
     if payload.index == 0 {
         return Err(ERPError::ParamError("请选择正确的流程".to_string()));
@@ -62,28 +57,22 @@ async fn mark_progress(
             return Err(ERPError::NotFound("订单商品不存在".to_string()));
         }
 
-        // let (order_id, goods_id) = order_goods.unwrap();
-        // tracing::info!("order_id: {order_id}, goods_id: {goods_id}");
-
-        let order_item_ids = sqlx::query_as::<_, (i32,)>(&format!(
-            "select id from order_items where order_goods_id={}",
+        let order_item_ids = sqlx::query!(
+            "select id from order_items where order_goods_id=$1",
             order_goods_id
-        ))
+        )
         .fetch_all(&state.db)
         .await
-        .map_err(ERPError::DBError)?;
+        .map_err(ERPError::DBError)?
+        .into_iter()
+        .map(|r| r.id)
+        .collect::<Vec<i32>>();
 
-        tracing::info!("order_item_ids: {:?}", order_item_ids);
         if order_item_ids.is_empty() {
             return Err(ERPError::NotFound(
                 "该商品下无添加任何颜色/款式".to_string(),
             ));
         }
-
-        let order_item_ids_vec = order_item_ids
-            .into_iter()
-            .map(|item| item.0)
-            .collect::<Vec<i32>>();
 
         let progresses = sqlx::query_as!(
             ProgressModel,
@@ -94,7 +83,7 @@ async fn mark_progress(
             where order_item_id = any($1)
             order by order_item_id, step, id desc;
             "#,
-            &order_item_ids_vec,
+            &order_item_ids,
         )
         .fetch_all(&state.db)
         .await
@@ -113,7 +102,7 @@ async fn mark_progress(
             .collect::<HashMap<i32, i32>>();
 
         tracing::info!("order_item_progress: {:?}", order_item_progress);
-        for order_item_id in order_item_ids_vec.iter() {
+        for order_item_id in order_item_ids.iter() {
             order_item_progress
                 .entry(order_item_id.to_owned())
                 .or_insert(1);
@@ -144,7 +133,7 @@ async fn mark_progress(
         }
 
         let now = Utc::now();
-        let to_insert_progress_models = order_item_ids_vec
+        let to_insert_progress_models = order_item_ids
             .iter()
             .map(|oii| ProgressModel {
                 id: 0,
