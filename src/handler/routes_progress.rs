@@ -119,6 +119,7 @@ async fn mark_progress(
                 .or_insert(1);
         }
         tracing::info!("after order_item_progress: {:?}", order_item_progress);
+
         // 检查所有的产品，是否在同一个步骤上
         let mut values = order_item_progress
             .into_iter()

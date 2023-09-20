@@ -143,6 +143,8 @@ pub struct OrderPlainItemWithCurrentStepDto {
 
     pub is_next_action: bool,
     pub current_step: i32,
+    pub current_index: i32,
+    pub current_notes: String,
     pub step: String,
 }
 
@@ -151,6 +153,8 @@ impl OrderPlainItemWithCurrentStepDto {
         item: OrderPlainItemDto,
         is_next_action: bool,
         current_step: i32,
+        current_index: i32,
+        current_notes: &str,
     ) -> OrderPlainItemWithCurrentStepDto {
         Self {
             id: item.id,
@@ -172,10 +176,12 @@ impl OrderPlainItemWithCurrentStepDto {
             notes: item.notes,
             is_next_action,
             current_step,
+            current_index,
             step: STEP_TO_DEPARTMENT
                 .get(&current_step)
                 .unwrap_or(&"")
                 .to_string(),
+            current_notes: current_notes.to_string(),
         }
     }
 }
@@ -254,6 +260,7 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
 
     pub is_next_action: bool,
     pub current_step: i32, // 如果 is_next_action=false，这里的值则没有意义
+    pub current_index: i32,
     pub steps: StepCountUF,
     pub items: Vec<OrderGoodsItemWithStepsDto>,
 }
@@ -265,6 +272,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
         items: Vec<OrderGoodsItemWithStepsDto>,
         is_next_action: bool,
         current_step: i32,
+        current_index: i32,
     ) -> OrderGoodsWithStepsWithItemStepDto {
         Self {
             id: order_goods.id,
@@ -278,6 +286,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             package_card_des: order_goods.package_card_des,
             is_next_action,
             current_step,
+            current_index,
             steps: to_step_count_user_friendly(steps),
             items,
         }

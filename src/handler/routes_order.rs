@@ -499,6 +499,7 @@ async fn get_order_items(
                         vec![],
                         false,
                         0,
+                        0,
                     )
                 })
                 .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>(),
@@ -615,6 +616,7 @@ async fn get_order_items(
                 items.clone(),
                 is_next_action,
                 current_step,
+                0,
             )
         })
         .collect::<Vec<OrderGoodsWithStepsWithItemStepDto>>();
@@ -705,23 +707,36 @@ async fn get_plain_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    let order_item_step = progresses
+    // let order_item_step = progresses
+    //     .into_iter()
+    //     .map(|progress| {
+    //         if progress.done {
+    //             (progress.order_item_id, progress.step + 1)
+    //         } else {
+    //             (progress.order_item_id, progress.step)
+    //         }
+    //     })
+    //     .collect::<HashMap<i32, i32>>();
+
+    let order_item_to_step_and_index = progresses
         .into_iter()
         .map(|progress| {
-            if progress.done {
-                (progress.order_item_id, progress.step + 1)
-            } else {
-                (progress.order_item_id, progress.step)
-            }
+            (
+                progress.order_item_id,
+                (progress.step, progress.index, progress.notes),
+            )
         })
-        .collect::<HashMap<i32, i32>>();
+        .collect::<HashMap<i32, (i32, i32, String)>>();
 
+    let default_tuple = (1, 0, "".to_string());
     let list = order_items_dto
         .into_iter()
         .map(|item| {
-            let step = order_item_step.get(&item.id).unwrap_or(&1);
-            let is_next_action = account.steps.contains(step);
-            OrderPlainItemWithCurrentStepDto::from(item, is_next_action, *step)
+            let step = order_item_to_step_and_index
+                .get(&item.id)
+                .unwrap_or(&default_tuple);
+            let is_next_action = account.steps.contains(&step.0);
+            OrderPlainItemWithCurrentStepDto::from(item, is_next_action, step.0, step.1, &step.2)
         })
         .collect::<Vec<OrderPlainItemWithCurrentStepDto>>();
 
