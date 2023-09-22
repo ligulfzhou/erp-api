@@ -791,10 +791,45 @@ async fn update_order(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
-    let _order = sqlx::query_as!(OrderModel, "select * from orders where id = $1", payload.id)
-        .fetch_one(&state.db)
+    let order = sqlx::query_as!(OrderModel, "select * from orders where id = $1", payload.id)
+        .fetch_optional(&state.db)
         .await
         .map_err(|err| ERPError::NotFound(format!("Order#{} {err}", payload.id)))?;
+
+    match order {
+        Some(_) => {
+            if sqlx::query!(
+                "select order_no from orders where order_no=$1 and id != $2",
+                payload.order_no,
+                payload.id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .is_some()
+            {
+                return Err(ERPError::ParamError(format!(
+                    "订单号#{}已存在",
+                    payload.order_no
+                )));
+            }
+        }
+        None => {
+            return Err(ERPError::NotFound("该订单不存在".to_string()));
+        }
+    };
+    if order.is_some() {
+        if sqlx::query!(
+            "select order_no from orders where order_no=$1 and id != $2",
+            payload.order_no,
+            payload.id
+        )
+        .fetch_optional(&state.db)
+        .await?
+        .is_some()
+        {}
+    } else {
+        return Err(ERPError::NotFound("该订单不存在".to_string()));
+    }
 
     sqlx::query!(
         r#"
