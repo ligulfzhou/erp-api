@@ -103,10 +103,10 @@ async fn get_orders_dates(
     .map_err(ERPError::DBError)?;
 
     let mut order_by_dates = HashMap::new();
-    for order in orders.into_iter() {
+    orders.into_iter().for_each(|order| {
         let orders_of_date = order_by_dates.entry(order.order_date).or_insert(vec![]);
         orders_of_date.push(order);
-    }
+    });
 
     let mut orders_by_date = OrdersByDate::new();
     let empty_orders: Vec<OrderModel> = vec![];
@@ -531,12 +531,12 @@ async fn get_order_items(
     tracing::info!("progresses: {:?}", progresses);
 
     let mut order_item_id_to_progress_vec = HashMap::new();
-    for one_progress in progresses.into_iter() {
+    progresses.into_iter().for_each(|one_progress| {
         let progress_vec = order_item_id_to_progress_vec
             .entry(one_progress.order_item_id)
             .or_insert(vec![]);
         progress_vec.push(one_progress);
-    }
+    });
 
     let empty: Vec<OneProgress> = vec![];
     let order_items_with_steps_dtos = order_items_dto
@@ -567,12 +567,15 @@ async fn get_order_items(
         .collect::<Vec<OrderGoodsItemWithStepsDto>>();
 
     let mut ogid_to_order_items_dto = HashMap::new();
-    for item in order_items_with_steps_dtos.clone().into_iter() {
-        let dtos = ogid_to_order_items_dto
-            .entry(item.order_goods_id)
-            .or_insert(vec![]);
-        dtos.push(item);
-    }
+    order_items_with_steps_dtos
+        .clone()
+        .into_iter()
+        .for_each(|item| {
+            let dtos = ogid_to_order_items_dto
+                .entry(item.order_goods_id)
+                .or_insert(vec![]);
+            dtos.push(item);
+        });
 
     let empty_array: Vec<OrderGoodsItemWithStepsDto> = vec![];
     let order_goods_dtos = order_goods
@@ -607,12 +610,12 @@ async fn get_order_items(
                 .collect::<HashMap<i32, (i32, i32)>>();
 
             let mut order_item_to_step_index_count: HashMap<(i32, i32), i32> = HashMap::new();
-            for (_, step) in order_item_to_step_index.iter() {
+            order_item_to_step_index.iter().for_each(|(_, step)| {
                 let count = order_item_to_step_index_count
                     .entry(step.to_owned())
                     .or_insert(0);
                 *count += 1;
-            }
+            });
 
             let mut is_next_action = false;
             let mut current_step = 0;

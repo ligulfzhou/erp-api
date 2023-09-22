@@ -102,11 +102,11 @@ async fn mark_progress(
             .collect::<HashMap<i32, i32>>();
 
         tracing::info!("order_item_progress: {:?}", order_item_progress);
-        for order_item_id in order_item_ids.iter() {
+        order_item_ids.iter().for_each(|order_item_id| {
             order_item_progress
                 .entry(order_item_id.to_owned())
                 .or_insert(1);
-        }
+        });
         tracing::info!("after order_item_progress: {:?}", order_item_progress);
 
         // 检查所有的产品，是否在同一个步骤上

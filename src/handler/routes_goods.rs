@@ -160,12 +160,12 @@ async fn get_goods(
         .map_err(ERPError::DBError)?;
 
     let mut id_to_skus = HashMap::new();
-    for sku in skus.iter() {
+    skus.iter().for_each(|sku| {
         id_to_skus
             .entry(sku.goods_id)
             .or_insert(vec![])
             .push(sku.clone());
-    }
+    });
     tracing::info!("id_to_skus: {:#?}", id_to_skus);
 
     let goods_dtos = goods
