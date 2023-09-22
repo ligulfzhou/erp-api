@@ -107,26 +107,26 @@ impl ProgressModel {
             .collect::<HashMap<i32, (i32, i32)>>();
 
         tracing::info!("order_item_step: {:?}", order_item_step);
-        for order_item_id in order_item_ids.iter() {
+        order_item_ids.iter().for_each(|order_item_id| {
             order_item_step
                 .entry(order_item_id.to_owned())
                 .or_insert((1, 0));
-        }
+        });
         tracing::info!("order_item_step: {:?}", order_item_step);
 
         let mut order_items_steps = OrderItemSteps::new();
-        for order_id in order_ids.iter() {
+        order_ids.iter().for_each(|order_id| {
             let mut order_item_progress_stats = HashMap::new();
-            for (order_item_id, step) in order_item_step.iter() {
+            order_item_step.iter().for_each(|(order_item_id, step)| {
                 let order_id_ = order_item_id_to_order_id.get(order_item_id).unwrap_or(&0);
                 if order_id_ == order_id {
                     let count = order_item_progress_stats.entry(*step).or_insert(0);
                     *count += 1;
                 }
-            }
+            });
 
             order_items_steps.insert(*order_id, order_item_progress_stats);
-        }
+        });
 
         Ok(order_items_steps)
     }

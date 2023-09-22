@@ -386,11 +386,11 @@ impl OrderItemExcel {
     pub fn pick_up_goods_no(items: &[OrderItemExcel]) -> Option<String> {
         let mut goods_no_cnt: HashMap<&str, i32> = HashMap::new();
 
-        for item in items.iter() {
+        items.iter().for_each(|item| {
             if !item.goods_no.is_empty() {
                 *goods_no_cnt.entry(&item.goods_no).or_insert(0) += 1;
             }
-        }
+        });
         tracing::info!("goods_no_cnt: {:?}", goods_no_cnt);
 
         let key = key_of_max_value(&goods_no_cnt).unwrap_or(&"").to_string();
@@ -423,7 +423,7 @@ impl OrderItemExcel {
         };
 
         goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
-        for item in items {
+        items.iter().for_each(|item| {
             if goods.index == 0 && item.index > 0 {
                 goods.index = item.index;
             }
@@ -445,7 +445,7 @@ impl OrderItemExcel {
             if goods.package_card_des.is_none() && item.package_card_des.is_some() {
                 goods.package_card_des = item.package_card_des.clone();
             }
-        }
+        });
 
         goods
     }
@@ -465,7 +465,7 @@ impl OrderItemExcel {
         };
 
         goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
-        for item in items {
+        items.iter().for_each(|item| {
             if goods.image.is_empty() && item.image.is_some() {
                 goods.image = item.image.as_ref().unwrap().to_string();
             }
@@ -475,7 +475,7 @@ impl OrderItemExcel {
             if goods.plating.is_empty() && !item.plating.is_empty() {
                 goods.plating = item.plating.clone();
             }
-        }
+        });
 
         goods
     }
@@ -484,14 +484,14 @@ impl OrderItemExcel {
         let mut package_card: Option<String> = None;
         let mut package_card_des: Option<String> = None;
 
-        for item in items {
+        items.iter().for_each(|item| {
             if package_card.is_none() && item.package_card.is_some() {
                 package_card = item.package_card.clone();
             }
             if package_card_des.is_none() && item.package_card_des.is_some() {
                 package_card_des = item.package_card_des.clone();
             }
-        }
+        });
 
         (
             package_card.unwrap_or("".to_string()),
