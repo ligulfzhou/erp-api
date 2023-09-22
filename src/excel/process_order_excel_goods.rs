@@ -118,9 +118,9 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
 
         println!("new_goods_no_to_id: {:?}", new_goods_no_to_id);
 
-        for (goods_no, id) in new_goods_no_to_id.into_iter() {
+        new_goods_no_to_id.into_iter().for_each(|(goods_no, id)| {
             existing_goods_no_to_id.insert(goods_no, id);
-        }
+        });
     }
     println!("goods_no_to_id: {:?}", existing_goods_no_to_id);
 
