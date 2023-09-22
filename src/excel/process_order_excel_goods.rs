@@ -140,23 +140,23 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     .map_err(ERPError::DBError)?;
 
     let mut goods_id_to_color_to_sku_id = HashMap::new();
-    for sku in skus.into_iter() {
+    skus.into_iter().for_each(|sku| {
         goods_id_to_color_to_sku_id
             .entry(sku.goods_id)
             .or_insert(HashMap::new())
             .insert(sku.color, sku.id);
-    }
+    });
 
     let mut skus_to_add = vec![];
     let empty_hashmap: HashMap<String, i32> = HashMap::new();
-    for order_goods in order_goods_excel {
+
+    order_goods_excel.iter().for_each(|order_goods| {
         let goods_id = existing_goods_no_to_id
             .get(&order_goods.goods.goods_no)
             .unwrap_or(&0);
 
         println!("goods_id: {}", goods_id);
-
-        for order_goods_sku in order_goods.items.iter() {
+        order_goods.items.iter().for_each(|order_goods_sku| {
             if !goods_id_to_color_to_sku_id
                 .get(goods_id)
                 .unwrap_or(&empty_hashmap)
@@ -171,18 +171,18 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                     notes: None,
                 })
             }
-        }
-    }
+        });
+    });
 
     println!("skus_to_add: {:?}", skus_to_add);
     if !skus_to_add.is_empty() {
         let new_skus = ExcelOrderGoods::insert_into_skus_table(db, &skus_to_add).await?;
-        for new_sku in new_skus.into_iter() {
+        new_skus.into_iter().for_each(|new_sku| {
             goods_id_to_color_to_sku_id
                 .entry(new_sku.goods_id)
                 .or_insert(HashMap::new())
                 .insert(new_sku.color, new_sku.id);
-        }
+        });
     }
 
     // 添加 order_goods
@@ -204,7 +204,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     if existing_order_goods.len() < goods_ids.len() {
         // 添加order_goods
         let mut to_add_order_goods = vec![];
-        for order_goods in order_goods_excel {
+        order_goods_excel.iter().for_each(|order_goods| {
             let this_goods_id = existing_goods_no_to_id
                 .get(&order_goods.goods.goods_no)
                 .unwrap_or(&0);
@@ -216,12 +216,12 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                     goods_id: *this_goods_id,
                 })
             }
-        }
+        });
         if !to_add_order_goods.is_empty() {
             let new_order_goods = OrderGoodsModel::add_rows(db, &to_add_order_goods).await?;
-            for new_order_good in new_order_goods.into_iter() {
+            new_order_goods.into_iter().for_each(|new_order_good| {
                 goods_id_to_order_goods_id.insert(new_order_good.goods_id, new_order_good.id);
-            }
+            });
         }
     }
 
@@ -244,13 +244,13 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     .collect::<Vec<i32>>();
 
     let mut order_items_to_add = vec![];
-    for order_goods in order_goods_excel.iter() {
+    order_goods_excel.iter().for_each(|order_goods| {
         let this_goods_id = existing_goods_no_to_id
             .get(&order_goods.goods.goods_no)
             .unwrap_or(&0);
         let this_order_goods_id = goods_id_to_order_goods_id.get(this_goods_id).unwrap_or(&0);
 
-        for order_item in order_goods.items.iter() {
+        order_goods.items.iter().for_each(|order_item| {
             let this_sku_id = goods_id_to_color_to_sku_id
                 .get(this_goods_id)
                 .unwrap_or(&empty_hashmap)
@@ -270,8 +270,8 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                     notes: "".to_string(),
                 })
             }
-        }
-    }
+        });
+    });
 
     if !order_items_to_add.is_empty() {
         OrderItemModel::save_to_order_item_table(db, &order_items_to_add).await?;
