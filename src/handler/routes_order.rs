@@ -291,17 +291,21 @@ impl ListParamToSQLTrait for ListParam {
             where_clauses.push("is_urgent=true".to_string())
         }
 
-        if self.order_date_start.is_some() && self.order_date_end.is_some() {
+        if !self.order_date_start.as_deref().unwrap_or("").is_empty()
+            && !self.order_date_end.as_deref().unwrap_or("").is_empty()
+        {
             where_clauses.push(format!(
-                "order_date>'{}' and order_date<='{}'",
+                "order_date>='{}' and order_date<='{}'",
                 self.order_date_start.as_deref().unwrap(),
                 self.order_date_end.as_deref().unwrap()
             ))
         }
 
-        if self.delivery_date_start.is_some() && self.delivery_date_end.is_some() {
+        if !self.delivery_date_start.as_deref().unwrap_or("").is_empty()
+            && !self.delivery_date_end.as_deref().unwrap_or("").is_empty()
+        {
             where_clauses.push(format!(
-                "delivery_date > '{}' and delivery_date <= '{}'",
+                "delivery_date >= '{}' and delivery_date <= '{}'",
                 self.delivery_date_start.as_deref().unwrap(),
                 self.delivery_date_end.as_deref().unwrap()
             ))
@@ -339,17 +343,21 @@ impl ListParamToSQLTrait for ListParam {
         if self.is_urgent.unwrap_or(false) {
             where_clauses.push("is_urgent=true".to_string())
         }
-        if self.order_date_start.is_some() && self.order_date_end.is_some() {
+        if !self.order_date_start.as_deref().unwrap_or("").is_empty()
+            && !self.order_date_end.as_deref().unwrap_or("").is_empty()
+        {
             where_clauses.push(format!(
-                "order_date>'{}' and order_date<='{}'",
+                "order_date>='{}' and order_date<='{}'",
                 self.order_date_start.as_deref().unwrap(),
                 self.order_date_end.as_deref().unwrap()
             ))
         }
 
-        if self.delivery_date_start.is_some() && self.delivery_date_end.is_some() {
+        if !self.delivery_date_start.as_deref().unwrap_or("").is_empty()
+            && !self.delivery_date_end.as_deref().unwrap_or("").is_empty()
+        {
             where_clauses.push(format!(
-                "delivery_date > '{}' and delivery_date <= '{}'",
+                "delivery_date >= '{}' and delivery_date <= '{}'",
                 self.delivery_date_start.as_deref().unwrap(),
                 self.delivery_date_end.as_deref().unwrap()
             ))
