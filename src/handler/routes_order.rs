@@ -119,7 +119,10 @@ async fn get_orders_dates(
     }
 
     let count = sqlx::query!(
-        "select count(order_date) from orders where customer_no=$1 group by order_date;",
+        r#"
+        select count(distinct order_date) from orders
+        where customer_no=$1;
+        "#,
         customer_no
     )
     .fetch_one(&state.db)
