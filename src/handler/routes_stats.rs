@@ -13,8 +13,15 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/api/stats/orders", get(order_stats))
         .route("/api/stats/return/orders", get(list_return_orders))
         .with_state(state)
+}
+
+async fn order_stats(
+    State(state): State<Arc<AppState>>,
+) -> ERPResult<APIListResponse<ReturnOrderStat>> {
+    todo!()
 }
 
 #[derive(Deserialize)]

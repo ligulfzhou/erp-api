@@ -95,8 +95,8 @@ async fn get_orders_dates(
 
     let orders = sqlx::query_as!(
         OrderModel,
-        "select * from orders where order_date = any($1) order by order_date desc, id desc",
-        &dates
+        "select * from orders where customer_no = $1 and order_date = any($2) order by order_date desc, id desc",
+        customer_no, &dates
     )
     .fetch_all(&state.db)
     .await
