@@ -30,61 +30,51 @@ struct SearchSkusParam {
     page_size: Option<i32>,
 }
 
-impl ListParamToSQLTrait for SearchSkusParam {
-    fn to_pagination_sql(&self) -> String {
-        let page = self.page.unwrap_or(1);
-        let page_size = self.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-        let offset = (page - 1) * page_size;
-
-        let mut sql = format!(
-            r#"
-            select
-                s.id, s.sku_no, s.goods_id, s.color,
-                g.name, g.image, g.goods_no, g.plating, s.notes
-            from skus s, goods g
-            where s.goods_id = g.id
-                and g.goods_no like '%{}%' or s.sku_no like '%{}%'
-            "#,
-            self.key, self.key
-        );
-        sql.push_str(&format!(
-            " order by id desc offset {} limit {};",
-            offset, page_size
-        ));
-
-        tracing::info!("sql: {}", sql);
-
-        sql
-    }
-
-    fn to_count_sql(&self) -> String {
-        format!(
-            r#"
-            select count(1)
-            from skus s, goods g
-            where s.goods_id = g.id
-                and g.goods_no like '%{}%' or s.sku_no like '%{}%'
-            "#,
-            self.key, self.key
-        )
-    }
-}
-
 async fn search_skus(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<SearchSkusParam>, ERPError>,
 ) -> ERPResult<APIListResponse<SKUModelDto>> {
-    let skus = sqlx::query_as::<_, SKUModelDto>(&param.to_pagination_sql())
-        .fetch_all(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    let page = param.page.unwrap_or(1);
+    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let offset = (page - 1) * page_size;
 
-    let total: (i64,) = sqlx::query_as(&param.to_count_sql())
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?;
+    // todo: like
+    let skus = sqlx::query_as!(
+        SKUModelDto,
+        r#"
+            select
+                s.id, s.sku_no, s.goods_id, s.color, g.package_card, s.color2,
+                g.name, g.image, g.goods_no, g.plating, s.notes, g.customer_no
+            from skus s, goods g
+            where s.goods_id = g.id
+                and g.goods_no like $1 or s.sku_no like $2
+            order by s.id desc limit $3
+            "#,
+        param.key,
+        param.key,
+        offset as i64
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
 
-    Ok(APIListResponse::new(skus, total.0 as i32))
+    let count = sqlx::query!(
+        r#"
+            select count(1)
+            from skus s, goods g
+            where s.goods_id = g.id
+                and g.goods_no like $1 or s.sku_no like $2
+            "#,
+        param.key,
+        param.key
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .count
+    .unwrap_or(0) as i32;
+
+    Ok(APIListResponse::new(skus, count))
 }
 
 #[derive(Debug, Deserialize)]
@@ -206,7 +196,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let mut sql = r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
-                g.name, g.goods_no, g.image, g.plating, g.customer_no
+                g.name, g.goods_no, g.image, g.plating, g.customer_no, g.package_card
             from skus s, goods g
             where s.goods_id = g.id
             "#
@@ -345,7 +335,7 @@ async fn get_sku_detail(
         SKUModelDto,
         r#"
         select
-            s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
+            s.id, s.sku_no, g.name, g.goods_no, s.goods_id, g.package_card,
             g.image, g.plating, s.color, s.color2, s.notes, g.customer_no
         from skus s, goods g
         where s.goods_id = g.id and s.id = $1;

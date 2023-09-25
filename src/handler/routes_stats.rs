@@ -73,7 +73,7 @@ async fn list_return_orders(
         r#"
         select
             s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
-            g.image, g.plating, s.color, s.color2, s.notes
+            g.image, g.plating, s.color, s.color2, s.notes, g.package_card
         from skus s, goods g
         where s.goods_id = g.id
             and s.id = any($1)
