@@ -7,6 +7,7 @@ pub mod routes_material;
 pub mod routes_order;
 pub mod routes_progress;
 pub mod routes_static;
+pub mod routes_stats;
 pub mod routes_upload;
 
 pub trait ListParamToSQLTrait {

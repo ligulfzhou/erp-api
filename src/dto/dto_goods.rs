@@ -1,7 +1,7 @@
 use crate::model::goods::{GoodsModel, SKUModel};
 use sqlx::FromRow;
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow, Clone)]
 pub struct SKUModelDto {
     pub id: i32,
     pub sku_no: String,
