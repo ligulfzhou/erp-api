@@ -91,12 +91,18 @@ async fn get_orders_dates(
     .collect::<Vec<NaiveDate>>();
     if dates.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
-    }
+    };
 
     let orders = sqlx::query_as!(
         OrderModel,
-        "select * from orders where customer_no = $1 and order_date = any($2) order by order_date desc, id desc",
-        customer_no, &dates
+        r#"
+        select * from orders
+        where
+            customer_no = $1 and order_date = any($2)
+        order by order_date desc, id desc
+        "#,
+        customer_no,
+        &dates
     )
     .fetch_all(&state.db)
     .await
