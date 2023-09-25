@@ -74,6 +74,7 @@ async fn main() {
             "http://127.0.0.1:3000".parse().unwrap(),
             "http://localhost:3000".parse().unwrap(),
             "https://egret-erp.vercel.app".parse().unwrap(),
+            "https://erp-web-bay.vercel.app".parse().unwrap(),
         ])
         .allow_methods(vec![Method::GET, Method::POST])
         .allow_credentials(true)
