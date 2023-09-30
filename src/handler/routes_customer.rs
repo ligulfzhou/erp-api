@@ -144,7 +144,7 @@ async fn detail_customer(
 struct UpdateCustomerParam {
     pub id: i32,
     pub customer_no: String,
-    pub name: String,
+    pub name: Option<String>,
     pub address: Option<String>,
     pub phone: Option<String>,
     pub notes: Option<String>,
@@ -153,10 +153,11 @@ struct UpdateCustomerParam {
 impl UpdateCustomerParam {
     fn to_sql(&self) -> String {
         let mut set_clauses = vec![];
-        set_clauses.push(format!(
-            "customer_no='{}',name='{}'",
-            self.customer_no, self.name
-        ));
+        set_clauses.push(format!("customer_no='{}'", self.customer_no));
+
+        if let Some(name) = &self.name {
+            set_clauses.push(format!("name='{}'", name))
+        }
         if let Some(address) = &self.address {
             set_clauses.push(format!("address='{}'", address))
         }
