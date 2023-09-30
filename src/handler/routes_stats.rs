@@ -1,6 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_goods::SKUModelDto;
-use crate::dto::dto_stats::ReturnOrderStat;
+use crate::dto::dto_stats::{ReturnOrderItemStat, ReturnOrderStat};
 use crate::response::api_response::APIListResponse;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -14,8 +14,25 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/stats/orders", get(order_stats))
-        .route("/api/stats/return/orders", get(list_return_orders))
+        .route("/api/stats/produce", get(order_stats))
+        .route(
+            "/api/stats/return/orders/by/goods",
+            get(list_return_orders_by_goods),
+        )
+        .route(
+            "/api/stats/return/orders/by/items",
+            get(list_return_orders_by_items),
+        )
         .with_state(state)
+}
+
+#[derive(Deserialize)]
+pub struct OrderStatParam {
+    customer_no: Option<String>,
+
+    page: Option<i32>,
+    #[serde(rename(deserialize = "pageSize"))]
+    page_size: Option<i32>,
 }
 
 async fn order_stats(
@@ -25,18 +42,123 @@ async fn order_stats(
 }
 
 #[derive(Deserialize)]
-pub struct ReturnOrderParam {
+pub struct ReturnOrderStatParam {
     customer_no: Option<String>,
+    sorter_field: Option<String>,
+    sorter_order: Option<String>,
 
     page: Option<i32>,
     #[serde(rename(deserialize = "pageSize"))]
     page_size: Option<i32>,
 }
 
-async fn list_return_orders(
+async fn list_return_orders_by_goods(
     State(state): State<Arc<AppState>>,
-    WithRejection(Query(params), _): WithRejection<Query<ReturnOrderParam>, ERPError>,
+    WithRejection(Query(params), _): WithRejection<Query<ReturnOrderStatParam>, ERPError>,
 ) -> ERPResult<APIListResponse<ReturnOrderStat>> {
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+    let offset = (page - 1) * page_size;
+
+    let goods_id_with_count_and_sum = sqlx::query!(
+        r#"
+        select
+            og.goods_id,
+            count(distinct(o.order_no)) as order_count,
+            count(1) as item_count,
+            sum(oi.count)
+        from order_goods og, order_items oi, orders o
+        where oi.order_goods_id=og.id and og.order_id = o.id
+        group by og.goods_id
+        having count(1) > 1
+        order by count(1) desc, og.goods_id desc
+        offset $1 limit $2
+        "#,
+        offset as i64,
+        page_size as i64
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?;
+
+    print!("{:?}", goods_id_with_count_and_sum);
+
+    let goods_ids = goods_id_with_count_and_sum
+        .iter()
+        .map(|r| r.goods_id)
+        .collect::<Vec<i32>>();
+
+    if goods_ids.is_empty() {
+        return Ok(APIListResponse::new(vec![], 0));
+    }
+
+    let goods_id_to_count_and_sum = goods_id_with_count_and_sum
+        .into_iter()
+        .map(|r| {
+            (
+                r.goods_id,
+                (r.order_count.unwrap_or(0) as i32, r.sum.unwrap_or(0) as i32),
+            )
+        })
+        .collect::<HashMap<i32, (i32, i32)>>();
+
+    let id_to_skus = sqlx::query_as!(
+        SKUModelDto,
+        r#"
+        select
+            s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
+            g.image, g.plating, s.color, s.color2, s.notes, g.package_card
+        from skus s, goods g
+        where s.goods_id = g.id
+            and s.id = any($1)
+        "#,
+        &goods_ids
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .into_iter()
+    .map(|sku| (sku.id, sku))
+    .collect::<HashMap<i32, SKUModelDto>>();
+
+    let empty_count_and_sum = (0, 0);
+
+    let sku_stats = goods_ids
+        .iter()
+        .filter_map(|sku_id| {
+            let count_and_sum = goods_id_to_count_and_sum
+                .get(sku_id)
+                .unwrap_or(&empty_count_and_sum);
+
+            let sku = id_to_skus.get(sku_id);
+            sku.map(|sku_dto| ReturnOrderStat {
+                sku: sku_dto.clone(),
+                count: count_and_sum.0,
+                sum: count_and_sum.1,
+            })
+        })
+        .collect::<Vec<ReturnOrderStat>>();
+
+    let count = sqlx::query!(
+        r#"
+        select count(1) from order_items
+        group by sku_id
+        having count(1) > 1;
+        "#
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .count
+    .unwrap_or(0) as i32;
+
+    Ok(APIListResponse::new(sku_stats, count))
+}
+
+async fn list_return_orders_by_items(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Query(params), _): WithRejection<Query<ReturnOrderStatParam>, ERPError>,
+) -> ERPResult<APIListResponse<ReturnOrderItemStat>> {
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
@@ -46,7 +168,7 @@ async fn list_return_orders(
         select sku_id, count(1), sum(count) from order_items
         group by sku_id
         having count(1) > 1
-        order by count(1) desc, sku_id desc
+        order by count(1) desc, sum(count) desc, sku_id desc
         offset $1 limit $2
         "#,
         offset as i64,
@@ -104,13 +226,13 @@ async fn list_return_orders(
                 .unwrap_or(&empty_count_and_sum);
 
             let sku = id_to_skus.get(sku_id);
-            sku.map(|sku_dto| ReturnOrderStat {
+            sku.map(|sku_dto| ReturnOrderItemStat {
                 sku: sku_dto.clone(),
                 count: count_and_sum.0,
                 sum: count_and_sum.1,
             })
         })
-        .collect::<Vec<ReturnOrderStat>>();
+        .collect::<Vec<ReturnOrderItemStat>>();
 
     let count = sqlx::query!(
         r#"
