@@ -19,11 +19,6 @@ pub struct ReturnOrderItemStat {
 pub struct ReturnOrderGoodsStat {
     pub goods: GoodsModel,
     pub skus: Vec<ReturnOrderItemStat>,
-}
-
-#[derive(Serialize)]
-pub struct ReturnOrderStatByGoods {
     pub count: i32,
     pub sum: i32,
-    pub goods_stat: Vec<ReturnOrderGoodsStat>,
 }
