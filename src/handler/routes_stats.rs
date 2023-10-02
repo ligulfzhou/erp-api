@@ -71,7 +71,7 @@ async fn list_return_orders_by_goods(
         from order_goods og, order_items oi, orders o
         where oi.order_goods_id=og.id and og.order_id = o.id
         group by og.goods_id
-        having count(1) > 1
+        having count(1) > 0
         order by count(1) desc, og.goods_id desc
         offset $1 limit $2
         "#,
@@ -123,7 +123,7 @@ async fn list_return_orders_by_goods(
         where
             oi.order_goods_id = og.id and og.goods_id = any($1)
         group by oi.sku_id
-        having count(1) > 1
+        having count(1) > 0
         order by count(1) desc, sum(oi.count) desc
         "#,
         &goods_ids
@@ -142,6 +142,7 @@ async fn list_return_orders_by_goods(
         )
     })
     .collect::<HashMap<i32, (i32, i32)>>();
+    tracing::info!("sku_id_to_cnt_and_sum: {:?}", sku_id_to_cnt_and_sum);
 
     let skus = sqlx::query_as!(
         SKUModelDto,
