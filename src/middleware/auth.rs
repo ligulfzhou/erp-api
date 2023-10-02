@@ -25,19 +25,16 @@ pub async fn auth<B>(
         return Err(ERPError::NotAuthorized);
     }
 
-    let account_id = account_id.unwrap();
+    let account_id = account_id.unwrap().parse::<i32>().unwrap_or(0);
 
-    let account = sqlx::query_as::<_, AccountModel>(&format!(
-        "select * from accounts where id={}",
+    let account = sqlx::query_as!(
+        AccountModel,
+        "select * from accounts where id = $1",
         account_id
-    ))
+    )
     .fetch_optional(&state.db)
     .await
     .map_err(ERPError::DBError)?;
-
-    if account.is_none() {
-        return Err(ERPError::AccountNotFound);
-    }
 
     let account = account.unwrap();
     let department = sqlx::query_as::<_, DepartmentModel>(&format!(
