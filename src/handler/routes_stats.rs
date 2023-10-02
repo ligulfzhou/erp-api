@@ -72,7 +72,7 @@ async fn list_return_orders_by_goods(
         where oi.order_goods_id=og.id and og.order_id = o.id
         group by og.goods_id
         having count(distinct(o.order_no)) > 1
-        order by count(1) desc, og.goods_id desc
+        order by count(1) desc, sum(oi.count) desc
         offset $1 limit $2
         "#,
         offset as i64,
