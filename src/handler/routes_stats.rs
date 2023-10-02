@@ -71,7 +71,7 @@ async fn list_return_orders_by_goods(
         from order_goods og, order_items oi, orders o
         where oi.order_goods_id=og.id and og.order_id = o.id
         group by og.goods_id
-        having count(1) > 0
+        having count(distinct(o.order_no)) > 1
         order by count(1) desc, og.goods_id desc
         offset $1 limit $2
         "#,
@@ -123,7 +123,7 @@ async fn list_return_orders_by_goods(
         where
             oi.order_goods_id = og.id and og.goods_id = any($1)
         group by oi.sku_id
-        having count(1) > 0
+        -- having count(1) > 0
         order by count(1) desc, sum(oi.count) desc
         "#,
         &goods_ids
@@ -215,12 +215,13 @@ async fn list_return_orders_by_goods(
         stats.push(stat);
     });
 
-    let count = sqlx::query!("select count(distinct goods_id) from order_goods")
-        .fetch_one(&state.db)
-        .await
-        .map_err(ERPError::DBError)?
-        .count
-        .unwrap_or(0) as i32;
+    let count = sqlx::query!(
+        "select goods_id, count(1) from order_goods group by goods_id having count(1) > 1;"
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .len() as i32;
 
     Ok(APIListResponse::new(stats, count))
 }
@@ -306,16 +307,15 @@ async fn list_return_orders_by_items(
 
     let count = sqlx::query!(
         r#"
-        select count(1) from order_items
+        select sku_id, count(1) from order_items
         group by sku_id
         having count(1) > 1;
         "#
     )
-    .fetch_one(&state.db)
+    .fetch_all(&state.db)
     .await
     .map_err(ERPError::DBError)?
-    .count
-    .unwrap_or(0) as i32;
+    .len() as i32;
 
     Ok(APIListResponse::new(sku_stats, count))
 }
