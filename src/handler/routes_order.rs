@@ -50,6 +50,27 @@ async fn delete_order(
     State(state): State<Arc<AppState>>,
     WithRejection(Json(payload), _): WithRejection<Json<DeleteOrderParam>, ERPError>,
 ) -> ERPResult<APIEmptyResponse> {
+    // 检查是否已经有流程数据
+    let count = sqlx::query!(
+        r#"select count(1)
+         from progress p, order_items oi, orders o
+         where o.id = oi.order_id and p.order_item_id = oi.id
+            and o.id = $1
+         "#,
+        payload.id
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .count
+    .unwrap_or(0) as i32;
+
+    if count > 0 {
+        return Err(ERPError::Failed(
+            "该订单已经有流程数据，删除无合法".to_string(),
+        ));
+    }
+
     // delete order_items
     sqlx::query!("delete from order_items where id = $1", payload.id)
         .execute(&state.db)
