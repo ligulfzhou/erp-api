@@ -27,6 +27,7 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/orders", get(get_orders).post(create_order))
+        .route("/api/order/delete", post(delete_order))
         .route("/api/orders/by/dates", get(get_orders_dates))
         .route("/api/order/detail", get(order_detail))
         .route("/api/order/update", post(update_order))
@@ -38,6 +39,36 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/item/delete", post(delete_order_item))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
+}
+
+#[derive(Deserialize)]
+struct DeleteOrderParam {
+    id: i32,
+}
+
+async fn delete_order(
+    State(state): State<Arc<AppState>>,
+    WithRejection(Json(payload), _): WithRejection<Json<DeleteOrderParam>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    // delete order_items
+    sqlx::query!("delete from order_items where id = $1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
+    // delete order_goods
+    sqlx::query!("delete from order_goods where order_id=$1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
+    // delete orders
+    sqlx::query!("delete from orders where id = $1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
+    Ok(APIEmptyResponse::new())
 }
 
 #[derive(Deserialize)]
