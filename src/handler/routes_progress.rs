@@ -15,9 +15,43 @@ use std::sync::Arc;
 
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/api/revoke/progress", post(revoke_progress))
         .route("/api/mark/progress", post(mark_progress))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state)
+}
+
+#[derive(Deserialize)]
+struct RevokeProgressParam {
+    id: i32,
+}
+
+async fn revoke_progress(
+    Extension(account): Extension<AccountDto>,
+    State(state): State<Arc<AppState>>,
+    WithRejection(Json(payload), _): WithRejection<Json<RevokeProgressParam>, ERPError>,
+) -> ERPResult<APIEmptyResponse> {
+    let progress = sqlx::query_as!(
+        ProgressModel,
+        "select * from progress where id = $1",
+        payload.id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(ERPError::DBError)?
+    .ok_or(ERPError::NotFound("该流程不存在".to_string()))
+    .unwrap();
+
+    if !account.steps.contains(&progress.step) {
+        return Err(ERPError::NoPermission("无操作权限".to_string()));
+    }
+
+    sqlx::query!("delete from progress where id = $1", payload.id)
+        .execute(&state.db)
+        .await
+        .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
+
+    Ok(APIEmptyResponse::new())
 }
 
 #[derive(Debug, Deserialize, Serialize)]

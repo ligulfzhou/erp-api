@@ -69,6 +69,10 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
             if cell_value.contains("加急") {
                 order_info.is_urgent = true;
             }
+
+            if cell_value.contains("特别") {
+                order_info.is_special = true;
+            }
         }
     }
 

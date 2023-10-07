@@ -298,6 +298,8 @@ pub struct OrderInfo {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
+    pub is_special: bool,
+    pub special_customer: String,
 }
 
 impl OrderInfo {
