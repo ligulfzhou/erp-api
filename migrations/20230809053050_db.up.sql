@@ -86,13 +86,15 @@ values ('L1004', 4);
 -- 订单表
 create table orders
 (
-    id              serial,
-    customer_no     text    not null,               -- 客户ID
-    order_no        text    not null,               -- 订单编号
-    order_date      date    not null,               -- 订货日期
-    delivery_date   date,                           -- 交货日期
-    is_urgent       boolean not null default false, -- 加急
-    is_return_order boolean not null default false  -- 返单
+    id               serial,
+    customer_no      text    not null,               -- 客户ID
+    order_no         text    not null,               -- 订单编号
+    order_date       date    not null,               -- 订货日期
+    delivery_date    date,                           -- 交货日期
+    is_urgent        boolean not null default false, -- 加急
+    is_return_order  boolean not null default false, -- 返单
+    is_special       boolean not null default false, -- 特别客人订单
+    special_customer text    not null default ''
 );
 create unique index uniq_orders_order_no on orders (order_no);
 create index idx_orders_customer_no_order_date on orders (customer_no, order_date);

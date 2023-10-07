@@ -15,6 +15,8 @@ pub struct OrderDto {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
+    pub is_special: bool,
+    pub special_customer: String,
 }
 
 impl OrderDto {
@@ -27,6 +29,8 @@ impl OrderDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
+            is_special: order.is_special,
+            special_customer: order.special_customer,
         }
     }
 
@@ -39,6 +43,8 @@ impl OrderDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
+            is_special: order.is_special,
+            special_customer: order.special_customer,
         }
     }
 }
@@ -92,6 +98,8 @@ pub struct OrderWithStepsDto {
     pub delivery_date: Option<NaiveDate>,
     pub is_return_order: bool,
     pub is_urgent: bool,
+    pub is_special: bool,
+    pub special_customer: String,
     pub steps: Vec<StepIndexCountUF>,
 }
 
@@ -105,6 +113,8 @@ impl OrderWithStepsDto {
             delivery_date: order.delivery_date,
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
+            is_special: order.is_special,
+            special_customer: order.special_customer,
             steps: StepIndexCountUF::from_step_index_count(steps),
         }
     }

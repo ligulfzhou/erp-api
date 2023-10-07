@@ -67,7 +67,7 @@ async fn delete_order(
 
     if count > 0 {
         return Err(ERPError::Failed(
-            "该订单已经有流程数据，删除无合法".to_string(),
+            "该订单已经有流程数据，删除不合法".to_string(),
         ));
     }
 
@@ -316,6 +316,7 @@ struct ListParam {
     delivery_date_end: Option<String>,
     is_return_order: Option<bool>,
     is_urgent: Option<bool>,
+    is_special: Option<bool>,
 
     sorter_field: Option<String>,
     sorter_order: Option<String>, // ascend/descend: default: descend
@@ -347,6 +348,9 @@ impl ListParamToSQLTrait for ListParam {
         }
         if self.is_urgent.unwrap_or(false) {
             where_clauses.push("is_urgent=true".to_string())
+        }
+        if self.is_special.unwrap_or(false) {
+            where_clauses.push("is_special=true".to_string())
         }
 
         if !self.order_date_start.as_deref().unwrap_or("").is_empty()
@@ -400,6 +404,9 @@ impl ListParamToSQLTrait for ListParam {
         }
         if self.is_urgent.unwrap_or(false) {
             where_clauses.push("is_urgent=true".to_string())
+        }
+        if self.is_special.unwrap_or(false) {
+            where_clauses.push("is_special=true".to_string())
         }
         if !self.order_date_start.as_deref().unwrap_or("").is_empty()
             && !self.order_date_end.as_deref().unwrap_or("").is_empty()
@@ -857,6 +864,8 @@ struct UpdateOrderParam {
     delivery_date: Option<NaiveDate>,
     is_return_order: bool,
     is_urgent: bool,
+    is_special: bool,
+    special_customer: String,
 }
 
 async fn update_order(
@@ -905,10 +914,23 @@ async fn update_order(
 
     sqlx::query!(
         r#"
-        update orders set order_no=$1, customer_no=$2, order_date=$3, delivery_date=$4, is_return_order=$5, is_urgent=$6
-        where id=$7
-        "#, payload.order_no,payload.customer_no,payload.order_date,payload.delivery_date,payload.is_return_order,payload.is_urgent,payload.id
-    ).execute(&state.db).await?;
+        update orders set
+            order_no=$1, customer_no=$2, order_date=$3, delivery_date=$4,
+            is_return_order=$5, is_urgent=$6, is_special=$7, special_customer=$8
+        where id=$9
+        "#,
+        payload.order_no,
+        payload.customer_no,
+        payload.order_date,
+        payload.delivery_date,
+        payload.is_return_order,
+        payload.is_urgent,
+        payload.is_special,
+        payload.special_customer,
+        payload.id
+    )
+    .execute(&state.db)
+    .await?;
 
     Ok(APIEmptyResponse::new())
 }

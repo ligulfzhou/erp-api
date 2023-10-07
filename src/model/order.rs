@@ -13,8 +13,10 @@ pub struct OrderModel {
     pub order_no: String,
     pub order_date: NaiveDate,
     pub delivery_date: Option<NaiveDate>,
-    pub is_urgent: bool,       //紧急 ‼️
-    pub is_return_order: bool, // 返单
+    pub is_urgent: bool,          //紧急 ‼️
+    pub is_return_order: bool,    // 返单
+    pub is_special: bool,         // 特别客人
+    pub special_customer: String, //特别客人
 }
 
 impl OrderModel {
