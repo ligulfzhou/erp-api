@@ -456,8 +456,12 @@ async fn get_orders(
         .map(|order| order.id)
         .collect::<Vec<i32>>();
 
-    let order_items_steps = ProgressModel::get_progress_status(&state.db, order_ids).await?;
+    let order_items_steps = ProgressModel::get_progress_status(&state.db, &order_ids).await?;
     tracing::info!("{:#?}", order_items_steps);
+
+    let order_id_exception_stats =
+        ProgressModel::get_order_exception_count(&state.db, &order_ids).await?;
+    tracing::info!("{:#?}", order_id_exception_stats);
 
     let empty_order_item_step = HashMap::new();
     let order_with_step_dtos = order_dtos

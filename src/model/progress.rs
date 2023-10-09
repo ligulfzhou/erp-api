@@ -52,15 +52,40 @@ impl ProgressModel {
 
         Ok(res)
     }
+
+    pub async fn get_order_exception_count(
+        db: &Pool<Postgres>,
+        order_ids: &[i32],
+    ) -> ERPResult<HashMap<i32, i32>> {
+        let order_id_to_exception_count = sqlx::query!(
+            r#"
+            select o.id, count(1)
+            from orders o, order_items oi, progress p
+            where o.id = oi.order_id and p.order_item_id=oi.id
+                and o.id = any($1) and p.index=1
+            group by o.id;
+            "#,
+            order_ids
+        )
+        .fetch_all(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .into_iter()
+        .map(|r| (r.id, r.count.unwrap_or(0) as i32))
+        .collect::<HashMap<i32, i32>>();
+
+        Ok(order_id_to_exception_count)
+    }
+
     pub async fn get_progress_status(
         db: &Pool<Postgres>,
-        order_ids: Vec<i32>,
+        order_ids: &[i32],
     ) -> ERPResult<OrderItemSteps> {
         // 去获取各产品的流程
         let order_item_id_to_order_id = sqlx::query_as!(
             IdId,
             "select id, order_id from order_items where order_id = any($1)",
-            &order_ids
+            order_ids
         )
         .fetch_all(db)
         .await
