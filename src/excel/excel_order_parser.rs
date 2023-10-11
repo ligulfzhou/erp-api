@@ -30,7 +30,7 @@ impl<'a> ExcelOrderParser<'a> {
         let book = reader::xlsx::read(path)
             .map_err(|_| ERPError::Failed("读xlsx文件失败,不支持xls格式".to_string()))?;
         let sheet = book.get_active_sheet();
-        let order_info = parse_order_info(sheet);
+        let order_info = parse_order_info(sheet)?;
 
         if order_info.customer_no.is_empty() {
             return Err(ERPError::Failed(

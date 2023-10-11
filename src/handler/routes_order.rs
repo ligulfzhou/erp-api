@@ -502,9 +502,7 @@ async fn get_order_items(
     let order_no = param.order_no.as_deref().unwrap_or("");
 
     if param_order_id == 0 && order_no.is_empty() {
-        return Err(ERPError::ParamNeeded(
-            "order_id和order_no至少传一个".to_string(),
-        ));
+        return Ok(APIListResponse::new(vec![], 0));
     }
 
     let order_id = match param_order_id {

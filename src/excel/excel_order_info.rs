@@ -1,9 +1,10 @@
-use crate::common::datetime::parse_date;
+use crate::common::datetime::{parse_date, parse_date_with_regex};
 use crate::common::string::random_string;
 use crate::model::order::OrderInfo;
+use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
 
-pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
+pub fn parse_order_info(sheet: &Worksheet) -> ERPResult<OrderInfo> {
     let mut order_info = OrderInfo::default();
     let (cols, _rows) = sheet.get_highest_column_and_row();
     for i in 1..6 {
@@ -48,7 +49,9 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
                     order_date = cell_value.strip_prefix("订货日期：").unwrap_or("");
                 }
                 if !order_date.is_empty() {
-                    order_info.order_date = parse_date(order_date).unwrap();
+                    let naive_order_date = parse_date_with_regex(order_date)
+                        .ok_or(ERPError::ExcelError("订货日期未找到".to_string()))?;
+                    order_info.order_date = naive_order_date;
                 }
             }
 
@@ -77,7 +80,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> OrderInfo {
     }
 
     // order_info.order_no = random_string(5);
-    order_info
+    Ok(order_info)
 }
 
 #[cfg(test)]
