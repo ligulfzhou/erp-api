@@ -20,7 +20,7 @@ pub fn format_date(datetime: NaiveDate) -> String {
 }
 
 pub fn parse_date_with_regex(date: &str) -> Option<NaiveDate> {
-    let dash_re = Regex::new(r"(\d{4}-\d{2}-\d{2})").unwrap();
+    let dash_re = Regex::new(r"(\d{4}-\d{1,2}-\d{1,2})").unwrap();
     let mut matched = vec![];
     for (_, [ymd]) in dash_re.captures_iter(date).map(|c| c.extract()) {
         matched.push(ymd);
@@ -32,7 +32,7 @@ pub fn parse_date_with_regex(date: &str) -> Option<NaiveDate> {
         }
     }
 
-    let slash_re = Regex::new(r"(\d{4}/\d{2}/\d{2})").unwrap();
+    let slash_re = Regex::new(r"(\d{4}/\d{1,2}/\d{1,2})").unwrap();
     let mut matched = vec![];
     for (_, [ymd]) in slash_re.captures_iter(date).map(|c| c.extract()) {
         matched.push(ymd);
