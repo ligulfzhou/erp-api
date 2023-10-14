@@ -72,7 +72,7 @@ async fn delete_order(
     }
 
     // delete order_items
-    sqlx::query!("delete from order_items where id = $1", payload.id)
+    sqlx::query!("delete from order_items where order_id = $1", payload.id)
         .execute(&state.db)
         .await
         .map_err(|_| ERPError::Failed("删除数据失败".to_string()))?;
@@ -529,7 +529,7 @@ async fn get_order_items(
         r#"
         select
             og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
-            g.name as name, g.image as image, g.plating as plating, g.package_card as package_card,
+            g.name as name, g.images as images, g.plating as plating, g.package_card as package_card,
             g.package_card_des as package_card_des
         from order_goods og, goods g
         where og.goods_id = g.id and og.order_id = $1
@@ -776,7 +776,7 @@ async fn get_plain_order_items(
         select
             oi.id, oi.order_id, oi.order_goods_id, og.goods_id, oi.sku_id, s.sku_no,
             s.color, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes, g.name,
-            g.image, g.goods_no, g.package_card, g.package_card_des
+            g.images, g.goods_no, g.package_card, g.package_card_des
         from order_items oi, order_goods og, skus s, goods g
         where oi.order_goods_id = og.id and oi.sku_id = s.id and og.goods_id = g.id
             and oi.order_id = $1

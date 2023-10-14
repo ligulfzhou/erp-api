@@ -16,17 +16,27 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
             cur = previous.clone();
         }
         let mut package_image: Option<Image> = None;
-        let mut goods_image: Option<Image> = None;
+        let mut goods_images: Vec<&Image> = vec![];
 
         for j in 1..cols + 1 {
-            if j == 2 || j == 7 {
+            if j == 2 {
                 if let Some(real_image) = sheet.get_image((j, i)) {
-                    if j == 2 {
-                        package_image = Some(real_image.clone());
-                    } else {
-                        goods_image = Some(real_image.clone());
-                    }
+                    package_image = Some(real_image.clone());
                 }
+            }
+            if j == 7 {
+                goods_images = sheet.get_images((j, i));
+            }
+            if j == 2 || j == 7 {
+                // if let Some(real_image) = sheet.get_image((j, i)) {
+                //     if j == 2 {
+                //         if let Some(real_image) = sheet.get_image((j, i)) {
+                //             package_image = Some(real_image.clone());
+                //         }
+                //     } else {
+                //         goods_image = Some(real_image.clone());
+                //     }
+                // }
             }
 
             let cell = sheet.get_cell((j, i));
@@ -76,11 +86,19 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
             identifier = cur.sku_no.as_ref().unwrap().clone();
         }
 
-        if let Some(real_goods_image) = goods_image {
-            let goods_image_path = format!("{}/sku/{}.png", STORAGE_FILE_PATH, identifier);
-            real_goods_image.download_image(&goods_image_path);
-            cur.image = Some(format!("{}/sku/{}.png", STORAGE_URL_PREFIX, identifier));
+        let mut image_urls = vec![];
+        if !goods_images.is_empty() {
+            for (index, real_goods_image) in goods_images.into_iter().enumerate() {
+                let goods_image_path =
+                    format!("{}/sku/{}-{}.png", STORAGE_FILE_PATH, cur.goods_no, index);
+                real_goods_image.download_image(&goods_image_path);
+                image_urls.push(format!(
+                    "{}/sku/{}-{}.png",
+                    STORAGE_URL_PREFIX, cur.goods_no, index
+                ))
+            }
         }
+        cur.images = image_urls;
 
         if let Some(read_package_image) = package_image {
             let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, identifier);

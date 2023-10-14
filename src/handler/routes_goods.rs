@@ -44,7 +44,7 @@ async fn search_skus(
         r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, g.package_card, s.color2,
-                g.name, g.image, g.goods_no, g.plating, s.notes, g.customer_no
+                g.name, g.images, g.goods_no, g.plating, s.notes, g.customer_no
             from skus s, goods g
             where s.goods_id = g.id
                 and g.goods_no like $1 or s.sku_no like $2
@@ -196,7 +196,7 @@ impl ListParamToSQLTrait for ListSKUsParam {
         let mut sql = r#"
             select
                 s.id, s.sku_no, s.goods_id, s.color, s.color2, s.notes,
-                g.name, g.goods_no, g.image, g.plating, g.customer_no, g.package_card
+                g.name, g.goods_no, g.images, g.plating, g.customer_no, g.package_card
             from skus s, goods g
             where s.goods_id = g.id
             "#
@@ -336,7 +336,7 @@ async fn get_sku_detail(
         r#"
         select
             s.id, s.sku_no, g.name, g.goods_no, s.goods_id, g.package_card,
-            g.image, g.plating, s.color, s.color2, s.notes, g.customer_no
+            g.images, g.plating, s.color, s.color2, s.notes, g.customer_no
         from skus s, goods g
         where s.goods_id = g.id and s.id = $1;
         "#,

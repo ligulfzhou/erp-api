@@ -2,15 +2,15 @@
 create table goods
 (
     id               SERIAL,
-    customer_no      text not null default '', -- 客户ID
-    goods_no         text not null default '', -- 类目编号(可以为空，主要来自L1005)
-    image            text not null default '', -- 图片
-    image_des        text not null default '', -- 图片
-    name             text not null default '', -- 名称
-    plating          text not null default '', -- 电镀
-    package_card     text not null default '', -- 标签图片
-    package_card_des text not null default '', -- 标签说明
-    notes            text not null default ''  -- 备注
+    customer_no      text not null default '',   -- 客户ID
+    goods_no         text not null default '',   -- 类目编号(可以为空，主要来自L1005)
+    images           text[] not null default '{}', -- 图片
+    image_des        text not null default '',   -- 图片
+    name             text not null default '',   -- 名称
+    plating          text not null default '',   -- 电镀
+    package_card     text not null default '',   -- 标签图片
+    package_card_des text not null default '',   -- 标签说明
+    notes            text not null default ''    -- 备注
 );
 create index idx_goods_customer_no on goods (customer_no);
 create unique index uniq_goods_goods_no on goods (goods_no);
@@ -162,7 +162,7 @@ create table progress
 create table departments
 (
     id    serial,
-    name  text      not null default '',  -- 部门名称
+    name  text not null default '',       -- 部门名称
     steps integer[] not null default '{}' -- 流程位续
 );
 

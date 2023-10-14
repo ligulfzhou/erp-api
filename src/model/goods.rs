@@ -6,7 +6,7 @@ pub struct GoodsModel {
     pub id: i32,                  // SERIAL,
     pub customer_no: String,      // 客户ID
     pub goods_no: String,         // 类目编号
-    pub image: String,            // 图片
+    pub images: Vec<String>,      // 图片
     pub image_des: String,        // 图片描述
     pub name: String,             // 名称
     pub plating: String,          // 电镀
@@ -37,17 +37,21 @@ impl GoodsModel {
         goods: &GoodsModel,
         customer_no: &str,
     ) -> ERPResult<i32> {
-        let sql = format!(
-            r#"insert into goods (goods_no, name, image, customer_no)
-            values ('{}', '{}', '{}', '{}')
-            returning id"#,
-            goods.goods_no, goods.name, goods.image, customer_no
-        );
-        let (goods_id,) = sqlx::query_as::<_, (i32,)>(&sql)
-            .fetch_one(db)
-            .await
-            .map_err(ERPError::DBError)?;
-        Ok(goods_id)
+        let id = sqlx::query!(
+            r#"
+            insert into goods (goods_no, name, images, customer_no) 
+            values ($1, $2, $3, $4) returning id"#,
+            goods.goods_no,
+            goods.name,
+            &goods.images,
+            customer_no
+        )
+        .fetch_one(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .id;
+
+        Ok(id)
     }
 }
 

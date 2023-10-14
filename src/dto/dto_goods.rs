@@ -7,10 +7,10 @@ pub struct SKUModelDto {
     pub sku_no: String,
     pub customer_no: String,
     pub name: String,
-    pub goods_no: String,      // 产品编号 (暂时没有)
-    pub goods_id: i32,         // 产品ID
-    pub image: Option<String>, // 商品图片
-    pub package_card: String,  // 标签图片
+    pub goods_no: String,     // 产品编号 (暂时没有)
+    pub goods_id: i32,        // 产品ID
+    pub images: Vec<String>,  // 商品图片
+    pub package_card: String, // 标签图片
     // pub package_card_des: String, // 标签说明
     pub plating: String, // 电镀
     pub color: String,   // 颜色
@@ -23,7 +23,7 @@ pub struct GoodsDto {
     pub id: i32,
     pub goods_no: String,    // 商品编号
     pub customer_no: String, // 客户ID
-    pub image: String,       // 图片
+    pub images: Vec<String>, // 图片
     // pub image_des: String,        // 图片描述
     pub name: String,         // 名称
     pub plating: String,      // 电镀
@@ -40,7 +40,7 @@ impl GoodsDto {
             id: goods.id,
             goods_no: goods.goods_no,
             customer_no: goods.customer_no,
-            image: goods.image,
+            images: goods.images,
             // image_des: goods.image_des,
             name: goods.name,
             plating: goods.plating,

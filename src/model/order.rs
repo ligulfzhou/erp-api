@@ -6,7 +6,7 @@ use chrono::NaiveDate;
 use sqlx::{FromRow, Pool, Postgres, QueryBuilder};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone, FromRow)]
 pub struct OrderModel {
     pub id: i32,
     pub customer_no: String,
@@ -173,7 +173,7 @@ impl OrderItemModel {
 pub struct ExcelOrderGoods {
     pub index: i32,
     pub goods_no: String,
-    pub image: Option<String>,
+    pub images: Vec<String>,
     pub image_des: Option<String>,
     pub name: String,
     pub plating: String,
@@ -195,12 +195,12 @@ impl ExcelOrderGoods {
         customer_no: &str,
     ) -> ERPResult<HashMap<String, i32>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into goods (customer_no, goods_no, image, image_des, name, plating, package_card, package_card_des) ");
+            QueryBuilder::new("insert into goods (customer_no, goods_no, images, image_des, name, plating, package_card, package_card_des) ");
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(customer_no)
                 .push_bind(item.goods_no.clone())
-                .push_bind(item.image.as_deref().unwrap_or(""))
+                .push_bind(item.images.clone())
                 .push_bind(item.image_des.as_deref().unwrap_or(""))
                 .push_bind(item.name.clone())
                 .push_bind(item.plating.clone())
@@ -357,7 +357,7 @@ pub struct OrderItemExcel {
     /// sku编号 //只有L1005有这个字段
     pub sku_no: Option<String>,
     /// 商品图片
-    pub image: Option<String>,
+    pub images: Vec<String>,
     /// 商品的图片描述
     pub image_des: Option<String>,
     /// 商品名
@@ -418,7 +418,7 @@ impl OrderItemExcel {
         let mut goods = ExcelOrderGoods {
             index: 0,
             goods_no: "".to_string(),
-            image: None,
+            images: vec![],
             image_des: None,
             name: "".to_string(),
             plating: "".to_string(),
@@ -431,8 +431,8 @@ impl OrderItemExcel {
             if goods.index == 0 && item.index > 0 {
                 goods.index = item.index;
             }
-            if goods.image.is_none() && item.image.is_some() {
-                goods.image = item.image.clone();
+            if goods.images.is_empty() && !item.images.is_empty() {
+                goods.images = item.images.clone();
             }
             if goods.image_des.is_none() && item.image_des.is_some() {
                 goods.image_des = item.image_des.clone();
@@ -459,7 +459,7 @@ impl OrderItemExcel {
             id: 0,
             customer_no: "".to_string(),
             goods_no: "".to_string(),
-            image: "".to_string(),
+            images: vec![],
             image_des: "".to_string(),
             name: "".to_string(),
             plating: "".to_string(),
@@ -470,8 +470,8 @@ impl OrderItemExcel {
 
         goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
         items.iter().for_each(|item| {
-            if goods.image.is_empty() && item.image.is_some() {
-                goods.image = item.image.as_ref().unwrap().to_string();
+            if goods.images.is_empty() && !item.images.is_empty() {
+                goods.images = item.images.clone();
             }
             if goods.name.is_empty() && !item.name.is_empty() {
                 goods.name = item.name.clone();
