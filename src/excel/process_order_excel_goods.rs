@@ -23,15 +23,23 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
 
         if !no_goods_no {
             // 检查数据是否有问题(goods_no至少有一个值）
-            let goods_nos = items
+            let mut goods_nos = items
                 .iter()
                 .map(|item| item.goods_no.as_str())
                 .collect::<Vec<&str>>();
             println!("goods_nos: {goods_nos:?}");
 
-            if is_empty_string_vec(goods_nos) {
+            if is_empty_string_vec(&goods_nos) {
                 return Err(ERPError::ExcelError(format!(
                     "Excel内序号#{index},没有读到商品编号"
+                )));
+            }
+
+            goods_nos.dedup();
+
+            if goods_nos.len() > 1 {
+                return Err(ERPError::ExcelError(format!(
+                    "请检查Excel内序号#{index}，有重复数据, 或者序号重复"
                 )));
             }
         }
