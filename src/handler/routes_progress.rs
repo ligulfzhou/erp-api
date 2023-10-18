@@ -375,8 +375,7 @@ async fn revoke_progress(
     .fetch_optional(&state.db)
     .await
     .map_err(ERPError::DBError)?
-    .ok_or(ERPError::NotFound("该流程不存在".to_string()))
-    .unwrap();
+    .ok_or(ERPError::NotFound("该流程不存在".to_string()))?;
 
     if !account.steps.contains(&progress.step) {
         return Err(ERPError::NoPermission("无操作权限".to_string()));
