@@ -42,7 +42,11 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
                     "请检查Excel内序号#{index}，有重复数据, 或者序号重复"
                 )));
             }
+        } else {
+            // todo
+            // 没有goods_no
         }
+
         // todo: 检查数据是否有问题
         // let mut goods_nos = items
         //     .iter()
