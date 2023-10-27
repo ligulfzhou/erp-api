@@ -41,6 +41,10 @@ impl OrderModel {
 pub struct OrderGoodsModel {
     pub id: i32,
     pub index: i32,
+    pub images: Vec<String>,
+    pub image_des: String,
+    pub package_card: String,
+    pub package_card_des: String,
     pub order_id: i32,
     pub goods_id: i32,
 }
@@ -51,12 +55,16 @@ impl OrderGoodsModel {
         rows: &[OrderGoodsModel],
     ) -> ERPResult<Vec<OrderGoodsModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into order_goods (index, order_id, goods_id) ");
+            QueryBuilder::new("insert into order_goods (index, order_id, goods_id, images, image_des, package_card, package_card_des) ");
 
         query_builder.push_values(rows, |mut b, item| {
             b.push_bind(item.index)
                 .push_bind(item.order_id)
-                .push_bind(item.goods_id);
+                .push_bind(item.goods_id)
+                .push_bind(item.images.clone())
+                .push_bind(item.image_des.clone())
+                .push_bind(item.package_card.clone())
+                .push_bind(item.package_card_des.clone());
         });
         query_builder.push(" returning *;");
 
@@ -96,9 +104,9 @@ pub struct OrderItemModel {
     pub sku_id: i32,
     pub count: i32,
     pub unit: Option<String>,
-    // pub purchase_price: Option<i32>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
+    pub notes_images: Vec<String>,
     pub notes: String,
 }
 
@@ -180,13 +188,6 @@ pub struct ExcelOrderGoods {
     pub package_card: Option<String>,
     pub package_card_des: Option<String>,
 }
-
-// #[derive(Debug, FromRow)]
-// struct GoodsNoId {
-//     pub goods_no: String,
-//     pub id: i32,
-// }
-// .build_query_as::<GoodsNoId>()
 
 impl ExcelOrderGoods {
     pub async fn insert_into_goods_table(
@@ -382,6 +383,8 @@ pub struct OrderItemExcel {
     pub unit_price: Option<i32>,
     /// 金额
     pub total_price: Option<i32>,
+    /// 备注里的图片列表
+    pub notes_images: Vec<String>,
     /// 备注
     pub notes: Option<String>,
 }
