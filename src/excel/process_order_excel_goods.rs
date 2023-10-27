@@ -110,6 +110,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
         to_add_goods_nos.len()
     );
 
+    // todo: 添加 和 修改（已经存在，则去修改原先数据【主要是修改图片和package】）
     if !to_add_goods_nos.is_empty() {
         print!("order_goods_excel: {:?}", order_goods_excel);
         let to_add_goods = order_goods_excel
@@ -224,6 +225,26 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                 to_add_order_goods.push(OrderGoodsModel {
                     id: 0,
                     index: order_goods.goods.index,
+                    // todo
+                    images: order_goods.goods.images.clone(),
+                    image_des: order_goods
+                        .goods
+                        .image_des
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_string(),
+                    package_card: order_goods
+                        .goods
+                        .package_card
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_string(),
+                    package_card_des: order_goods
+                        .goods
+                        .package_card_des
+                        .as_deref()
+                        .unwrap_or("")
+                        .to_string(),
                     order_id,
                     goods_id: *this_goods_id,
                 })
