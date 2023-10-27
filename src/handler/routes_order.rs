@@ -461,9 +461,11 @@ async fn get_orders(
 
     let order_id_exception_stats =
         ProgressModel::get_order_exception_count(&state.db, &order_ids).await?;
-    tracing::info!("{:#?}", order_id_exception_stats);
+    let order_id_total_stats = ProgressModel::get_order_total_count(&state.db, &order_ids).await?;
+    let order_id_done_stats = ProgressModel::get_order_done_count(&state.db, &order_ids).await?;
 
     let empty_order_item_step = HashMap::new();
+    let zero = 0;
     let order_with_step_dtos = order_dtos
         .into_iter()
         .map(|order_dto| {
@@ -471,7 +473,16 @@ async fn get_orders(
                 .get(&order_dto.id)
                 .unwrap_or(&empty_order_item_step);
 
-            OrderWithStepsDto::from_order_dto_and_steps(order_dto, steps.clone())
+            let done_count = *order_id_done_stats.get(&order_dto.id).unwrap_or(&zero);
+            let exception_count = *order_id_exception_stats.get(&order_dto.id).unwrap_or(&zero);
+            let total_count = *order_id_total_stats.get(&order_dto.id).unwrap_or(&zero);
+            OrderWithStepsDto::from_order_dto_and_steps(
+                order_dto,
+                steps.clone(),
+                done_count,
+                exception_count,
+                total_count,
+            )
         })
         .collect::<Vec<OrderWithStepsDto>>();
 

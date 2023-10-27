@@ -100,11 +100,21 @@ pub struct OrderWithStepsDto {
     pub is_urgent: bool,
     pub is_special: bool,
     pub special_customer: String,
+
+    pub done_count: i32,
+    pub exception_count: i32,
+    pub total_count: i32,
     pub steps: Vec<StepIndexCountUF>,
 }
 
 impl OrderWithStepsDto {
-    pub fn from_order_dto_and_steps(order: OrderDto, steps: StepIndexCount) -> OrderWithStepsDto {
+    pub fn from_order_dto_and_steps(
+        order: OrderDto,
+        steps: StepIndexCount,
+        done_count: i32,
+        exception_count: i32,
+        total_count: i32,
+    ) -> OrderWithStepsDto {
         Self {
             id: order.id,
             customer_no: order.customer_no,
@@ -115,6 +125,9 @@ impl OrderWithStepsDto {
             is_urgent: order.is_urgent,
             is_special: order.is_special,
             special_customer: order.special_customer,
+            done_count,
+            exception_count,
+            total_count,
             steps: StepIndexCountUF::from_step_index_count(steps),
         }
     }
