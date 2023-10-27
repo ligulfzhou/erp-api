@@ -51,7 +51,6 @@ impl OrderDto {
 
 type StepCount = HashMap<i32, i32>;
 type StepCountUF = HashMap<String, i32>;
-
 type StepIndexCount = HashMap<(i32, i32), i32>;
 
 #[derive(Debug, Serialize)]

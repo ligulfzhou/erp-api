@@ -5,7 +5,10 @@ use crate::{ERPError, ERPResult};
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
+pub fn parse_order_excel_t4(
+    sheet: &Worksheet,
+    order_no: &str,
+) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
     let (cols, rows) = sheet.get_highest_column_and_row();
 
     let mut index_to_items = HashMap::new();
@@ -14,9 +17,11 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
         let mut cur = OrderItemExcel::default();
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
+            cur.notes_images = vec![];
         }
         let mut package_image: Option<Image> = None;
         let mut goods_images: Vec<&Image> = vec![];
+        let mut notes_images: Vec<&Image> = vec![];
 
         for j in 1..cols + 1 {
             if j == 2 {
@@ -27,16 +32,8 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
             if j == 7 {
                 goods_images = sheet.get_images((j, i));
             }
-            if j == 2 || j == 7 {
-                // if let Some(real_image) = sheet.get_image((j, i)) {
-                //     if j == 2 {
-                //         if let Some(real_image) = sheet.get_image((j, i)) {
-                //             package_image = Some(real_image.clone());
-                //         }
-                //     } else {
-                //         goods_image = Some(real_image.clone());
-                //     }
-                // }
+            if j == 15 {
+                notes_images = sheet.get_images((j, i));
             }
 
             let cell = sheet.get_cell((j, i));
@@ -89,22 +86,35 @@ pub fn parse_order_excel_t4(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
         let mut image_urls = vec![];
         if !goods_images.is_empty() {
             for (index, real_goods_image) in goods_images.into_iter().enumerate() {
-                let goods_image_path =
-                    format!("{}/sku/{}-{}.png", STORAGE_FILE_PATH, cur.goods_no, index);
+                let sku_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
                 real_goods_image.download_image(&goods_image_path);
-                image_urls.push(format!(
-                    "{}/sku/{}-{}.png",
-                    STORAGE_URL_PREFIX, cur.goods_no, index
-                ))
+                image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
             }
         }
         cur.images = image_urls;
 
         if let Some(read_package_image) = package_image {
-            let package_image_path = format!("{}/package/{}.png", STORAGE_FILE_PATH, identifier);
+            let package_image_name = format!("{}-{}.png", cur.goods_no, order_no);
+            let package_image_path =
+                format!("{}/package/{}", STORAGE_FILE_PATH, package_image_name);
             read_package_image.download_image(&package_image_path);
-            cur.package_card = Some(format!("{}/package/{}.png", STORAGE_URL_PREFIX, identifier));
+            cur.package_card = Some(format!(
+                "{}/package/{}",
+                STORAGE_URL_PREFIX, package_image_name
+            ));
         }
+
+        let mut notes_image_urls = vec![];
+        if !notes_images.is_empty() {
+            for (index, real_notes_image) in notes_images.into_iter().enumerate() {
+                let notes_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let notes_image_path = format!("{}/notes/{}", STORAGE_FILE_PATH, notes_image_name);
+                real_notes_image.download_image(&notes_image_path);
+                notes_image_urls.push(format!("{}/notes/{}", STORAGE_URL_PREFIX, notes_image_name));
+            }
+        }
+        cur.notes_images = notes_image_urls;
 
         if cur.index == 0 {
             return Err(ERPError::ExcelError(format!(

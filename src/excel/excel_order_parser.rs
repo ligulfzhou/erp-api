@@ -62,11 +62,11 @@ impl<'a> ExcelOrderParser<'a> {
 
         let template_id = customer_excel_template_model.unwrap().template_id;
         let order_items = match template_id {
-            1 => parse_order_excel_t1(sheet)?,
-            2 => parse_order_excel_t2(sheet)?,
-            3 => parse_order_excel_t3(sheet)?,
-            4 => parse_order_excel_t4(sheet)?,
-            _ => parse_order_excel_t1(sheet)?,
+            1 => parse_order_excel_t1(sheet, &order_info.order_no)?,
+            2 => parse_order_excel_t2(sheet, &order_info.order_no)?,
+            3 => parse_order_excel_t3(sheet, &order_info.order_no)?,
+            4 => parse_order_excel_t4(sheet, &order_info.order_no)?,
+            _ => parse_order_excel_t1(sheet, &order_info.order_no)?,
         };
 
         println!("order_items: {:?}", order_items);

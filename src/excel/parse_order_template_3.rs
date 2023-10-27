@@ -5,7 +5,10 @@ use crate::ERPResult;
 use std::collections::HashMap;
 use umya_spreadsheet::*;
 
-pub fn parse_order_excel_t3(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
+pub fn parse_order_excel_t3(
+    sheet: &Worksheet,
+    order_no: &str,
+) -> ERPResult<HashMap<i32, Vec<OrderItemExcel>>> {
     let (cols, rows) = sheet.get_highest_column_and_row();
 
     let mut index_to_items = HashMap::new();
@@ -15,12 +18,18 @@ pub fn parse_order_excel_t3(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
         let mut cur = OrderItemExcel::default();
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
+            cur.notes_images = vec![];
         }
+
         let mut goods_images: Vec<&Image> = vec![];
+        let mut notes_images: Vec<&Image> = vec![];
 
         for j in 1..cols + 1 {
             if j == 2 {
                 goods_images = sheet.get_images((j, i));
+            }
+            if j == 12 {
+                notes_images = sheet.get_images((j, i));
             }
 
             let cell = sheet.get_cell((j, i));
@@ -69,16 +78,24 @@ pub fn parse_order_excel_t3(sheet: &Worksheet) -> ERPResult<HashMap<i32, Vec<Ord
         let mut image_urls = vec![];
         if !goods_images.is_empty() {
             for (index, real_goods_image) in goods_images.into_iter().enumerate() {
-                let goods_image_path =
-                    format!("{}/sku/{}-{}.png", STORAGE_FILE_PATH, cur.goods_no, index);
+                let sku_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
                 real_goods_image.download_image(&goods_image_path);
-                image_urls.push(format!(
-                    "{}/sku/{}-{}.png",
-                    STORAGE_URL_PREFIX, cur.goods_no, index
-                ))
+                image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
             }
         }
         cur.images = image_urls;
+
+        let mut notes_image_urls = vec![];
+        if !notes_images.is_empty() {
+            for (index, real_notes_image) in notes_images.into_iter().enumerate() {
+                let notes_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let notes_image_path = format!("{}/notes/{}", STORAGE_FILE_PATH, notes_image_name);
+                real_notes_image.download_image(&notes_image_path);
+                notes_image_urls.push(format!("{}/notes/{}", STORAGE_URL_PREFIX, notes_image_name));
+            }
+        }
+        cur.notes_images = notes_image_urls;
 
         index_to_items
             .entry(cur.index)

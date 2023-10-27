@@ -279,7 +279,8 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                     unit: Some(order_item.unit.as_deref().unwrap_or("").to_string()),
                     unit_price: Some(order_item.unit_price.unwrap_or(0)),
                     total_price: Some(order_item.total_price.unwrap_or(0)),
-                    notes: "".to_string(),
+                    notes_images: order_item.notes_images.clone(),
+                    notes: order_item.notes.as_deref().unwrap_or("").to_string(),
                 })
             }
         });
