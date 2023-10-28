@@ -289,6 +289,7 @@ pub struct OrderGoodsDto {
     pub goods_no: String,
     pub name: String,
     pub images: Vec<String>,
+    pub image_des: String,
     pub plating: String,
     pub package_card: String,
     pub package_card_des: String,

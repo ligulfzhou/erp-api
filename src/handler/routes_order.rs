@@ -540,8 +540,8 @@ async fn get_order_items(
         r#"
         select
             og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
-            g.name as name, g.images as images, g.plating as plating, g.package_card as package_card,
-            g.package_card_des as package_card_des
+            g.name as name, og.images as images, og.image_des as image_des, g.plating as plating,
+            og.package_card as package_card, og.package_card_des as package_card_des
         from order_goods og, goods g
         where og.goods_id = g.id and og.order_id = $1
         order by og.id offset $2 limit $3
