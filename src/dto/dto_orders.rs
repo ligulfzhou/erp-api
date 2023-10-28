@@ -1,7 +1,8 @@
 use crate::constants::STEP_TO_DEPARTMENT;
+use crate::dto::dto_goods::GoodsImageAndPackage;
 use crate::dto::dto_progress::OneProgress;
 use crate::model::customer::CustomerModel;
-use crate::model::order::OrderModel;
+use crate::model::order::{GoodsImagesAndPackageModel, OrderModel};
 use chrono::NaiveDate;
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -150,6 +151,29 @@ pub struct OrderGoodsItemDto {
 }
 
 #[derive(Debug, Serialize, Clone, FromRow)]
+pub struct OrderPlainItemWithoutImagesPackageDto {
+    pub id: i32,
+    pub order_id: i32,
+    pub goods_id: i32,
+    pub goods_no: String,
+    pub name: String,
+    // pub images: Vec<String>,
+    // pub image_des: String,
+    // pub package_card: String,
+    // pub package_card_des: String,
+    pub order_goods_id: i32,
+    pub sku_id: i32,
+    pub sku_no: Option<String>,
+    pub color: String,
+    pub count: i32,
+    pub unit: Option<String>,
+    pub unit_price: Option<i32>,
+    pub total_price: Option<i32>,
+    pub notes_images: Vec<String>,
+    pub notes: String,
+}
+
+#[derive(Debug, Serialize, Clone, FromRow)]
 pub struct OrderPlainItemDto {
     pub id: i32,
     pub order_id: i32,
@@ -157,6 +181,7 @@ pub struct OrderPlainItemDto {
     pub goods_no: String,
     pub name: String,
     pub images: Vec<String>,
+    pub image_des: String,
     pub package_card: String,
     pub package_card_des: String,
     pub order_goods_id: i32,
@@ -167,7 +192,37 @@ pub struct OrderPlainItemDto {
     pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
+    pub notes_images: Vec<String>,
     pub notes: String,
+}
+
+impl OrderPlainItemDto {
+    pub fn from_sku_and_images_package(
+        sku: OrderPlainItemWithoutImagesPackageDto,
+        images_package: GoodsImagesAndPackageModel,
+    ) -> OrderPlainItemDto {
+        Self {
+            id: sku.id,
+            order_id: sku.order_id,
+            goods_id: sku.goods_id,
+            goods_no: sku.goods_no,
+            name: sku.name,
+            images: images_package.images,
+            image_des: images_package.image_des,
+            package_card: images_package.package_card,
+            package_card_des: images_package.package_card_des,
+            order_goods_id: sku.order_goods_id,
+            sku_id: sku.sku_id,
+            sku_no: sku.sku_no,
+            color: sku.color,
+            count: sku.count,
+            unit: sku.unit,
+            unit_price: sku.unit_price,
+            total_price: sku.total_price,
+            notes_images: sku.notes_images,
+            notes: sku.notes,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]

@@ -4,12 +4,12 @@ use crate::dto::dto_account::AccountDto;
 use crate::dto::dto_orders::{
     OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto,
     OrderGoodsWithStepsWithItemStepDto, OrderPlainItemDto, OrderPlainItemWithCurrentStepDto,
-    OrderWithStepsDto,
+    OrderPlainItemWithoutImagesPackageDto, OrderWithStepsDto,
 };
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::middleware::auth::auth;
-use crate::model::order::{OrderGoodsModel, OrderModel};
+use crate::model::order::{GoodsImagesAndPackageModel, OrderGoodsModel, OrderModel};
 use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
@@ -33,7 +33,7 @@ pub fn routes(state: Arc<AppState>) -> Router {
         .route("/api/order/update", post(update_order))
         .route("/api/order/items", get(get_order_items))
         .route("/api/order/plain/items", get(get_plain_order_items))
-        .route("/api/order/goods/update", post(update_order_goods))
+        // .route("/api/order/goods/update", post(update_order_goods))
         .route("/api/order/item/update", post(update_order_item))
         .route("/api/order/goods/delete", post(delete_order_goods))
         .route("/api/order/item/delete", post(delete_order_item))
@@ -783,13 +783,13 @@ async fn get_plain_order_items(
     let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
     let offset = (page - 1) * page_size;
 
-    let order_items_dto = sqlx::query_as!(
-        OrderPlainItemDto,
+    let order_items_no_dto = sqlx::query_as!(
+        OrderPlainItemWithoutImagesPackageDto,
         r#"
         select
-            oi.id, oi.order_id, oi.order_goods_id, og.goods_id, oi.sku_id, s.sku_no,
-            s.color, oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes, g.name,
-            g.images, g.goods_no, g.package_card, g.package_card_des
+            oi.id, oi.order_id, oi.order_goods_id, og.goods_id, oi.sku_id, s.sku_no, s.color,
+            oi.count, oi.unit, oi.unit_price, oi.total_price, oi.notes, g.name, g.goods_no, 
+            oi.notes_images
         from order_items oi, order_goods og, skus s, goods g
         where oi.order_goods_id = og.id and oi.sku_id = s.id and og.goods_id = g.id
             and oi.order_id = $1
@@ -803,11 +803,20 @@ async fn get_plain_order_items(
     .await
     .map_err(ERPError::DBError)?;
 
-    if order_items_dto.is_empty() {
+    if order_items_no_dto.is_empty() {
         return Ok(APIListResponse::new(vec![], 0));
     }
 
-    let order_item_ids = order_items_dto
+    let mut goods_ids = order_items_no_dto
+        .iter()
+        .map(|item| item.goods_id)
+        .collect::<Vec<i32>>();
+    goods_ids.dedup();
+
+    let goods_id_to_images_package =
+        OrderGoodsModel::get_multiple_goods_images_and_package(&state.db, &goods_ids).await?;
+
+    let order_item_ids = order_items_no_dto
         .iter()
         .map(|item| item.id)
         .collect::<Vec<i32>>();
@@ -847,6 +856,19 @@ async fn get_plain_order_items(
             )
         })
         .collect::<HashMap<i32, (i32, i32, String)>>();
+
+    let empty_images_package = GoodsImagesAndPackageModel::default();
+    let mut order_items_dto = vec![];
+    for item in order_items_no_dto.into_iter() {
+        let images_package = goods_id_to_images_package
+            .get(&item.goods_id)
+            .unwrap_or(&empty_images_package);
+
+        order_items_dto.push(OrderPlainItemDto::from_sku_and_images_package(
+            item,
+            images_package.clone(),
+        ))
+    }
 
     let default_tuple = (1, 0, "".to_string());
     let list = order_items_dto
@@ -1064,40 +1086,40 @@ async fn update_order_item(
     Ok(APIEmptyResponse::new())
 }
 
-#[derive(Debug, Deserialize)]
-struct UpdateOrderGoodsParam {
-    id: i32,
-    package_card: String,
-    package_card_des: String,
-}
-
-async fn update_order_goods(
-    State(state): State<Arc<AppState>>,
-    WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
-) -> ERPResult<APIEmptyResponse> {
-    tracing::info!("=> handler update_order_goods: update sql: {:?}", "");
-
-    let og = sqlx::query_as!(
-        OrderGoodsModel,
-        "select * from order_goods where id=$1",
-        payload.id
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    sqlx::query!(
-        "update goods set package_card=$1, package_card_des=$2 where id=$3",
-        payload.package_card,
-        payload.package_card_des,
-        og.goods_id
-    )
-    .execute(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    Ok(APIEmptyResponse::new())
-}
+// #[derive(Debug, Deserialize)]
+// struct UpdateOrderGoodsParam {
+//     id: i32,
+//     package_card: String,
+//     package_card_des: String,
+// }
+//
+// async fn update_order_goods(
+//     State(state): State<Arc<AppState>>,
+//     WithRejection(Json(payload), _): WithRejection<Json<UpdateOrderGoodsParam>, ERPError>,
+// ) -> ERPResult<APIEmptyResponse> {
+//     tracing::info!("=> handler update_order_goods: update sql: {:?}", "");
+//
+//     let og = sqlx::query_as!(
+//         OrderGoodsModel,
+//         "select * from order_goods where id=$1",
+//         payload.id
+//     )
+//     .fetch_one(&state.db)
+//     .await
+//     .map_err(ERPError::DBError)?;
+//
+//     sqlx::query!(
+//         "update goods set package_card=$1, package_card_des=$2 where id=$3",
+//         payload.package_card,
+//         payload.package_card_des,
+//         og.goods_id
+//     )
+//     .execute(&state.db)
+//     .await
+//     .map_err(ERPError::DBError)?;
+//
+//     Ok(APIEmptyResponse::new())
+// }
 
 #[cfg(test)]
 mod tests {

@@ -49,7 +49,7 @@ pub struct OrderGoodsModel {
     pub goods_id: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Default, Clone)]
 pub struct GoodsImagesAndPackageModel {
     pub images: Vec<String>,
     pub image_des: String,
@@ -66,7 +66,7 @@ impl OrderGoodsModel {
         let goods_images_package = sqlx::query_as!(
             GoodsImagesAndPackageModel,
             r#"
-            select images, image_des, package_card, package_card_des 
+            select goods_id, images, image_des, package_card, package_card_des 
             from order_goods 
             where goods_id=$1 
             order by id desc 
@@ -85,24 +85,26 @@ impl OrderGoodsModel {
     pub async fn get_multiple_goods_images_and_package(
         db: &Pool<Postgres>,
         goods_ids: &[i32],
-    ) -> ERPResult<Vec<GoodsImagesAndPackageModel>> {
-        let goods_images_package = sqlx::query_as!(
+    ) -> ERPResult<HashMap<i32, GoodsImagesAndPackageModel>> {
+        let goods_images_package_hash = sqlx::query_as!(
             GoodsImagesAndPackageModel,
             r#"
             select distinct on (goods_id)
-            goods_id, images, images_des, package_card, package_card_des
+            goods_id, images, image_des, package_card, package_card_des
             from order_goods
             where goods_id = any($1)
             order by goods_id desc, id desc;
             "#,
-            goods_id
+            goods_ids
         )
         .fetch_all(db)
         .await
         .map_err(ERPError::DBError)?
-        .ok_or(ERPError::NotFound("有商品未找到".to_string()))?;
+        .into_iter()
+        .map(|images_package| (images_package.goods_id, images_package))
+        .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
 
-        Ok(goods_images_package)
+        Ok(goods_images_package_hash)
     }
 }
 
