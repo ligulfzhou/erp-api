@@ -568,7 +568,8 @@ async fn get_order_items(
         r#"
         select
             oi.id, oi.order_id, oi.sku_id, s.color, s.sku_no, oi.count, oi.unit,
-            oi.unit_price, oi.total_price, oi.notes, og.goods_id, oi.order_goods_id
+            oi.unit_price, oi.total_price, oi.notes, og.goods_id, oi.order_goods_id,
+            oi.notes_images
         from order_items oi, skus s, order_goods og
         where oi.sku_id = s.id and oi.order_goods_id = og.id
             and oi.order_goods_id = any($1)

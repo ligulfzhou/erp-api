@@ -145,6 +145,7 @@ pub struct OrderGoodsItemDto {
     pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
+    pub notes_images: Vec<String>,
     pub notes: String,
 }
 
@@ -247,6 +248,7 @@ pub struct OrderGoodsItemWithStepsDto {
     pub unit: Option<String>,
     pub unit_price: Option<i32>,
     pub total_price: Option<i32>,
+    pub notes_images: Vec<String>,
     pub notes: String,
 
     pub is_next_action: bool,
@@ -273,6 +275,7 @@ impl OrderGoodsItemWithStepsDto {
             unit: ogid.unit,
             unit_price: ogid.unit_price,
             total_price: ogid.total_price,
+            notes_images: ogid.notes_images,
             notes: ogid.notes,
             is_next_action,
             current_step,
@@ -303,6 +306,7 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub goods_no: String,
     pub name: String,
     pub images: Vec<String>,
+    pub image_des: String,
     pub plating: String,
     pub package_card: String,
     pub package_card_des: String,
@@ -330,6 +334,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             goods_no: order_goods.goods_no,
             name: order_goods.name,
             images: order_goods.images,
+            image_des: order_goods.image_des,
             plating: order_goods.plating,
             package_card: order_goods.package_card,
             package_card_des: order_goods.package_card_des,
