@@ -20,6 +20,7 @@ pub fn parse_order_excel_t2(
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
             cur.notes_images = vec![];
+            cur.notes = None;
         }
         let mut package_image: Option<Image> = None;
         let mut goods_images: Vec<&Image> = vec![];

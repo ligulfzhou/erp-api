@@ -17,6 +17,7 @@ pub fn parse_order_excel_t4(
         let mut cur = OrderItemExcel::default();
         if let Some(previous) = pre.as_ref() {
             cur = previous.clone();
+            cur.notes = None;
             cur.notes_images = vec![];
         }
         let mut package_image: Option<Image> = None;

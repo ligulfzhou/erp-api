@@ -20,6 +20,7 @@ pub fn parse_order_excel_t1(
         if let Some(previous) = pre {
             cur = previous.clone();
             cur.notes_images = vec![];
+            cur.notes = None;
         }
 
         let mut package_image: Option<Image> = None;
