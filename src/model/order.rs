@@ -116,7 +116,7 @@ impl OrderItemModel {
         items: &[OrderItemModel],
     ) -> ERPResult<Vec<OrderItemModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into order_items (order_goods_id, order_id, sku_id, count, unit, unit_price, total_price) ");
+            QueryBuilder::new("insert into order_items (order_goods_id, order_id, sku_id, count, unit, unit_price, total_price, notes_images, notes) ");
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(item.order_goods_id)
@@ -125,7 +125,9 @@ impl OrderItemModel {
                 .push_bind(item.count)
                 .push_bind(item.unit.as_deref().unwrap_or(""))
                 .push_bind(item.unit_price.unwrap_or(0))
-                .push_bind(item.total_price.unwrap_or(0));
+                .push_bind(item.total_price.unwrap_or(0))
+                .push_bind(item.notes_images.clone())
+                .push_bind(item.notes.clone());
         });
         query_builder.push(" returning *;");
 
