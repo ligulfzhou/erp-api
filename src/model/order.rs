@@ -49,6 +49,63 @@ pub struct OrderGoodsModel {
     pub goods_id: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct GoodsImagesAndPackageModel {
+    pub images: Vec<String>,
+    pub image_des: String,
+    pub package_card: String,
+    pub package_card_des: String,
+    pub goods_id: i32,
+}
+
+impl OrderGoodsModel {
+    pub async fn get_goods_images_and_package(
+        db: &Pool<Postgres>,
+        goods_id: i32,
+    ) -> ERPResult<GoodsImagesAndPackageModel> {
+        let goods_images_package = sqlx::query_as!(
+            GoodsImagesAndPackageModel,
+            r#"
+            select images, image_des, package_card, package_card_des 
+            from order_goods 
+            where goods_id=$1 
+            order by id desc 
+            limit 1
+            "#,
+            goods_id
+        )
+        .fetch_optional(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .ok_or(ERPError::NotFound("有商品未找到".to_string()))?;
+
+        Ok(goods_images_package)
+    }
+
+    pub async fn get_multiple_goods_images_and_package(
+        db: &Pool<Postgres>,
+        goods_ids: &[i32],
+    ) -> ERPResult<Vec<GoodsImagesAndPackageModel>> {
+        let goods_images_package = sqlx::query_as!(
+            GoodsImagesAndPackageModel,
+            r#"
+            select distinct on (goods_id)
+            goods_id, images, images_des, package_card, package_card_des
+            from order_goods
+            where goods_id = any($1)
+            order by goods_id desc, id desc;
+            "#,
+            goods_id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .ok_or(ERPError::NotFound("有商品未找到".to_string()))?;
+
+        Ok(goods_images_package)
+    }
+}
+
 impl OrderGoodsModel {
     pub async fn add_rows(
         db: &Pool<Postgres>,
@@ -459,35 +516,35 @@ impl OrderItemExcel {
         goods
     }
 
-    pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
-        let mut goods = GoodsModel {
-            id: 0,
-            customer_no: "".to_string(),
-            goods_no: "".to_string(),
-            images: vec![],
-            image_des: "".to_string(),
-            name: "".to_string(),
-            plating: "".to_string(),
-            package_card: "".to_string(),
-            package_card_des: "".to_string(),
-            notes: "".to_string(),
-        };
-
-        goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
-        items.iter().for_each(|item| {
-            if goods.images.is_empty() && !item.images.is_empty() {
-                goods.images = item.images.clone();
-            }
-            if goods.name.is_empty() && !item.name.is_empty() {
-                goods.name = item.name.clone();
-            }
-            if goods.plating.is_empty() && !item.plating.is_empty() {
-                goods.plating = item.plating.clone();
-            }
-        });
-
-        goods
-    }
+    // pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
+    //     let mut goods = GoodsModel {
+    //         id: 0,
+    //         customer_no: "".to_string(),
+    //         goods_no: "".to_string(),
+    //         // images: vec![],
+    //         // image_des: "".to_string(),
+    //         name: "".to_string(),
+    //         plating: "".to_string(),
+    //         // package_card: "".to_string(),
+    //         // package_card_des: "".to_string(),
+    //         notes: "".to_string(),
+    //     };
+    //
+    //     goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
+    //     items.iter().for_each(|item| {
+    //         // if goods.images.is_empty() && !item.images.is_empty() {
+    //         //     goods.images = item.images.clone();
+    //         // }
+    //         if goods.name.is_empty() && !item.name.is_empty() {
+    //             goods.name = item.name.clone();
+    //         }
+    //         if goods.plating.is_empty() && !item.plating.is_empty() {
+    //             goods.plating = item.plating.clone();
+    //         }
+    //     });
+    //
+    //     goods
+    // }
 
     pub fn pick_up_package(items: &Vec<OrderItemExcel>) -> (String, String) {
         let mut package_card: Option<String> = None;

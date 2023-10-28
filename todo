@@ -1,0 +1,10 @@
+1:
+   比较 distinct on 和 rank
+
+               select distinct on (order_item_id)
+               id, order_item_id, step, account_id, done, notes, dt, index
+               from progress
+               where order_item_id = any($1)
+               order by order_item_id, step desc, id desc;
+
+2:

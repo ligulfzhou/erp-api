@@ -3,16 +3,16 @@ use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct GoodsModel {
-    pub id: i32,                  // SERIAL,
-    pub customer_no: String,      // 客户ID
-    pub goods_no: String,         // 类目编号
-    pub images: Vec<String>,      // 图片
-    pub image_des: String,        // 图片描述
-    pub name: String,             // 名称
-    pub plating: String,          // 电镀
-    pub package_card: String,     // 标签图片
-    pub package_card_des: String, // 标签说明
-    pub notes: String,            // 备注
+    pub id: i32,             // SERIAL,
+    pub customer_no: String, // 客户ID
+    pub goods_no: String,    // 类目编号
+    // pub images: Vec<String>,      // 图片
+    // pub image_des: String,        // 图片描述
+    pub name: String,    // 名称
+    pub plating: String, // 电镀
+    // pub package_card: String,     // 标签图片
+    // pub package_card_des: String, // 标签说明
+    pub notes: String, // 备注
 }
 
 impl GoodsModel {
@@ -39,11 +39,10 @@ impl GoodsModel {
     ) -> ERPResult<i32> {
         let id = sqlx::query!(
             r#"
-            insert into goods (goods_no, name, images, customer_no) 
-            values ($1, $2, $3, $4) returning id"#,
+            insert into goods (goods_no, name, customer_no) 
+            values ($1, $2, $3) returning id"#,
             goods.goods_no,
             goods.name,
-            &goods.images,
             customer_no
         )
         .fetch_one(db)

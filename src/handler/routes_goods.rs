@@ -1,7 +1,8 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_goods::{GoodsDto, SKUModelDto};
+use crate::dto::dto_goods::{GoodsDto, SKUModelDto, SKUModelWithoutImageAndPackageDto};
 use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
+use crate::model::order::OrderGoodsModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
@@ -15,67 +16,67 @@ use std::sync::Arc;
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/api/goods", get(get_goods))
-        .route("/api/skus/search", get(search_skus))
+        // .route("/api/skus/search", get(search_skus))
         .route("/api/skus", get(get_skus).post(create_sku)) //.post(create_skus))
         .route("/api/sku/detail", get(get_sku_detail)) //.post(create_skus))
         .route("/api/sku/update", post(update_sku))
         .with_state(state)
 }
 
-#[derive(Debug, Deserialize)]
-struct SearchSkusParam {
-    key: String,
-    page: Option<i32>,
-    #[serde(rename(deserialize = "pageSize"))]
-    page_size: Option<i32>,
-}
-
-async fn search_skus(
-    State(state): State<Arc<AppState>>,
-    WithRejection(Query(param), _): WithRejection<Query<SearchSkusParam>, ERPError>,
-) -> ERPResult<APIListResponse<SKUModelDto>> {
-    let page = param.page.unwrap_or(1);
-    let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
-    let offset = (page - 1) * page_size;
-
-    // todo: like
-    let skus = sqlx::query_as!(
-        SKUModelDto,
-        r#"
-            select
-                s.id, s.sku_no, s.goods_id, s.color, g.package_card, s.color2,
-                g.name, g.images, g.goods_no, g.plating, s.notes, g.customer_no
-            from skus s, goods g
-            where s.goods_id = g.id
-                and g.goods_no like $1 or s.sku_no like $2
-            order by s.id desc limit $3
-            "#,
-        param.key,
-        param.key,
-        offset as i64
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
-
-    let count = sqlx::query!(
-        r#"
-            select count(1)
-            from skus s, goods g
-            where s.goods_id = g.id
-                and g.goods_no like $1 or s.sku_no like $2
-            "#,
-        param.key,
-        param.key
-    )
-    .fetch_one(&state.db)
-    .await
-    .map_err(ERPError::DBError)?
-    .count
-    .unwrap_or(0) as i32;
-
-    Ok(APIListResponse::new(skus, count))
-}
+// #[derive(Debug, Deserialize)]
+// struct SearchSkusParam {
+//     key: String,
+//     page: Option<i32>,
+//     #[serde(rename(deserialize = "pageSize"))]
+//     page_size: Option<i32>,
+// }
+//
+// async fn search_skus(
+//     State(state): State<Arc<AppState>>,
+//     WithRejection(Query(param), _): WithRejection<Query<SearchSkusParam>, ERPError>,
+// ) -> ERPResult<APIListResponse<SKUModelDto>> {
+//     let page = param.page.unwrap_or(1);
+//     let page_size = param.page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+//     let offset = (page - 1) * page_size;
+//
+//     // todo: like
+//     let skus = sqlx::query_as!(
+//         SKUModelDto,
+//         r#"
+//         select
+//             s.id, s.sku_no, s.goods_id, s.color, g.package_card, s.color2,
+//             g.name, g.images, g.goods_no, g.plating, s.notes, g.customer_no
+//         from skus s, goods g
+//         where s.goods_id = g.id
+//             and g.goods_no like $1 or s.sku_no like $2
+//         order by s.id desc limit $3
+//         "#,
+//         param.key,
+//         param.key,
+//         offset as i64
+//     )
+//     .fetch_all(&state.db)
+//     .await
+//     .map_err(ERPError::DBError)?;
+//
+//     let count = sqlx::query!(
+//         r#"
+//             select count(1)
+//             from skus s, goods g
+//             where s.goods_id = g.id
+//                 and g.goods_no like $1 or s.sku_no like $2
+//             "#,
+//         param.key,
+//         param.key
+//     )
+//     .fetch_one(&state.db)
+//     .await
+//     .map_err(ERPError::DBError)?
+//     .count
+//     .unwrap_or(0) as i32;
+//
+//     Ok(APIListResponse::new(skus, count))
+// }
 
 #[derive(Debug, Deserialize)]
 struct ListGoodsParam {
@@ -331,12 +332,12 @@ async fn get_sku_detail(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<SkuDetailParam>, ERPError>,
 ) -> ERPResult<APIDataResponse<SKUModelDto>> {
-    let sku_dto = sqlx::query_as!(
-        SKUModelDto,
+    let sku_no_dto = sqlx::query_as!(
+        SKUModelWithoutImageAndPackageDto,
         r#"
         select
-            s.id, s.sku_no, g.name, g.goods_no, s.goods_id, g.package_card,
-            g.images, g.plating, s.color, s.color2, s.notes, g.customer_no
+            s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
+            g.plating, s.color, s.color2, s.notes, g.customer_no
         from skus s, goods g
         where s.goods_id = g.id and s.id = $1;
         "#,
@@ -345,6 +346,11 @@ async fn get_sku_detail(
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
+
+    let goods =
+        OrderGoodsModel::get_goods_images_and_package(&state.db, sku_no_dto.goods_id).await?;
+
+    let sku_dto = SKUModelDto::from_sku_and_images_package(sku_no_dto, goods);
 
     Ok(APIDataResponse::new(sku_dto))
 }
