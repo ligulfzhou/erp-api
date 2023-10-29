@@ -180,7 +180,7 @@ mod tests {
             std::path::Path::new("/Users/ligangzhou/Money/rust/erp-api/excel_templates/L1004.xlsx");
         let book = reader::xlsx::read(path)?;
         let sheet = book.get_active_sheet();
-        let order_info = parse_order_excel_t4(sheet);
+        let order_info = parse_order_excel_t4(sheet, "xyz");
         tracing::info!("order_info: {:#?}", order_info);
 
         // order_info.iter().map(|item|tracing::info!("{:?}", item));
