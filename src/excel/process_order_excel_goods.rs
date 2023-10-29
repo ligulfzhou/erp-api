@@ -27,7 +27,7 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
                 .iter()
                 .map(|item| item.goods_no.as_str())
                 .collect::<Vec<&str>>();
-            println!("goods_nos: {goods_nos:?}");
+            tracing::info!("goods_nos: {goods_nos:?}");
 
             if is_empty_string_vec(&goods_nos) {
                 return Err(ERPError::ExcelError(format!(
@@ -63,7 +63,7 @@ pub fn convert_index_vec_order_item_excel_to_vec_excel_order_goods_with_items(
         // }
 
         let goods = OrderItemExcel::pick_up_excel_goods(items);
-        println!("pick_up_excel_goods: {:?}", goods);
+        tracing::info!("pick_up_excel_goods: {:?}", goods);
         let excel_order_goods_with_items = ExcelOrderGoodsWithItems {
             goods,
             items: items.clone(),
@@ -96,7 +96,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     .into_iter()
     .map(|item| (item.goods_no, item.id))
     .collect::<HashMap<String, i32>>();
-    println!("existing_id_goods_no: {:?}", existing_goods_no_to_id);
+    tracing::info!("existing_id_goods_no: {:?}", existing_goods_no_to_id);
 
     let to_add_goods_nos = goods_nos
         .iter()
@@ -104,7 +104,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
         .map(|item| item.as_str())
         .collect::<Vec<&str>>();
 
-    println!(
+    tracing::info!(
         "to_add_goods_nos: {:?}, len: {}",
         to_add_goods_nos,
         to_add_goods_nos.len()
@@ -112,14 +112,14 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
 
     // todo: 添加 和 修改（已经存在，则去修改原先数据【主要是修改图片和package】）
     if !to_add_goods_nos.is_empty() {
-        print!("order_goods_excel: {:?}", order_goods_excel);
+        tracing::info!("order_goods_excel: {:?}", order_goods_excel);
         let to_add_goods = order_goods_excel
             .iter()
             .filter(|item| to_add_goods_nos.contains(&item.goods.goods_no.as_str()))
             .map(|item| item.goods.clone())
             .collect::<Vec<ExcelOrderGoods>>();
 
-        println!(
+        tracing::info!(
             "to_add_goods: {:?}, len: {}",
             to_add_goods,
             to_add_goods.len()
@@ -129,13 +129,13 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
             ExcelOrderGoods::insert_into_goods_table(db, &to_add_goods, &order_info.customer_no)
                 .await?;
 
-        println!("new_goods_no_to_id: {:?}", new_goods_no_to_id);
+        tracing::info!("new_goods_no_to_id: {:?}", new_goods_no_to_id);
 
         new_goods_no_to_id.into_iter().for_each(|(goods_no, id)| {
             existing_goods_no_to_id.insert(goods_no, id);
         });
     }
-    println!("goods_no_to_id: {:?}", existing_goods_no_to_id);
+    tracing::info!("goods_no_to_id: {:?}", existing_goods_no_to_id);
 
     // 用goods_ids去获取所有的skus，如果数据没有入库，则入库
     let goods_ids = existing_goods_no_to_id
@@ -168,7 +168,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
             .get(&order_goods.goods.goods_no)
             .unwrap_or(&0);
 
-        println!("goods_id: {}", goods_id);
+        tracing::info!("goods_id: {}", goods_id);
         order_goods.items.iter().for_each(|order_goods_sku| {
             if !goods_id_to_color_to_sku_id
                 .get(goods_id)
@@ -187,7 +187,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
         });
     });
 
-    println!("skus_to_add: {:?}", skus_to_add);
+    tracing::info!("skus_to_add: {:?}", skus_to_add);
     if !skus_to_add.is_empty() {
         let new_skus = ExcelOrderGoods::insert_into_skus_table(db, &skus_to_add).await?;
         new_skus.into_iter().for_each(|new_sku| {
