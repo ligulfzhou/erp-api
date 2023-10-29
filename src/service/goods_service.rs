@@ -1,4 +1,5 @@
 use crate::dto::dto_goods::{GoodsDto, SKUModelDto, SKUModelWithoutImageAndPackageDto};
+use crate::model::goods::GoodsModel;
 use crate::model::order::{GoodsImagesAndPackageModel, OrderGoodsModel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
@@ -12,11 +13,47 @@ impl GoodsService {
     }
 }
 
+// goods related
 impl GoodsService {
-    pub async fn get_goods_dto(goods_id: i32) -> ERPResult<GoodsDto> {
-        todo!()
-    }
+    pub async fn get_goods_dtos(
+        db: &Pool<Postgres>,
+        goods_ids: &[i32],
+    ) -> ERPResult<Vec<GoodsDto>> {
+        let goods_without_images_package = sqlx::query_as!(
+            GoodsModel,
+            "select * from goods where id = any($1)",
+            goods_ids
+        )
+        .fetch_all(db)
+        .await
+        .map_err(ERPError::DBError)?;
 
+        let goods_id_to_images_package =
+            OrderGoodsModel::get_multiple_goods_images_and_package(db, &goods_ids)
+                .await?
+                .into_iter()
+                .map(|item| (item.goods_id, item))
+                .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+
+        let default_images_package = GoodsImagesAndPackageModel::default();
+
+        let mut goodses = vec![];
+        for goods in goods_without_images_package.into_iter() {
+            let images_package = goods_id_to_images_package
+                .get(&goods.id)
+                .unwrap_or(&default_images_package);
+            goodses.push(GoodsDto::from_goods_and_images_package(
+                goods,
+                images_package.clone(),
+            ));
+        }
+
+        Ok(goodses)
+    }
+}
+
+// sku related
+impl GoodsService {
     pub async fn get_sku_dtos(db: &Pool<Postgres>, sku_ids: &[i32]) -> ERPResult<Vec<SKUModelDto>> {
         let skus_no_image_package = sqlx::query_as!(
             SKUModelWithoutImageAndPackageDto,

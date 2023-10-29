@@ -1,6 +1,6 @@
 use crate::common::hashmap::key_of_max_value;
 use crate::common::string::common_prefix;
-use crate::model::goods::{GoodsModel, SKUModel};
+use crate::model::goods::SKUModel;
 use crate::{ERPError, ERPResult};
 use chrono::NaiveDate;
 use sqlx::{FromRow, Pool, Postgres, QueryBuilder};
@@ -135,24 +135,6 @@ impl OrderGoodsModel {
 
         Ok(res)
     }
-
-    pub async fn get_row(
-        db: &Pool<Postgres>,
-        order_id: i32,
-        goods_id: i32,
-    ) -> ERPResult<Option<OrderGoodsModel>> {
-        let row = sqlx::query_as!(
-            OrderGoodsModel,
-            "select * from order_goods where order_id=$1 and goods_id=$2;",
-            order_id,
-            goods_id
-        )
-        .fetch_optional(db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-        Ok(row)
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -257,17 +239,17 @@ impl ExcelOrderGoods {
         customer_no: &str,
     ) -> ERPResult<HashMap<String, i32>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into goods (customer_no, goods_no, images, image_des, name, plating, package_card, package_card_des) ");
+            QueryBuilder::new("insert into goods (customer_no, goods_no, name, plating) ");
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(customer_no)
                 .push_bind(item.goods_no.clone())
-                .push_bind(item.images.clone())
-                .push_bind(item.image_des.as_deref().unwrap_or(""))
+                // .push_bind(item.images.clone())
+                // .push_bind(item.image_des.as_deref().unwrap_or(""))
                 .push_bind(item.name.clone())
-                .push_bind(item.plating.clone())
-                .push_bind(item.package_card.as_deref().unwrap_or(""))
-                .push_bind(item.package_card_des.as_deref().unwrap_or(""));
+                .push_bind(item.plating.clone());
+            // .push_bind(item.package_card.as_deref().unwrap_or(""))
+            // .push_bind(item.package_card_des.as_deref().unwrap_or(""))
         });
         query_builder.push(" returning goods_no, id;");
 

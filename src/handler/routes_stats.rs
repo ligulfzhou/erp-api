@@ -1,7 +1,6 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_goods::{GoodsDto, SKUModelDto, SKUModelWithoutImageAndPackageDto};
+use crate::dto::dto_goods::{GoodsDto, SKUModelDto};
 use crate::dto::dto_stats::{ReturnOrderGoodsStat, ReturnOrderItemStat, ReturnOrderStat};
-use crate::model::goods::GoodsModel;
 use crate::response::api_response::APIListResponse;
 use crate::service::goods_service::GoodsService;
 use crate::{AppState, ERPError, ERPResult};
@@ -94,17 +93,11 @@ async fn list_return_orders_by_goods(
         return Ok(APIListResponse::new(vec![], 0));
     }
 
-    let goods_id_to_goods_model = sqlx::query_as!(
-        GoodsModel,
-        "select * from goods where id = any($1)",
-        &goods_ids
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?
-    .into_iter()
-    .map(|goods| (goods.id, goods))
-    .collect::<HashMap<i32, GoodsModel>>();
+    let goods_id_to_goods_model = GoodsService::get_goods_dtos(&state.db, &goods_ids)
+        .await?
+        .into_iter()
+        .map(|item| (item.id, item))
+        .collect::<HashMap<i32, GoodsDto>>();
 
     let goods_id_to_count_and_sum = goods_id_with_count_and_sum
         .into_iter()
@@ -162,10 +155,10 @@ async fn list_return_orders_by_goods(
     // .await
     // .map_err(ERPError::DBError)?;
 
-    let sku_id_to_goods_id = skus
-        .iter()
-        .map(|sku| (sku.id, sku.goods_id))
-        .collect::<HashMap<i32, i32>>();
+    // let sku_id_to_goods_id = skus
+    //     .iter()
+    //     .map(|sku| (sku.id, sku.goods_id))
+    //     .collect::<HashMap<i32, i32>>();
 
     let mut goods_id_to_vec_sku_ids: HashMap<i32, Vec<i32>> = HashMap::new();
     skus.iter().for_each(|sku| {

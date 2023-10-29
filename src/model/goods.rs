@@ -1,18 +1,11 @@
-use crate::{ERPError, ERPResult};
-use sqlx::{Pool, Postgres};
-
 #[derive(Debug, Deserialize, Serialize, Clone, sqlx::FromRow)]
 pub struct GoodsModel {
     pub id: i32,             // SERIAL,
     pub customer_no: String, // 客户ID
     pub goods_no: String,    // 类目编号
-    // pub images: Vec<String>,      // 图片
-    // pub image_des: String,        // 图片描述
-    pub name: String,    // 名称
-    pub plating: String, // 电镀
-    // pub package_card: String,     // 标签图片
-    // pub package_card_des: String, // 标签说明
-    pub notes: String, // 备注
+    pub name: String,        // 名称
+    pub plating: String,     // 电镀
+    pub notes: String,       // 备注
 }
 
 // impl GoodsModel {

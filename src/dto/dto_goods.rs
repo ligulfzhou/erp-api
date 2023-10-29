@@ -70,23 +70,7 @@ impl SKUModelDto {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GoodsWithoutImagesPackageDto {
-    pub id: i32,
-    pub goods_no: String,    // 商品编号
-    pub customer_no: String, // 客户ID
-    // pub images: Vec<String>, // 图片
-    // pub image_des: String,        // 图片描述
-    pub name: String,    // 名称
-    pub plating: String, // 电镀
-    // pub package_card: String, // 标签图片
-    // pub package_card_des: String, // 标签说明
-    pub notes: String,       // 备注
-    pub count: i32,          // 多少件商品
-    pub skus: Vec<SKUModel>, // 该类目下的所有sku
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct GoodsDto {
     pub id: i32,
     pub goods_no: String,         // 商品编号
@@ -100,6 +84,28 @@ pub struct GoodsDto {
     pub notes: String,            // 备注
     pub count: i32,               // 多少件商品
     pub skus: Vec<SKUModel>,      // 该类目下的所有sku
+}
+
+impl GoodsDto {
+    pub fn from_goods_and_images_package(
+        goods: GoodsModel,
+        images_package: GoodsImagesAndPackageModel,
+    ) -> GoodsDto {
+        Self {
+            id: goods.id,
+            goods_no: goods.goods_no,
+            customer_no: goods.customer_no,
+            images: images_package.images,
+            image_des: images_package.image_des,
+            name: goods.name,
+            plating: goods.plating,
+            package_card: images_package.package_card,
+            package_card_des: images_package.package_card_des,
+            notes: goods.notes,
+            count: 0,
+            skus: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

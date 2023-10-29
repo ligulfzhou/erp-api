@@ -123,6 +123,7 @@ impl ListParamToSQLTrait for ListGoodsParam {
     }
 }
 
+// todo
 async fn get_goods(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<ListGoodsParam>, ERPError>,

@@ -1,5 +1,4 @@
-use crate::dto::dto_goods::SKUModelDto;
-use crate::model::goods::GoodsModel;
+use crate::dto::dto_goods::{GoodsDto, SKUModelDto};
 
 #[derive(Serialize)]
 pub struct ReturnOrderStat {
@@ -17,7 +16,7 @@ pub struct ReturnOrderItemStat {
 
 #[derive(Serialize)]
 pub struct ReturnOrderGoodsStat {
-    pub goods: GoodsModel,
+    pub goods: GoodsDto,
     pub skus: Vec<ReturnOrderItemStat>,
     pub count: i32,
     pub sum: i32,

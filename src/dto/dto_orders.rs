@@ -1,5 +1,4 @@
-use crate::constants::STEP_TO_DEPARTMENT;
-use crate::dto::dto_goods::GoodsImageAndPackage;
+// use crate::constants::STEP_TO_DEPARTMENT;
 use crate::dto::dto_progress::OneProgress;
 use crate::model::customer::CustomerModel;
 use crate::model::order::{GoodsImagesAndPackageModel, OrderModel};
@@ -78,16 +77,16 @@ impl StepIndexCountUF {
     }
 }
 
-pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
-    sc.into_iter()
-        .map(|item| {
-            (
-                STEP_TO_DEPARTMENT.get(&item.0).unwrap_or(&"").to_string(),
-                item.1,
-            )
-        })
-        .collect::<HashMap<String, i32>>()
-}
+// pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
+//     sc.into_iter()
+//         .map(|item| {
+//             (
+//                 STEP_TO_DEPARTMENT.get(&item.0).unwrap_or(&"").to_string(),
+//                 item.1,
+//             )
+//         })
+//         .collect::<HashMap<String, i32>>()
+// }
 
 #[derive(Debug, Serialize)]
 pub struct OrderWithStepsDto {
@@ -249,7 +248,7 @@ pub struct OrderPlainItemWithCurrentStepDto {
     pub current_step: i32,
     pub current_index: i32,
     pub current_notes: String,
-    pub step: String,
+    // pub step: String,
 }
 
 impl OrderPlainItemWithCurrentStepDto {
@@ -281,10 +280,10 @@ impl OrderPlainItemWithCurrentStepDto {
             is_next_action,
             current_step,
             current_index,
-            step: STEP_TO_DEPARTMENT
-                .get(&current_step)
-                .unwrap_or(&"")
-                .to_string(),
+            // step: STEP_TO_DEPARTMENT
+            //     .get(&current_step)
+            //     .unwrap_or(&"")
+            //     .to_string(),
             current_notes: current_notes.to_string(),
         }
     }
