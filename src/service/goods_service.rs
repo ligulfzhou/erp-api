@@ -1,6 +1,7 @@
-use crate::dto::dto_goods::{GoodsDto, SKUModelDto, SKUModelWithoutImageAndPackageDto};
+use crate::dto::dto_goods::{
+    GoodsDto, GoodsImagesAndPackage, SKUModelDto, SKUModelWithoutImageAndPackageDto,
+};
 use crate::model::goods::GoodsModel;
-use crate::model::order::{GoodsImagesAndPackageModel, OrderGoodsModel};
 use crate::{ERPError, ERPResult};
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
@@ -10,6 +11,54 @@ pub struct GoodsService {}
 impl GoodsService {
     pub fn new() -> GoodsService {
         Self {}
+    }
+}
+
+// goods_images_and_package related
+impl GoodsService {
+    pub async fn get_goods_images_and_package(
+        db: &Pool<Postgres>,
+        goods_id: i32,
+    ) -> ERPResult<GoodsImagesAndPackage> {
+        let goods_images_package = sqlx::query_as!(
+            GoodsImagesAndPackage,
+            r#"
+            select goods_id, images, image_des, package_card, package_card_des 
+            from order_goods 
+            where goods_id=$1 
+            order by id desc 
+            limit 1
+            "#,
+            goods_id
+        )
+        .fetch_optional(db)
+        .await
+        .map_err(ERPError::DBError)?
+        .ok_or(ERPError::NotFound("有商品未找到".to_string()))?;
+
+        Ok(goods_images_package)
+    }
+
+    pub async fn get_multiple_goods_images_and_package(
+        db: &Pool<Postgres>,
+        goods_ids: &[i32],
+    ) -> ERPResult<Vec<GoodsImagesAndPackage>> {
+        let goods_images_package = sqlx::query_as!(
+            GoodsImagesAndPackage,
+            r#"
+            select distinct on (goods_id)
+            goods_id, images, image_des, package_card, package_card_des
+            from order_goods
+            where goods_id = any($1)
+            order by goods_id desc, id desc;
+            "#,
+            goods_ids
+        )
+        .fetch_all(db)
+        .await
+        .map_err(ERPError::DBError)?;
+
+        Ok(goods_images_package)
     }
 }
 
@@ -29,13 +78,13 @@ impl GoodsService {
         .map_err(ERPError::DBError)?;
 
         let goods_id_to_images_package =
-            OrderGoodsModel::get_multiple_goods_images_and_package(db, &goods_ids)
+            GoodsService::get_multiple_goods_images_and_package(db, &goods_ids)
                 .await?
                 .into_iter()
                 .map(|item| (item.goods_id, item))
-                .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+                .collect::<HashMap<i32, GoodsImagesAndPackage>>();
 
-        let default_images_package = GoodsImagesAndPackageModel::default();
+        let default_images_package = GoodsImagesAndPackage::default();
 
         let mut goodses = vec![];
         for goods in goods_without_images_package.into_iter() {
@@ -78,13 +127,13 @@ impl GoodsService {
         goods_ids.dedup();
 
         let goods_id_to_images_package =
-            OrderGoodsModel::get_multiple_goods_images_and_package(db, &goods_ids)
+            GoodsService::get_multiple_goods_images_and_package(db, &goods_ids)
                 .await?
                 .into_iter()
                 .map(|item| (item.goods_id, item))
-                .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+                .collect::<HashMap<i32, GoodsImagesAndPackage>>();
 
-        let default_images_package = GoodsImagesAndPackageModel::default();
+        let default_images_package = GoodsImagesAndPackage::default();
 
         let mut skus = vec![];
         for sku in skus_no_image_package.into_iter() {
@@ -121,13 +170,13 @@ impl GoodsService {
         .map_err(ERPError::DBError)?;
 
         let goods_id_to_images_package =
-            OrderGoodsModel::get_multiple_goods_images_and_package(db, goods_ids)
+            GoodsService::get_multiple_goods_images_and_package(db, goods_ids)
                 .await?
                 .into_iter()
                 .map(|item| (item.goods_id, item))
-                .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+                .collect::<HashMap<i32, GoodsImagesAndPackage>>();
 
-        let default_images_package = GoodsImagesAndPackageModel::default();
+        let default_images_package = GoodsImagesAndPackage::default();
 
         let mut skus = vec![];
         for sku in skus_no_image_package.into_iter() {

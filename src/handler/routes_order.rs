@@ -1,6 +1,7 @@
 use crate::common::db::sorter_order_to_db_sorter_order;
 use crate::constants::DEFAULT_PAGE_SIZE;
 use crate::dto::dto_account::AccountDto;
+use crate::dto::dto_goods::GoodsImagesAndPackage;
 use crate::dto::dto_orders::{
     OrderDto, OrderGoodsDto, OrderGoodsItemDto, OrderGoodsItemWithStepsDto,
     OrderGoodsWithStepsWithItemStepDto, OrderPlainItemDto, OrderPlainItemWithCurrentStepDto,
@@ -9,9 +10,10 @@ use crate::dto::dto_orders::{
 use crate::dto::dto_progress::OneProgress;
 use crate::handler::ListParamToSQLTrait;
 use crate::middleware::auth::auth;
-use crate::model::order::{GoodsImagesAndPackageModel, OrderGoodsModel, OrderModel};
+use crate::model::order::OrderModel;
 use crate::model::progress::ProgressModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
+use crate::service::goods_service::GoodsService;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
@@ -814,11 +816,11 @@ async fn get_plain_order_items(
     goods_ids.dedup();
 
     let goods_id_to_images_package =
-        OrderGoodsModel::get_multiple_goods_images_and_package(&state.db, &goods_ids)
+        GoodsService::get_multiple_goods_images_and_package(&state.db, &goods_ids)
             .await?
             .into_iter()
             .map(|item| (item.goods_id, item))
-            .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+            .collect::<HashMap<i32, GoodsImagesAndPackage>>();
 
     let order_item_ids = order_items_no_dto
         .iter()
@@ -861,7 +863,7 @@ async fn get_plain_order_items(
         })
         .collect::<HashMap<i32, (i32, i32, String)>>();
 
-    let empty_images_package = GoodsImagesAndPackageModel::default();
+    let empty_images_package = GoodsImagesAndPackage::default();
     let mut order_items_dto = vec![];
     for item in order_items_no_dto.into_iter() {
         let images_package = goods_id_to_images_package

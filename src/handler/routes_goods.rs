@@ -4,6 +4,7 @@ use crate::handler::ListParamToSQLTrait;
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::model::order::OrderGoodsModel;
 use crate::response::api_response::{APIDataResponse, APIEmptyResponse, APIListResponse};
+use crate::service::goods_service::GoodsService;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::{get, post};
@@ -348,8 +349,7 @@ async fn get_sku_detail(
     .await
     .map_err(ERPError::DBError)?;
 
-    let goods =
-        OrderGoodsModel::get_goods_images_and_package(&state.db, sku_no_dto.goods_id).await?;
+    let goods = GoodsService::get_goods_images_and_package(&state.db, sku_no_dto.goods_id).await?;
 
     let sku_dto = SKUModelDto::from_sku_and_images_package(sku_no_dto, goods);
 

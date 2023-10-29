@@ -1,7 +1,7 @@
-// use crate::constants::STEP_TO_DEPARTMENT;
+use crate::dto::dto_goods::GoodsImagesAndPackage;
 use crate::dto::dto_progress::OneProgress;
 use crate::model::customer::CustomerModel;
-use crate::model::order::{GoodsImagesAndPackageModel, OrderModel};
+use crate::model::order::OrderModel;
 use chrono::NaiveDate;
 use sqlx::FromRow;
 use std::collections::HashMap;
@@ -76,17 +76,6 @@ impl StepIndexCountUF {
         ufs
     }
 }
-
-// pub fn to_step_count_user_friendly(sc: StepCount) -> StepCountUF {
-//     sc.into_iter()
-//         .map(|item| {
-//             (
-//                 STEP_TO_DEPARTMENT.get(&item.0).unwrap_or(&"").to_string(),
-//                 item.1,
-//             )
-//         })
-//         .collect::<HashMap<String, i32>>()
-// }
 
 #[derive(Debug, Serialize)]
 pub struct OrderWithStepsDto {
@@ -198,7 +187,7 @@ pub struct OrderPlainItemDto {
 impl OrderPlainItemDto {
     pub fn from_sku_and_images_package(
         sku: OrderPlainItemWithoutImagesPackageDto,
-        images_package: GoodsImagesAndPackageModel,
+        images_package: GoodsImagesAndPackage,
     ) -> OrderPlainItemDto {
         Self {
             id: sku.id,
@@ -248,7 +237,6 @@ pub struct OrderPlainItemWithCurrentStepDto {
     pub current_step: i32,
     pub current_index: i32,
     pub current_notes: String,
-    // pub step: String,
 }
 
 impl OrderPlainItemWithCurrentStepDto {
@@ -280,10 +268,6 @@ impl OrderPlainItemWithCurrentStepDto {
             is_next_action,
             current_step,
             current_index,
-            // step: STEP_TO_DEPARTMENT
-            //     .get(&current_step)
-            //     .unwrap_or(&"")
-            //     .to_string(),
             current_notes: current_notes.to_string(),
         }
     }

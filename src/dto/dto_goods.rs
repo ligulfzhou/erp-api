@@ -1,7 +1,15 @@
 use crate::model::goods::{GoodsModel, SKUModel};
-use crate::model::order::GoodsImagesAndPackageModel;
 use crate::ERPResult;
 use sqlx::{FromRow, Pool, Postgres};
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Default, Clone)]
+pub struct GoodsImagesAndPackage {
+    pub images: Vec<String>,
+    pub image_des: String,
+    pub package_card: String,
+    pub package_card_des: String,
+    pub goods_id: i32,
+}
 
 #[derive(Debug, Deserialize, Serialize, FromRow, Clone)]
 pub struct SKUModelWithoutImageAndPackageDto {
@@ -42,7 +50,7 @@ pub struct SKUModelDto {
 impl SKUModelDto {
     pub fn from_sku_and_images_package(
         sku: SKUModelWithoutImageAndPackageDto,
-        images_package: GoodsImagesAndPackageModel,
+        images_package: GoodsImagesAndPackage,
     ) -> SKUModelDto {
         Self {
             id: sku.id,
@@ -89,7 +97,7 @@ pub struct GoodsDto {
 impl GoodsDto {
     pub fn from_goods_and_images_package(
         goods: GoodsModel,
-        images_package: GoodsImagesAndPackageModel,
+        images_package: GoodsImagesAndPackage,
     ) -> GoodsDto {
         Self {
             id: goods.id,

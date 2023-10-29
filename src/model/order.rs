@@ -59,56 +59,6 @@ pub struct GoodsImagesAndPackageModel {
 }
 
 impl OrderGoodsModel {
-    pub async fn get_goods_images_and_package(
-        db: &Pool<Postgres>,
-        goods_id: i32,
-    ) -> ERPResult<GoodsImagesAndPackageModel> {
-        let goods_images_package = sqlx::query_as!(
-            GoodsImagesAndPackageModel,
-            r#"
-            select goods_id, images, image_des, package_card, package_card_des 
-            from order_goods 
-            where goods_id=$1 
-            order by id desc 
-            limit 1
-            "#,
-            goods_id
-        )
-        .fetch_optional(db)
-        .await
-        .map_err(ERPError::DBError)?
-        .ok_or(ERPError::NotFound("有商品未找到".to_string()))?;
-
-        Ok(goods_images_package)
-    }
-
-    pub async fn get_multiple_goods_images_and_package(
-        db: &Pool<Postgres>,
-        goods_ids: &[i32],
-    ) -> ERPResult<Vec<GoodsImagesAndPackageModel>> {
-        let goods_images_package = sqlx::query_as!(
-            GoodsImagesAndPackageModel,
-            r#"
-            select distinct on (goods_id)
-            goods_id, images, image_des, package_card, package_card_des
-            from order_goods
-            where goods_id = any($1)
-            order by goods_id desc, id desc;
-            "#,
-            goods_ids
-        )
-        .fetch_all(db)
-        .await
-        .map_err(ERPError::DBError)?;
-        // .into_iter()
-        // .map(|images_package| (images_package.goods_id, images_package))
-        // .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
-
-        Ok(goods_images_package)
-    }
-}
-
-impl OrderGoodsModel {
     pub async fn add_rows(
         db: &Pool<Postgres>,
         rows: &[OrderGoodsModel],
@@ -180,44 +130,44 @@ impl OrderItemModel {
 
         Ok(res)
     }
-    pub async fn get_order_items_with_order_goods_id(
-        db: &Pool<Postgres>,
-        order_goods_id: i32,
-    ) -> ERPResult<Vec<OrderItemModel>> {
-        let order_items = sqlx::query_as!(
-            OrderItemModel,
-            "select * from order_items where order_goods_id=$1",
-            order_goods_id
-        )
-        .fetch_all(db)
-        .await
-        .map_err(ERPError::DBError)?;
+    // pub async fn get_order_items_with_order_goods_id(
+    //     db: &Pool<Postgres>,
+    //     order_goods_id: i32,
+    // ) -> ERPResult<Vec<OrderItemModel>> {
+    //     let order_items = sqlx::query_as!(
+    //         OrderItemModel,
+    //         "select * from order_items where order_goods_id=$1",
+    //         order_goods_id
+    //     )
+    //     .fetch_all(db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
+    //
+    //     Ok(order_items)
+    // }
 
-        Ok(order_items)
-    }
-
-    pub async fn get_rows_with_order_id_and_goods_id(
-        db: &Pool<Postgres>,
-        order_id: i32,
-        goods_id: i32,
-    ) -> ERPResult<Vec<OrderItemModel>> {
-        let items = sqlx::query_as!(
-            OrderItemModel,
-            r#"
-            select oi.*
-            from order_items oi, order_goods og
-            where oi.order_goods_id = og.id
-                and oi.order_id = $1 and og.goods_id=$2
-            "#,
-            order_id,
-            goods_id
-        )
-        .fetch_all(db)
-        .await
-        .map_err(ERPError::DBError)?;
-
-        Ok(items)
-    }
+    // pub async fn get_rows_with_order_id_and_goods_id(
+    //     db: &Pool<Postgres>,
+    //     order_id: i32,
+    //     goods_id: i32,
+    // ) -> ERPResult<Vec<OrderItemModel>> {
+    //     let items = sqlx::query_as!(
+    //         OrderItemModel,
+    //         r#"
+    //         select oi.*
+    //         from order_items oi, order_goods og
+    //         where oi.order_goods_id = og.id
+    //             and oi.order_id = $1 and og.goods_id=$2
+    //         "#,
+    //         order_id,
+    //         goods_id
+    //     )
+    //     .fetch_all(db)
+    //     .await
+    //     .map_err(ERPError::DBError)?;
+    //
+    //     Ok(items)
+    // }
 }
 
 #[derive(Debug, Clone)]
@@ -500,36 +450,6 @@ impl OrderItemExcel {
         goods
     }
 
-    // pub fn pick_up_goods(items: &Vec<OrderItemExcel>) -> GoodsModel {
-    //     let mut goods = GoodsModel {
-    //         id: 0,
-    //         customer_no: "".to_string(),
-    //         goods_no: "".to_string(),
-    //         // images: vec![],
-    //         // image_des: "".to_string(),
-    //         name: "".to_string(),
-    //         plating: "".to_string(),
-    //         // package_card: "".to_string(),
-    //         // package_card_des: "".to_string(),
-    //         notes: "".to_string(),
-    //     };
-    //
-    //     goods.goods_no = OrderItemExcel::pick_up_goods_no(items).unwrap();
-    //     items.iter().for_each(|item| {
-    //         // if goods.images.is_empty() && !item.images.is_empty() {
-    //         //     goods.images = item.images.clone();
-    //         // }
-    //         if goods.name.is_empty() && !item.name.is_empty() {
-    //             goods.name = item.name.clone();
-    //         }
-    //         if goods.plating.is_empty() && !item.plating.is_empty() {
-    //             goods.plating = item.plating.clone();
-    //         }
-    //     });
-    //
-    //     goods
-    // }
-
     pub fn pick_up_package(items: &Vec<OrderItemExcel>) -> (String, String) {
         let mut package_card: Option<String> = None;
         let mut package_card_des: Option<String> = None;
@@ -568,34 +488,34 @@ impl OrderItemExcel {
         Ok(id)
     }
 
-    pub async fn save_to_order_item(
-        &self,
-        db: &Pool<Postgres>,
-        order_id: i32,
-        order_goods_id: i32,
-        sku_id: i32,
-    ) -> ERPResult<i32> {
-        let id = sqlx::query!(
-            r#"
-            insert into order_items (order_id, order_goods_id, sku_id, count, unit, unit_price, total_price, notes)
-            values ($1, $2, $3, $4, $5, $6, $7, $8)
-            returning id;"#,
-            order_id,
-            order_goods_id,
-            sku_id,
-            self.count,
-            self.unit.as_deref().unwrap_or(""),
-            self.unit_price.as_ref().unwrap_or(&0),
-            self.total_price.as_ref().unwrap_or(&0),
-            self.notes.as_deref().unwrap_or("")
-        )
-        .fetch_one(db)
-        .await
-        .map_err(ERPError::DBError)?
-            .id;
-
-        Ok(id)
-    }
+    // pub async fn save_to_order_item(
+    //     &self,
+    //     db: &Pool<Postgres>,
+    //     order_id: i32,
+    //     order_goods_id: i32,
+    //     sku_id: i32,
+    // ) -> ERPResult<i32> {
+    //     let id = sqlx::query!(
+    //         r#"
+    //         insert into order_items (order_id, order_goods_id, sku_id, count, unit, unit_price, total_price, notes)
+    //         values ($1, $2, $3, $4, $5, $6, $7, $8)
+    //         returning id;"#,
+    //         order_id,
+    //         order_goods_id,
+    //         sku_id,
+    //         self.count,
+    //         self.unit.as_deref().unwrap_or(""),
+    //         self.unit_price.as_ref().unwrap_or(&0),
+    //         self.total_price.as_ref().unwrap_or(&0),
+    //         self.notes.as_deref().unwrap_or("")
+    //     )
+    //     .fetch_one(db)
+    //     .await
+    //     .map_err(ERPError::DBError)?
+    //         .id;
+    //
+    //     Ok(id)
+    // }
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
