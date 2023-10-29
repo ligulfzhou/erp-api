@@ -86,7 +86,7 @@ pub fn parse_order_excel_t2(
         let mut image_urls = vec![];
         if !goods_images.is_empty() {
             for (index, real_goods_image) in goods_images.into_iter().enumerate() {
-                let sku_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let sku_image_name = format!("{}-{}-{}.png", identifier, index, order_no);
                 let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
                 real_goods_image.download_image(&goods_image_path);
                 image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));

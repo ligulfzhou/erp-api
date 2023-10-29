@@ -450,43 +450,43 @@ impl OrderItemExcel {
         goods
     }
 
-    pub fn pick_up_package(items: &Vec<OrderItemExcel>) -> (String, String) {
-        let mut package_card: Option<String> = None;
-        let mut package_card_des: Option<String> = None;
+    // pub fn pick_up_package(items: &Vec<OrderItemExcel>) -> (String, String) {
+    //     let mut package_card: Option<String> = None;
+    //     let mut package_card_des: Option<String> = None;
+    //
+    //     items.iter().for_each(|item| {
+    //         if package_card.is_none() && item.package_card.is_some() {
+    //             package_card = item.package_card.clone();
+    //         }
+    //         if package_card_des.is_none() && item.package_card_des.is_some() {
+    //             package_card_des = item.package_card_des.clone();
+    //         }
+    //     });
+    //
+    //     (
+    //         package_card.unwrap_or("".to_string()),
+    //         package_card_des.unwrap_or("".to_string()),
+    //     )
+    // }
 
-        items.iter().for_each(|item| {
-            if package_card.is_none() && item.package_card.is_some() {
-                package_card = item.package_card.clone();
-            }
-            if package_card_des.is_none() && item.package_card_des.is_some() {
-                package_card_des = item.package_card_des.clone();
-            }
-        });
-
-        (
-            package_card.unwrap_or("".to_string()),
-            package_card_des.unwrap_or("".to_string()),
-        )
-    }
-
-    pub async fn save_to_sku(&self, db: &Pool<Postgres>, goods_id: i32) -> ERPResult<i32> {
-        let id = sqlx::query!(
-            r#"
-            insert into skus (goods_id, sku_no, color, color2)
-            values ($1, $2, $3, $4)
-            returning id;
-            "#,
-            goods_id,
-            self.sku_no.as_deref().unwrap_or(""),
-            self.color,
-            self.color_2.as_deref().unwrap_or("")
-        )
-        .fetch_one(db)
-        .await
-        .map_err(ERPError::DBError)?
-        .id;
-        Ok(id)
-    }
+    // pub async fn save_to_sku(&self, db: &Pool<Postgres>, goods_id: i32) -> ERPResult<i32> {
+    //     let id = sqlx::query!(
+    //         r#"
+    //         insert into skus (goods_id, sku_no, color, color2)
+    //         values ($1, $2, $3, $4)
+    //         returning id;
+    //         "#,
+    //         goods_id,
+    //         self.sku_no.as_deref().unwrap_or(""),
+    //         self.color,
+    //         self.color_2.as_deref().unwrap_or("")
+    //     )
+    //     .fetch_one(db)
+    //     .await
+    //     .map_err(ERPError::DBError)?
+    //     .id;
+    //     Ok(id)
+    // }
 
     // pub async fn save_to_order_item(
     //     &self,
