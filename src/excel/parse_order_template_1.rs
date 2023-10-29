@@ -80,9 +80,9 @@ pub fn parse_order_excel_t1(
             }
         }
 
-        let mut identifier = cur.goods_no.clone();
+        let mut identifier = cur.goods_no.as_str();
         if identifier.is_empty() {
-            identifier = cur.sku_no.as_ref().unwrap().clone();
+            identifier = cur.sku_no.as_deref().unwrap_or("");
         }
 
         let mut image_urls = vec![];
