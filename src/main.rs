@@ -68,6 +68,7 @@ async fn main() {
     let cors = CorsLayer::new()
         .allow_origin([
             "https://erp.ligulfzhou.com".parse().unwrap(),
+            "https://order.ligulfzhou.com".parse().unwrap(),
             "https://lien.ligulfzhou.com".parse().unwrap(),
             "http://127.0.0.1:5173".parse().unwrap(),
             "http://localhost:5173".parse().unwrap(),
