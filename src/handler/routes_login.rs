@@ -36,29 +36,26 @@ async fn api_login(
     )
     .fetch_optional(&state.db)
     .await
-    .map_err(ERPError::DBError)?;
+    .map_err(ERPError::DBError)?
+    .ok_or(ERPError::NotFound("账号不存在".to_string()))?;
 
-    if account.is_none() {
-        return Err(ERPError::NotFound("账号不存在".to_string()));
-    }
-
-    let account_unwrap = account.unwrap();
+    // let account_unwrap = account.unwrap();
     // todo: hash password.
-    if account_unwrap.password != payload.password {
+    if account.password != payload.password {
         return Err(ERPError::LoginFailForPasswordIsWrong);
     }
 
-    let account_id = account_unwrap.id;
+    let account_id = account.id;
     let department = sqlx::query_as!(
         DepartmentModel,
         "select * from departments where id=$1",
-        account_unwrap.department_id
+        account.department_id
     )
     .fetch_one(&state.db)
     .await
     .map_err(ERPError::DBError)?;
 
-    let account_dto = AccountDto::from(account_unwrap, department);
+    let account_dto = AccountDto::from(account, department);
 
     let cookie = Cookie::build("account_id", account_id.to_string())
         .path("/")
