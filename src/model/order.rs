@@ -85,8 +85,8 @@ impl OrderGoodsModel {
     pub async fn get_multiple_goods_images_and_package(
         db: &Pool<Postgres>,
         goods_ids: &[i32],
-    ) -> ERPResult<HashMap<i32, GoodsImagesAndPackageModel>> {
-        let goods_images_package_hash = sqlx::query_as!(
+    ) -> ERPResult<Vec<GoodsImagesAndPackageModel>> {
+        let goods_images_package = sqlx::query_as!(
             GoodsImagesAndPackageModel,
             r#"
             select distinct on (goods_id)
@@ -99,12 +99,12 @@ impl OrderGoodsModel {
         )
         .fetch_all(db)
         .await
-        .map_err(ERPError::DBError)?
-        .into_iter()
-        .map(|images_package| (images_package.goods_id, images_package))
-        .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
+        .map_err(ERPError::DBError)?;
+        // .into_iter()
+        // .map(|images_package| (images_package.goods_id, images_package))
+        // .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
 
-        Ok(goods_images_package_hash)
+        Ok(goods_images_package)
     }
 }
 

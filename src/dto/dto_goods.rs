@@ -1,6 +1,7 @@
 use crate::model::goods::{GoodsModel, SKUModel};
 use crate::model::order::GoodsImagesAndPackageModel;
-use sqlx::FromRow;
+use crate::ERPResult;
+use sqlx::{FromRow, Pool, Postgres};
 
 #[derive(Debug, Deserialize, Serialize, FromRow, Clone)]
 pub struct SKUModelWithoutImageAndPackageDto {
@@ -60,22 +61,45 @@ impl SKUModelDto {
             notes: sku.notes,
         }
     }
+
+    pub fn get_skus_with_goods_ids(
+        db: &Pool<Postgres>,
+        goods_ids: &[i32],
+    ) -> ERPResult<Vec<SKUModelDto>> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GoodsWithoutImagesPackageDto {
+    pub id: i32,
+    pub goods_no: String,    // 商品编号
+    pub customer_no: String, // 客户ID
+    // pub images: Vec<String>, // 图片
+    // pub image_des: String,        // 图片描述
+    pub name: String,    // 名称
+    pub plating: String, // 电镀
+    // pub package_card: String, // 标签图片
+    // pub package_card_des: String, // 标签说明
+    pub notes: String,       // 备注
+    pub count: i32,          // 多少件商品
+    pub skus: Vec<SKUModel>, // 该类目下的所有sku
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GoodsDto {
     pub id: i32,
-    pub goods_no: String,    // 商品编号
-    pub customer_no: String, // 客户ID
-    pub images: Vec<String>, // 图片
-    // pub image_des: String,        // 图片描述
-    pub name: String,         // 名称
-    pub plating: String,      // 电镀
-    pub package_card: String, // 标签图片
-    // pub package_card_des: String, // 标签说明
-    pub notes: String,       // 备注
-    pub count: i32,          // 多少件商品
-    pub skus: Vec<SKUModel>, // 该类目下的所有sku
+    pub goods_no: String,         // 商品编号
+    pub customer_no: String,      // 客户ID
+    pub images: Vec<String>,      // 图片
+    pub image_des: String,        // 图片描述
+    pub name: String,             // 名称
+    pub plating: String,          // 电镀
+    pub package_card: String,     // 标签图片
+    pub package_card_des: String, // 标签说明
+    pub notes: String,            // 备注
+    pub count: i32,               // 多少件商品
+    pub skus: Vec<SKUModel>,      // 该类目下的所有sku
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -93,12 +117,16 @@ impl GoodsDto {
             id: goods.id,
             goods_no: goods.goods_no,
             customer_no: goods.customer_no,
-            images: goods.images,
+            // images: goods.images,
             // image_des: goods.image_des,
+            images: vec![],
+            image_des: "".to_string(),
             name: goods.name,
             plating: goods.plating,
-            package_card: goods.package_card,
+            // package_card: goods.package_card,
             // package_card_des: goods.package_card_des,
+            package_card: "".to_string(),
+            package_card_des: "".to_string(),
             notes: goods.notes,
             count: skus.len() as i32,
             skus,

@@ -1,8 +1,9 @@
 use crate::constants::DEFAULT_PAGE_SIZE;
-use crate::dto::dto_goods::SKUModelDto;
+use crate::dto::dto_goods::{GoodsDto, SKUModelDto, SKUModelWithoutImageAndPackageDto};
 use crate::dto::dto_stats::{ReturnOrderGoodsStat, ReturnOrderItemStat, ReturnOrderStat};
 use crate::model::goods::GoodsModel;
 use crate::response::api_response::APIListResponse;
+use crate::service::goods_service::GoodsService;
 use crate::{AppState, ERPError, ERPResult};
 use axum::extract::{Query, State};
 use axum::routing::get;
@@ -144,21 +145,22 @@ async fn list_return_orders_by_goods(
     .collect::<HashMap<i32, (i32, i32)>>();
     tracing::info!("sku_id_to_cnt_and_sum: {:?}", sku_id_to_cnt_and_sum);
 
-    let skus = sqlx::query_as!(
-        SKUModelDto,
-        r#"
-        select
-            s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
-            g.images, g.plating, s.color, s.color2, s.notes, g.package_card
-        from skus s, goods g
-        where s.goods_id = g.id
-            and s.goods_id = any($1)
-        "#,
-        &goods_ids
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    let skus = GoodsService::get_sku_dtos_with_goods_ids(&state.db, &goods_ids).await?;
+    // let skus = sqlx::query_as!(
+    //     SKUModelWithoutImageAndPackageDto,
+    //     r#"
+    //     select
+    //         s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
+    //         g.plating, s.color, s.color2, s.notes
+    //     from skus s, goods g
+    //     where s.goods_id = g.id
+    //         and s.goods_id = any($1)
+    //     "#,
+    //     &goods_ids
+    // )
+    // .fetch_all(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?;
 
     let sku_id_to_goods_id = skus
         .iter()
@@ -269,24 +271,30 @@ async fn list_return_orders_by_items(
         })
         .collect::<HashMap<i32, (i32, i32)>>();
 
-    let id_to_skus = sqlx::query_as!(
-        SKUModelDto,
-        r#"
-        select
-            s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
-            g.images, g.plating, s.color, s.color2, s.notes, g.package_card
-        from skus s, goods g
-        where s.goods_id = g.id
-            and s.id = any($1)
-        "#,
-        &sku_ids
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(ERPError::DBError)?
-    .into_iter()
-    .map(|sku| (sku.id, sku))
-    .collect::<HashMap<i32, SKUModelDto>>();
+    let id_to_skus = GoodsService::get_sku_dtos(&state.db, &sku_ids)
+        .await?
+        .into_iter()
+        .map(|item| (item.id, item))
+        .collect::<HashMap<i32, SKUModelDto>>();
+
+    // let id_to_skus = sqlx::query_as!(
+    //     SKUModelDto,
+    //     r#"
+    //     select
+    //         s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
+    //         g.images, g.plating, s.color, s.color2, s.notes, g.package_card
+    //     from skus s, goods g
+    //     where s.goods_id = g.id
+    //         and s.id = any($1)
+    //     "#,
+    //     &sku_ids
+    // )
+    // .fetch_all(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?
+    // .into_iter()
+    // .map(|sku| (sku.id, sku))
+    // .collect::<HashMap<i32, SKUModelDto>>();
 
     let empty_count_and_sum = (0, 0);
 

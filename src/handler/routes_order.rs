@@ -814,7 +814,11 @@ async fn get_plain_order_items(
     goods_ids.dedup();
 
     let goods_id_to_images_package =
-        OrderGoodsModel::get_multiple_goods_images_and_package(&state.db, &goods_ids).await?;
+        OrderGoodsModel::get_multiple_goods_images_and_package(&state.db, &goods_ids)
+            .await?
+            .into_iter()
+            .map(|item| (item.goods_id, item))
+            .collect::<HashMap<i32, GoodsImagesAndPackageModel>>();
 
     let order_item_ids = order_items_no_dto
         .iter()
