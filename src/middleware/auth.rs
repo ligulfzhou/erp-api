@@ -20,12 +20,11 @@ pub async fn auth<B>(
 ) -> Result<impl IntoResponse, ERPError> {
     let account_id = cookie_jar
         .get("account_id")
-        .map(|cookie| cookie.value().to_string());
-    if account_id.is_none() {
-        return Err(ERPError::NotAuthorized);
-    }
+        .map(|cookie| cookie.value().to_string())
+        .ok_or(ERPError::NotAuthorized)?;
 
-    let account_id = account_id.unwrap().parse::<i32>().unwrap_or(0);
+    let account_id = account_id.parse::<i32>().unwrap_or(0);
+    tracing::info!("account_id: {}", account_id);
 
     let account = sqlx::query_as!(
         AccountModel,
@@ -34,16 +33,17 @@ pub async fn auth<B>(
     )
     .fetch_optional(&state.db)
     .await
-    .map_err(ERPError::DBError)?;
+    .map_err(ERPError::DBError)?
+    .ok_or(ERPError::NotFound("账号不存在".to_string()))?;
 
-    let account = account.unwrap();
     let department = sqlx::query_as::<_, DepartmentModel>(&format!(
         "select * from departments where id={}",
         account.department_id
     ))
-    .fetch_one(&state.db)
+    .fetch_optional(&state.db)
     .await
-    .map_err(ERPError::DBError)?;
+    .map_err(ERPError::DBError)?
+    .ok_or(ERPError::NotFound("账号不存在".to_string()))?;
 
     let account_dto = AccountDto::from(account, department);
 
