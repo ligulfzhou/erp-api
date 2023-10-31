@@ -451,7 +451,7 @@ async fn mark_progress(
             id, order_item_id, step, account_id, done, notes, dt, index
             from progress
             where order_item_id = any($1)
-            order by order_item_id, step, id desc;
+            order by order_item_id desc, step desc, id desc;
             "#,
             &order_item_ids,
         )
@@ -531,7 +531,7 @@ async fn mark_progress(
 
         let progress = sqlx::query_as!(
             ProgressModel,
-            "select * from progress where order_item_id=$1 order by step, id desc limit 1",
+            "select * from progress where order_item_id=$1 order by step desc, id desc limit 1",
             order_item_id
         )
         .fetch_optional(&state.db)
