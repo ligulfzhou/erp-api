@@ -184,7 +184,7 @@ values ('包装部', '{6}');
 insert into departments (name, steps)
 values ('装箱部', '{7}');
 
-仓库：CANGKU123  车间：CHEJIAN123  品检：PINJIAN123  包装：BAOZHUANG123 密码都是6个8
+-- 仓库：CANGKU123  车间：CHEJIAN123  品检：PINJIAN123  包装：BAOZHUANG123 密码都是6个8
 
 -- 账号
 create table accounts
