@@ -451,7 +451,7 @@ async fn mark_progress(
             id, order_item_id, step, account_id, done, notes, dt, index
             from progress
             where order_item_id = any($1)
-            order by order_item_id desc, step desc, id desc;
+            order by order_item_id, step desc, id desc;
             "#,
             &order_item_ids,
         )
