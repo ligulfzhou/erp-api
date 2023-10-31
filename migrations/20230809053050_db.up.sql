@@ -208,4 +208,4 @@ values ('碰焊', 'PENGHAN123', '888888', 5);
 insert into accounts (name, account, password, department_id)
 values ('包装', 'BAOZHUANG123', '888888', 6);
 insert into accounts (name, account, password, department_id)
-values ('出货', 'CHUHUO123', '888888', 7);
+values ('装箱', 'ZHUANGXIANG123', '888888', 7);
