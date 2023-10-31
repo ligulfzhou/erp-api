@@ -86,7 +86,7 @@ impl ProgressModel {
             select o.id, count(1)
             from orders o, order_items oi, progress p
             where o.id = oi.order_id and p.order_item_id=oi.id
-                and o.id = any($1) and p.step=7 and p.index=2
+                and o.id = any($1) and p.step=8 and p.index=2
             group by o.id;
             "#,
             order_ids

@@ -170,9 +170,21 @@ create table departments
 );
 
 insert into departments (name, steps)
-values ('业务部', '{1}');
+values ('业务部', '{1,8}');
 insert into departments (name, steps)
 values ('仓库部', '{2}');
+insert into departments (name, steps)
+values ('生产部', '{3}');
+insert into departments (name, steps)
+values ('品检部', '{4}');
+insert into departments (name, steps)
+values ('碰焊部', '{5}');
+insert into departments (name, steps)
+values ('包装部', '{6}');
+insert into departments (name, steps)
+values ('装箱部', '{7}');
+
+仓库：CANGKU123  车间：CHEJIAN123  品检：PINJIAN123  包装：BAOZHUANG123 密码都是6个8
 
 -- 账号
 create table accounts
@@ -184,8 +196,16 @@ create table accounts
     department_id integer not null default 0
 );
 insert into accounts (name, account, password, department_id)
-values ('业务test', 'test', 'test', 1);
+values ('业务', 'YEWUBU123', '888888', 1);
 insert into accounts (name, account, password, department_id)
-values ('业务小白', 'yewuxiaobai', 'yewuxiaobai', 1);
+values ('仓库', 'CANGKU123', '888888', 2);
 insert into accounts (name, account, password, department_id)
-values ('仓库小黄', 'cangkuxiaohuang', 'cangkuxiaohuang', 2);
+values ('生产', 'SHENGCHAN123', '888888', 3);
+insert into accounts (name, account, password, department_id)
+values ('品检', 'PINJIAN123', '888888', 4);
+insert into accounts (name, account, password, department_id)
+values ('碰焊', 'PENGHAN123', '888888', 5);
+insert into accounts (name, account, password, department_id)
+values ('包装', 'BAOZHUANG123', '888888', 6);
+insert into accounts (name, account, password, department_id)
+values ('出货', 'CHUHUO123', '888888', 7);
