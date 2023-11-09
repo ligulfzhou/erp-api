@@ -1,16 +1,16 @@
 -- 商品表
 create table goods
 (
-    id               SERIAL,
-    customer_no      text not null default '',     -- 客户ID
-    goods_no         text not null default '',     -- 类目编号(可以为空，主要来自L1005)
+    id          SERIAL PRIMARY KEY,
+    customer_no text not null default '', -- 客户ID
+    goods_no    text not null default '', -- 类目编号(可以为空，主要来自L1005)
 --     images           text[] not null default '{}', -- 图片
 --     image_des        text not null default '',     -- 图片
-    name             text not null default '',     -- 名称
-    plating          text not null default '',     -- 电镀
+    name        text not null default '', -- 名称
+    plating     text not null default '', -- 电镀
 --     package_card     text not null default '',     -- 标签图片
 --     package_card_des text not null default '',     -- 标签说明
-    notes            text not null default ''      -- 备注
+    notes       text not null default ''  -- 备注
 );
 create index idx_goods_customer_no on goods (customer_no);
 create unique index uniq_goods_goods_no on goods (goods_no);
@@ -18,7 +18,7 @@ create unique index uniq_goods_goods_no on goods (goods_no);
 -- sku表
 create table skus
 (
-    id       SERIAL,                      -- ID
+    id       SERIAL PRIMARY KEY,          -- ID
     goods_id integer not null default 0,  -- 类目ID
     sku_no   text    not null default '', -- SKU ID
     color    text    not null default '', -- 颜色
@@ -30,7 +30,7 @@ create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
 -- 客户
 create table customers
 (
-    id          serial,
+    id          serial PRIMARY KEY,
     customer_no text not null default '', -- 客户编号
     name        text not null default '', -- 名称
     address     text not null default '', -- 地址
@@ -58,7 +58,7 @@ values ('L1006', '', '', '', '');
 
 create table customer_excel_template
 (
-    id          serial,
+    id          serial PRIMARY KEY,
     customer_no text    not null,
     template_id integer not null
 );
@@ -85,7 +85,7 @@ values ('L1004', 4);
 -- 订单表
 create table orders
 (
-    id               serial,
+    id               serial PRIMARY KEY,
     customer_no      text    not null,               -- 客户ID
     order_no         text    not null,               -- 订单编号
     order_date       date    not null,               -- 订货日期
@@ -101,7 +101,7 @@ create index idx_orders_customer_no_order_date on orders (customer_no, order_dat
 -- 订单商品表
 create table order_goods
 (
-    id               serial,
+    id               serial PRIMARY KEY,
     index            integer not null default 0,   -- 用于排序
     images           text[] not null default '{}', -- 图片 TODO: 只记录最后出现的图片
     image_des        text    not null default '',  -- 图片
@@ -116,7 +116,7 @@ create unique index uniq_order_goods_order_id_and_goods_id on order_goods (order
 -- 订单sku表
 create table order_items
 (
-    id             serial,
+    id             serial PRIMARY KEY,
     order_goods_id integer not null,             -- 订单商品ID
     order_id       integer not null,             -- 订单ID
     sku_id         integer not null,             -- sku id
@@ -135,7 +135,7 @@ create unique index uniq_order_items_order_id_and_sku_id on order_items (order_i
 
 create table progress
 (
-    id            serial,
+    id            serial PRIMARY KEY,
     order_item_id integer     not null default 0,
     step          integer     not null default 0, -- 哪一步
     index         integer     not null default 0,
@@ -164,7 +164,7 @@ create table progress
 -- 部门
 create table departments
 (
-    id    serial,
+    id    serial PRIMARY KEY,
     name  text not null default '',       -- 部门名称
     steps integer[] not null default '{}' -- 流程位续
 );
@@ -187,7 +187,7 @@ values ('装箱部', '{7}');
 -- 账号
 create table accounts
 (
-    id            serial,
+    id            serial PRIMARY KEY,
     name          text    not null default '',
     account       text    not null default '',
     password      text    not null default '',
