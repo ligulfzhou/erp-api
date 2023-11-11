@@ -19,6 +19,8 @@ pub fn parse_order_excel_t4(
             cur = previous.clone();
             cur.notes = None;
             cur.notes_images = vec![];
+            cur.unit = None;
+            cur.count = 0;
         }
         let mut package_image: Option<Image> = None;
         let mut goods_images: Vec<&Image> = vec![];
@@ -77,6 +79,9 @@ pub fn parse_order_excel_t4(
                 15 => cur.notes = Some(cell_value.trim().to_string()),
                 _ => {}
             }
+        }
+        if cur.unit.is_none() || cur.count == 0 {
+            break;
         }
 
         let mut identifier = cur.goods_no.as_str();
