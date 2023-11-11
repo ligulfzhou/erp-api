@@ -152,15 +152,19 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     .await
     .map_err(ERPError::DBError)?;
 
-    let mut goods_id_to_color_to_sku_id = HashMap::new();
+    let mut goods_id_to_plating_color_to_sku_id = HashMap::new();
     skus.into_iter().for_each(|sku| {
-        goods_id_to_color_to_sku_id
+        goods_id_to_plating_color_to_sku_id
             .entry(sku.goods_id)
+            .or_insert(HashMap::new())
+            .entry(sku.plating)
             .or_insert(HashMap::new())
             .insert(sku.color, sku.id);
     });
 
     let mut skus_to_add = vec![];
+
+    let empty_hashmap_hashmap: HashMap<String, HashMap<String, i32>> = HashMap::new();
     let empty_hashmap: HashMap<String, i32> = HashMap::new();
 
     order_goods_excel.iter().for_each(|order_goods| {
@@ -170,8 +174,12 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
 
         tracing::info!("goods_id: {}", goods_id);
         order_goods.items.iter().for_each(|order_goods_sku| {
-            if !goods_id_to_color_to_sku_id
+            tracing::info!("{:?}", order_goods_sku);
+
+            if !goods_id_to_plating_color_to_sku_id
                 .get(goods_id)
+                .unwrap_or(&empty_hashmap_hashmap)
+                .get(&order_goods_sku.plating)
                 .unwrap_or(&empty_hashmap)
                 .contains_key(&order_goods_sku.color)
             {
@@ -192,8 +200,10 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
     if !skus_to_add.is_empty() {
         let new_skus = ExcelOrderGoods::insert_into_skus_table(db, &skus_to_add).await?;
         new_skus.into_iter().for_each(|new_sku| {
-            goods_id_to_color_to_sku_id
+            goods_id_to_plating_color_to_sku_id
                 .entry(new_sku.goods_id)
+                .or_insert(HashMap::new())
+                .entry(new_sku.plating)
                 .or_insert(HashMap::new())
                 .insert(new_sku.color, new_sku.id);
         });
@@ -285,8 +295,10 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
         let this_order_goods_id = goods_id_to_order_goods_id.get(this_goods_id).unwrap_or(&0);
 
         order_goods.items.iter().for_each(|order_item| {
-            let this_sku_id = goods_id_to_color_to_sku_id
+            let this_sku_id = goods_id_to_plating_color_to_sku_id
                 .get(this_goods_id)
+                .unwrap_or(&empty_hashmap_hashmap)
+                .get(&order_item.plating)
                 .unwrap_or(&empty_hashmap)
                 .get(&order_item.color)
                 .unwrap_or(&0);
