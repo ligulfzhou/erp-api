@@ -189,15 +189,14 @@ impl ExcelOrderGoods {
         customer_no: &str,
     ) -> ERPResult<HashMap<String, i32>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into goods (customer_no, goods_no, name, plating) ");
+            QueryBuilder::new("insert into goods (customer_no, goods_no, name) ");
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(customer_no)
                 .push_bind(item.goods_no.clone())
                 // .push_bind(item.images.clone())
                 // .push_bind(item.image_des.as_deref().unwrap_or(""))
-                .push_bind(item.name.clone())
-                .push_bind(item.plating.clone());
+                .push_bind(item.name.clone());
             // .push_bind(item.package_card.as_deref().unwrap_or(""))
             // .push_bind(item.package_card_des.as_deref().unwrap_or(""))
         });
@@ -220,13 +219,14 @@ impl ExcelOrderGoods {
         items: &[SKUModel],
     ) -> ERPResult<Vec<SKUModel>> {
         let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("insert into skus (goods_id, sku_no, color, color2) ");
+            QueryBuilder::new("insert into skus (goods_id, sku_no, color, color2, plating) ");
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(item.goods_id)
                 .push_bind(&item.sku_no)
                 .push_bind(&item.color)
-                .push_bind(&item.color2);
+                .push_bind(&item.color2)
+                .push_bind(&item.plating);
         });
         query_builder.push(" returning *;");
 
