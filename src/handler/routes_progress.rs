@@ -101,7 +101,7 @@ async fn get_order_items_progress(
         r#"
         select
             og.id as id, og.order_id as order_id, og.goods_id as goods_id, g.goods_no as goods_no,
-            g.name as name, og.images as images, og.image_des as image_des, g.plating as plating,
+            g.name as name, og.images as images, og.image_des as image_des,
             og.package_card as package_card, og.package_card_des as package_card_des
         from order_goods og, goods g
         where og.goods_id = g.id and og.order_id = $1

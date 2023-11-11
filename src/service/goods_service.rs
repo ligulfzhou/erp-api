@@ -109,7 +109,7 @@ impl GoodsService {
             r#"
             select
                 s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
-                g.plating, s.color, s.color2, s.notes
+                s.plating, s.color, s.color2, s.notes
             from skus s, goods g
             where s.goods_id = g.id
                 and s.id = any($1)
@@ -158,7 +158,7 @@ impl GoodsService {
             r#"
             select
                 s.id, s.sku_no, g.customer_no, g.name, g.goods_no, g.id as goods_id,
-                g.plating, s.color, s.color2, s.notes
+                s.plating, s.color, s.color2, s.notes
             from skus s, goods g
             where s.goods_id = g.id
                 and s.goods_id = any($1)

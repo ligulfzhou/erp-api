@@ -7,7 +7,7 @@ create table goods
 --     images           text[] not null default '{}', -- 图片
 --     image_des        text not null default '',     -- 图片
     name        text not null default '', -- 名称
-    plating     text not null default '', -- 电镀
+--     plating     text not null default '', -- 电镀
 --     package_card     text not null default '',     -- 标签图片
 --     package_card_des text not null default '',     -- 标签说明
     notes       text not null default ''  -- 备注
@@ -21,11 +21,12 @@ create table skus
     id       SERIAL PRIMARY KEY,          -- ID
     goods_id integer not null default 0,  -- 类目ID
     sku_no   text    not null default '', -- SKU ID
+    plating  text    not null default '', -- 电镀
     color    text    not null default '', -- 颜色
     color2   text    not null default '', -- 颜色（只记录，只会用上面的color）
     notes    text    not null default ''  -- 备注
 );
-create unique index uniq_skus_goods_id_and_color on skus (goods_id, color);
+create unique index uniq_skus_goods_id_and_plating_and_color on skus (goods_id, plating, color);
 
 -- 客户
 create table customers

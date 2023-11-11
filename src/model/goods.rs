@@ -4,8 +4,8 @@ pub struct GoodsModel {
     pub customer_no: String, // 客户ID
     pub goods_no: String,    // 类目编号
     pub name: String,        // 名称
-    pub plating: String,     // 电镀
-    pub notes: String,       // 备注
+    // pub plating: String,     // 电镀
+    pub notes: String, // 备注
 }
 
 // impl GoodsModel {
@@ -54,6 +54,7 @@ pub struct SKUModel {
     pub sku_no: String,        // sku no (这个只有L1005的有)
     pub color: String,         // 颜色
     pub color2: String,        // 颜色2
+    pub plating: String,       // 电镀
     pub notes: Option<String>, // 备注
 }
 

@@ -339,7 +339,7 @@ async fn get_sku_detail(
         r#"
         select
             s.id, s.sku_no, g.name, g.goods_no, s.goods_id,
-            g.plating, s.color, s.color2, s.notes, g.customer_no
+            s.plating, s.color, s.color2, s.notes, g.customer_no
         from skus s, goods g
         where s.goods_id = g.id and s.id = $1;
         "#,

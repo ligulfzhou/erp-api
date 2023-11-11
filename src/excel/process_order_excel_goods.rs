@@ -181,6 +181,7 @@ pub async fn process_order_excel_with_goods_no_and_sku_color(
                     sku_no: order_goods_sku.sku_no.as_deref().unwrap_or("").to_string(),
                     color: order_goods_sku.color.to_string(),
                     color2: order_goods_sku.color_2.as_deref().unwrap_or("").to_string(),
+                    plating: order_goods_sku.plating.clone(),
                     notes: None,
                 })
             }

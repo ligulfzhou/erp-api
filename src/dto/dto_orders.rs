@@ -331,7 +331,7 @@ pub struct OrderGoodsDto {
     pub name: String,
     pub images: Vec<String>,
     pub image_des: String,
-    pub plating: String,
+    // pub plating: String,
     pub package_card: String,
     pub package_card_des: String,
 }
@@ -345,7 +345,7 @@ pub struct OrderGoodsWithStepsWithItemStepDto {
     pub name: String,
     pub images: Vec<String>,
     pub image_des: String,
-    pub plating: String,
+    // pub plating: String,
     pub package_card: String,
     pub package_card_des: String,
 
@@ -373,7 +373,7 @@ impl OrderGoodsWithStepsWithItemStepDto {
             name: order_goods.name,
             images: order_goods.images,
             image_des: order_goods.image_des,
-            plating: order_goods.plating,
+            // plating: order_goods.plating,
             package_card: order_goods.package_card,
             package_card_des: order_goods.package_card_des,
             is_next_action,
