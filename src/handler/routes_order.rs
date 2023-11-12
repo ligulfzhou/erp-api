@@ -921,6 +921,7 @@ struct UpdateOrderParam {
     is_urgent: bool,
     is_special: bool,
     special_customer: String,
+    build_by: i32,
 }
 
 async fn update_order(
@@ -970,9 +971,9 @@ async fn update_order(
     sqlx::query!(
         r#"
         update orders set
-            order_no=$1, customer_no=$2, order_date=$3, delivery_date=$4,
-            is_return_order=$5, is_urgent=$6, is_special=$7, special_customer=$8
-        where id=$9
+            order_no=$1, customer_no=$2, order_date=$3, delivery_date=$4, is_return_order=$5,
+            is_urgent=$6, is_special=$7, special_customer=$8, build_by=$9
+        where id=$10
         "#,
         payload.order_no,
         payload.customer_no,
@@ -982,6 +983,7 @@ async fn update_order(
         payload.is_urgent,
         payload.is_special,
         payload.special_customer,
+        payload.build_by,
         payload.id
     )
     .execute(&state.db)
