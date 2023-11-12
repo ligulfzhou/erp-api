@@ -17,6 +17,7 @@ pub struct OrderDto {
     pub is_urgent: bool,
     pub is_special: bool,
     pub special_customer: String,
+    pub build_by: i32,
 }
 
 impl OrderDto {
@@ -31,6 +32,7 @@ impl OrderDto {
             is_urgent: order.is_urgent,
             is_special: order.is_special,
             special_customer: order.special_customer,
+            build_by: order.build_by,
         }
     }
 
@@ -45,6 +47,7 @@ impl OrderDto {
             is_urgent: order.is_urgent,
             is_special: order.is_special,
             special_customer: order.special_customer,
+            build_by: order.build_by,
         }
     }
 }

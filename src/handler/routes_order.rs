@@ -320,6 +320,7 @@ struct ListParam {
     is_return_order: Option<bool>,
     is_urgent: Option<bool>,
     is_special: Option<bool>,
+    build_by: Option<i32>,
 
     sorter_field: Option<String>,
     sorter_order: Option<String>, // ascend/descend: default: descend
@@ -354,6 +355,10 @@ impl ListParamToSQLTrait for ListParam {
         }
         if self.is_special.unwrap_or(false) {
             where_clauses.push("is_special=true".to_string())
+        }
+        let build_by = self.build_by.unwrap_or(0);
+        if build_by != 0 {
+            where_clauses.push(format!("build_by={}", build_by))
         }
 
         if !self.order_date_start.as_deref().unwrap_or("").is_empty()
@@ -410,6 +415,10 @@ impl ListParamToSQLTrait for ListParam {
         }
         if self.is_special.unwrap_or(false) {
             where_clauses.push("is_special=true".to_string())
+        }
+        let build_by = self.build_by.unwrap_or(0);
+        if build_by != 0 {
+            where_clauses.push(format!("build_by={}", build_by))
         }
         if !self.order_date_start.as_deref().unwrap_or("").is_empty()
             && !self.order_date_end.as_deref().unwrap_or("").is_empty()

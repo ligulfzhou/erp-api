@@ -17,11 +17,12 @@ use umya_spreadsheet::reader;
 pub struct ExcelOrderParser<'a> {
     pub path: &'a str,
     db: Pool<Postgres>,
+    build_by: i32,
 }
 
 impl<'a> ExcelOrderParser<'a> {
-    pub fn new(path: &'a str, db: Pool<Postgres>) -> ExcelOrderParser<'a> {
-        Self { path, db }
+    pub fn new(path: &'a str, db: Pool<Postgres>, build_by: i32) -> ExcelOrderParser<'a> {
+        Self { path, db, build_by }
     }
 
     pub async fn parse(&self) -> ERPResult<ExcelOrderV2> {
@@ -85,12 +86,18 @@ impl<'a> ExcelOrderParser<'a> {
             match order {
                 None => {
                     tracing::info!("order#{} not exists, we will save", &order_info.order_no);
-                    OrderInfo::insert_to_orders(&self.db, &order_info).await?
+                    OrderInfo::insert_to_orders(&self.db, &order_info, self.build_by).await?
                 }
                 Some(existing_order) => {
                     tracing::info!("订单#{}已存在,尝试更新数据", &order_info.order_no);
                     order_exists = true;
-                    OrderInfo::update_to_orders(&self.db, &order_info, existing_order.id).await?;
+                    OrderInfo::update_to_orders(
+                        &self.db,
+                        &order_info,
+                        self.build_by,
+                        existing_order.id,
+                    )
+                    .await?;
                     existing_order.id
                 }
             }

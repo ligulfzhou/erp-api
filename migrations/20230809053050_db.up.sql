@@ -94,7 +94,8 @@ create table orders
     is_urgent        boolean not null default false, -- 加急
     is_return_order  boolean not null default false, -- 返单
     is_special       boolean not null default false, -- 特别客人订单
-    special_customer text    not null default ''
+    special_customer text    not null default '',
+    build_by         integer not null default 0      -- 制作方式： 0: 不明，1:手工, 2：不锈钢
 );
 create unique index uniq_orders_order_no on orders (order_no);
 create index idx_orders_customer_no_order_date on orders (customer_no, order_date);

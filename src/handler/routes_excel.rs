@@ -41,7 +41,7 @@ async fn import_excel(
     mut multipart: Multipart,
 ) -> ERPResult<APIEmptyResponse> {
     // let mut id = 0;
-    // let mut itype = 0;
+    let mut build_by = 0;
     let mut file_path: String = "".to_string();
 
     // 1
@@ -76,18 +76,18 @@ async fn import_excel(
                 ERPError::SaveFileFailed(format!("create {} failed", file_path_full))
             })?;
             file_path = file_path_full;
-            // } else if name == "id" {
-            //     let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
-            //     tracing::info!("value of `{}` is: {}", name, data);
-            //     id = data
-            //         .parse::<i32>()
-            //         .map_err(|_| ERPError::ConvertFailed("id".to_string()))?;
-            // } else if name == "type" {
-            //     let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
-            //     tracing::info!("value of `{}` is: {}", name, data);
-            //     itype = data
-            //         .parse::<i32>()
-            //         .map_err(|_| ERPError::ConvertFailed("type".to_string()))?;
+        // } else if name == "id" {
+        //     let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+        //     tracing::info!("value of `{}` is: {}", name, data);
+        //     id = data
+        //         .parse::<i32>()
+        //         .map_err(|_| ERPError::ConvertFailed("id".to_string()))?;
+        } else if name == "build_by" {
+            let data = String::from_utf8(field.bytes().await.unwrap().to_vec()).unwrap();
+            tracing::info!("value of `{}` is: {}", name, data);
+            build_by = data
+                .parse::<i32>()
+                .map_err(|_| ERPError::ConvertFailed("type".to_string()))?;
         }
     }
 
@@ -97,7 +97,7 @@ async fn import_excel(
     }
 
     // 解析excel文件
-    let parser = ExcelOrderParser::new(&file_path, state.db.clone());
+    let parser = ExcelOrderParser::new(&file_path, state.db.clone(), build_by);
     let order_info = parser.parse().await?;
     // tracing::info!("order_info: {:#?}", order_info);
 

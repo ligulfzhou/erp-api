@@ -9,14 +9,15 @@ use std::collections::HashMap;
 #[derive(Debug, Serialize, Clone, FromRow)]
 pub struct OrderModel {
     pub id: i32,
-    pub customer_no: String,
-    pub order_no: String,
-    pub order_date: NaiveDate,
-    pub delivery_date: Option<NaiveDate>,
-    pub is_urgent: bool,          //紧急 ‼️
-    pub is_return_order: bool,    // 返单
-    pub is_special: bool,         // 特别客人
-    pub special_customer: String, //特别客人
+    pub customer_no: String,              // 客户编号
+    pub order_no: String,                 // 订单编号
+    pub order_date: NaiveDate,            // 订单日期
+    pub delivery_date: Option<NaiveDate>, // 送货日期
+    pub is_urgent: bool,                  // 紧急 ‼️
+    pub is_return_order: bool,            // 返单
+    pub is_special: bool,                 // 特别客人
+    pub special_customer: String,         // 特别客人
+    pub build_by: i32,                    // 制作方式，0: 不明，1: 手工，2: 不锈钢
 }
 
 impl OrderModel {
@@ -297,18 +298,23 @@ pub struct OrderInfo {
 }
 
 impl OrderInfo {
-    pub async fn insert_to_orders(db: &Pool<Postgres>, order_info: &OrderInfo) -> ERPResult<i32> {
+    pub async fn insert_to_orders(
+        db: &Pool<Postgres>,
+        order_info: &OrderInfo,
+        build_by: i32,
+    ) -> ERPResult<i32> {
         let order_id = sqlx::query!(
             r#"
-            insert into orders (customer_no, order_no, order_date, delivery_date, is_urgent, is_return_order)
-            values ($1, $2, $3, $4, $5, $6) returning id;
+            insert into orders (customer_no, order_no, order_date, delivery_date, is_urgent, is_return_order, build_by)
+            values ($1, $2, $3, $4, $5, $6, $7) returning id;
             "#,
             order_info.customer_no,
             order_info.order_no,
             order_info.order_date,
             order_info.delivery_date,
             order_info.is_urgent,
-            order_info.is_return_order
+            order_info.is_return_order,
+            build_by
         ).fetch_one(db).await
             .map_err(|_| ERPError::Failed("插入订单失败".to_string()))?
             .id;
@@ -319,12 +325,13 @@ impl OrderInfo {
     pub async fn update_to_orders(
         db: &Pool<Postgres>,
         order_info: &OrderInfo,
+        build_by: i32,
         order_id: i32,
     ) -> ERPResult<()> {
         sqlx::query!(
             r#"
-            update orders set customer_no=$1, order_no=$2, order_date=$3, delivery_date=$4, is_urgent=$5, is_return_order=$6
-            where id = $7
+            update orders set customer_no=$1, order_no=$2, order_date=$3, delivery_date=$4, is_urgent=$5, is_return_order=$6, build_by=$7
+            where id = $8
             "#,
             order_info.customer_no,
             order_info.order_no,
@@ -332,6 +339,7 @@ impl OrderInfo {
             order_info.delivery_date,
             order_info.is_urgent,
             order_info.is_return_order,
+            build_by,
             order_id
         ).execute(db).await.map_err(|_| ERPError::Failed("覆盖订单信息失败".to_string()))?;
 
