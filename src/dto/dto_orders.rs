@@ -90,6 +90,7 @@ pub struct OrderWithStepsDto {
     pub is_return_order: bool,
     pub is_urgent: bool,
     pub is_special: bool,
+    pub build_by: i32,
     pub special_customer: String,
 
     pub done_count: i32,
@@ -115,6 +116,7 @@ impl OrderWithStepsDto {
             is_return_order: order.is_return_order,
             is_urgent: order.is_urgent,
             is_special: order.is_special,
+            build_by: order.build_by,
             special_customer: order.special_customer,
             done_count,
             exception_count,
