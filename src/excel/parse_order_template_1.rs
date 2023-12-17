@@ -82,6 +82,8 @@ pub fn parse_order_excel_t1(
             }
         }
 
+        tracing::info!("cur: {:?}", cur);
+
         if cur.unit.is_none() || cur.count == 0 {
             break;
         }

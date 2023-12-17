@@ -30,9 +30,10 @@ impl<'a> ExcelOrderParser<'a> {
         let path = std::path::Path::new(self.path);
         let book = reader::xlsx::read(path)
             .map_err(|_| ERPError::Failed("读xlsx文件失败,不支持xls格式".to_string()))?;
-        let sheet = book.get_active_sheet();
+        let sheet = book.get_sheet(&0).unwrap();
         let order_info = parse_order_info(sheet)?;
 
+        tracing::info!("order_info: {:?}", order_info);
         if order_info.customer_no.is_empty() {
             return Err(ERPError::Failed(
                 "客户编号未找到，请检查一下excel表格".to_string(),

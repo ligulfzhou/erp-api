@@ -5,6 +5,8 @@ use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
 
 pub fn parse_order_info(sheet: &Worksheet) -> ERPResult<OrderInfo> {
+    tracing::info!("parse_order_info.....");
+
     let mut order_info = OrderInfo::default();
     let (cols, _rows) = sheet.get_highest_column_and_row();
     for i in 1..6 {
