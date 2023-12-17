@@ -86,15 +86,19 @@ pub fn parse_order_excel_t1(
             break;
         }
 
-        let mut identifier = cur.goods_no.as_str();
-        if identifier.is_empty() {
-            identifier = cur.sku_no.as_deref().unwrap_or("");
+        let mut sku_identifier = cur.goods_no.as_str();
+        if sku_identifier.is_empty() {
+            sku_identifier = cur.sku_no.as_deref().unwrap_or("");
         }
+
+        let sku_identifier = sku_identifier.replace("/", "-");
+        let mut goods_identifier = cur.goods_no.as_str();
+        let goods_identifier = &goods_identifier.replace("/", "-");
 
         let mut image_urls = vec![];
         if !goods_images.is_empty() {
             for (index, real_goods_image) in goods_images.into_iter().enumerate() {
-                let sku_image_name = format!("{}-{}-{}.png", identifier, index, order_no);
+                let sku_image_name = format!("{}-{}-{}.png", sku_identifier, index, order_no);
                 let goods_image_path = format!("{}/sku/{}", STORAGE_FILE_PATH, sku_image_name);
                 real_goods_image.download_image(&goods_image_path);
                 image_urls.push(format!("{}/sku/{}", STORAGE_URL_PREFIX, sku_image_name));
@@ -103,7 +107,7 @@ pub fn parse_order_excel_t1(
         cur.images = image_urls;
 
         if let Some(read_package_image) = package_image {
-            let package_image_name = format!("{}-{}.png", cur.goods_no, order_no);
+            let package_image_name = format!("{}-{}.png", goods_identifier, order_no);
             let package_image_path =
                 format!("{}/package/{}", STORAGE_FILE_PATH, package_image_name);
             read_package_image.download_image(&package_image_path);
@@ -116,7 +120,7 @@ pub fn parse_order_excel_t1(
         let mut notes_image_urls = vec![];
         if !notes_images.is_empty() {
             for (index, real_notes_image) in notes_images.into_iter().enumerate() {
-                let notes_image_name = format!("{}-{}-{}.png", cur.goods_no, index, order_no);
+                let notes_image_name = format!("{}-{}-{}.png", goods_identifier, index, order_no);
                 let notes_image_path = format!("{}/notes/{}", STORAGE_FILE_PATH, notes_image_name);
                 real_notes_image.download_image(&notes_image_path);
                 notes_image_urls.push(format!("{}/notes/{}", STORAGE_URL_PREFIX, notes_image_name));
