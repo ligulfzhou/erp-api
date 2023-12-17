@@ -86,14 +86,14 @@ pub fn parse_order_excel_t1(
             break;
         }
 
-        let mut sku_identifier = cur.goods_no.as_str();
+        let mut sku_identifier = cur.goods_no.clone();
         if sku_identifier.is_empty() {
-            sku_identifier = cur.sku_no.as_deref().unwrap_or("");
+            sku_identifier = cur.sku_no.as_deref().unwrap_or("").to_string();
         }
 
         let sku_identifier = sku_identifier.replace("/", "-");
-        let mut goods_identifier = cur.goods_no.as_str();
-        let goods_identifier = &goods_identifier.replace("/", "-");
+        let mut goods_identifier = cur.goods_no.clone();
+        let goods_identifier = goods_identifier.replace("/", "-");
 
         let mut image_urls = vec![];
         if !goods_images.is_empty() {
