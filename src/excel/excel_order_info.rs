@@ -1,5 +1,5 @@
 use crate::common::datetime::{parse_date, parse_date_with_regex};
-use crate::common::string::random_string;
+use crate::common::string::{random_string, remove_whitespace_str};
 use crate::model::order::OrderInfo;
 use crate::{ERPError, ERPResult};
 use umya_spreadsheet::*;
@@ -24,7 +24,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> ERPResult<OrderInfo> {
                 if customer_no.is_empty() {
                     customer_no = cell_value.strip_prefix("客户：").unwrap_or("");
                 }
-                order_info.customer_no = customer_no.to_owned().to_uppercase();
+                order_info.customer_no = remove_whitespace_str(&customer_no.to_uppercase());
             }
 
             if cell_value.contains("供应商") {
@@ -32,7 +32,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> ERPResult<OrderInfo> {
                 if customer_no.is_empty() {
                     customer_no = cell_value.strip_prefix("供应商：").unwrap_or("");
                 }
-                order_info.customer_no = customer_no.to_owned().to_uppercase();
+                order_info.customer_no = remove_whitespace_str(&customer_no.to_uppercase());
             }
 
             if cell_value.contains("单号") {
@@ -40,7 +40,7 @@ pub fn parse_order_info(sheet: &Worksheet) -> ERPResult<OrderInfo> {
                 if order_no.is_empty() {
                     order_no = cell_value.strip_prefix("单号：").unwrap_or("");
                 }
-                order_info.order_no = order_no.to_owned();
+                order_info.order_no = remove_whitespace_str(order_no);
             }
 
             if cell_value.contains("订货日期") {
