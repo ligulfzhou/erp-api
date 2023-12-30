@@ -45,11 +45,11 @@ async fn get_order_items_progress(
     WithRejection(Query(param), _): WithRejection<Query<OrderItemProgressParam>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
     let goods_no_param = param.goods_no.to_ascii_uppercase();
-
+    let order_no_param = param.order_no.to_ascii_uppercase();
     let order_id = sqlx::query_as!(
         OrderModel,
         "select * from orders where order_no = $1",
-        param.order_no
+        order_no_param
     )
     .fetch_optional(&state.db)
     .await
