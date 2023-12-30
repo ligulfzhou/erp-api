@@ -44,6 +44,8 @@ async fn get_order_items_progress(
     State(state): State<Arc<AppState>>,
     WithRejection(Query(param), _): WithRejection<Query<OrderItemProgressParam>, ERPError>,
 ) -> ERPResult<APIListResponse<OrderGoodsWithStepsWithItemStepDto>> {
+    let goods_no_param = param.goods_no.to_ascii_uppercase();
+
     let order_id = sqlx::query_as!(
         OrderModel,
         "select * from orders where order_no = $1",
@@ -55,45 +57,84 @@ async fn get_order_items_progress(
     .ok_or(ERPError::ParamError("订单号未找到".to_string()))?
     .id;
 
-    let goods = sqlx::query_as!(
-        GoodsModel,
-        "select * from goods where goods_no=$1",
-        param.goods_no
-    )
-    .fetch_optional(&state.db)
-    .await
-    .map_err(ERPError::DBError)?;
+    // let goods = sqlx::query_as!(
+    //     GoodsModel,
+    //     "select * from goods where goods_no like '%$1%'",
+    //     goods_no_param
+    // )
+    // .fetch_optional(&state.db)
+    // .await
+    // .map_err(ERPError::DBError)?;
 
-    let mut goods_id: i32 = 0;
+    let goodss = sqlx::query_as::<_, GoodsModel>(&format!(
+        "select * from goods where goods_no like '%{}%'",
+        &goods_no_param
+    ))
+    .fetch_all(&state.db)
+    .await?;
 
-    let item_ids = match goods {
-        Some(real_goods) => {
-            goods_id = real_goods.id;
+    // let mut goods_ids = vec![];
+    let mut goods_ids = goodss.iter().map(|item| item.id).collect::<Vec<_>>();
 
-            sqlx::query!("select id from skus where goods_id = $1", real_goods.id)
-                .fetch_all(&state.db)
-                .await
-                .map_err(ERPError::DBError)?
-                .into_iter()
-                .map(|r| r.id)
-                .collect::<Vec<i32>>()
-        }
-        None => {
-            let sku = sqlx::query_as!(
-                SKUModel,
-                "select * from skus where sku_no = $1",
-                param.goods_no
-            )
-            .fetch_optional(&state.db)
+    let item_ids = match goodss.is_empty() {
+        false => sqlx::query!("select id from skus where goods_id = any($1)", &goods_ids)
+            .fetch_all(&state.db)
             .await
             .map_err(ERPError::DBError)?
-            .ok_or(ERPError::ParamError("商品编号未找到".to_string()))?;
+            .into_iter()
+            .map(|r| r.id)
+            .collect::<Vec<i32>>(),
+        true => {
+            let skus = sqlx::query_as::<_, SKUModel>(&format!(
+                "select * from skus where sku_no like '%{}%'",
+                &goods_no_param
+            ))
+            .fetch_all(&state.db)
+            .await?;
 
-            goods_id = sku.goods_id;
-
-            vec![sku.id]
+            goods_ids = skus.iter().map(|item| item.goods_id).collect::<Vec<_>>();
+            skus.into_iter().map(|item| item.id).collect::<Vec<_>>()
         }
     };
+
+    // {
+    // ...
+    // Some(real_goods) => {
+    //     goods_id = real_goods.id;
+    //
+    //     sqlx::query!("select id from skus where goods_id = $1", real_goods.id)
+    //         .fetch_all(&state.db)
+    //         .await
+    //         .map_err(ERPError::DBError)?
+    //         .into_iter()
+    //         .map(|r| r.id)
+    //         .collect::<Vec<i32>>()
+    // }
+    // None => {
+    //     let sku = sqlx::query_as::<_, SKUModel>(&format!(
+    //         "select * from skus where sku_no like '%{}%'",
+    //         &goods_no_param
+    //     ))
+    //     .fetch_optional(&state.db)
+    //     .await
+    //     .map_err(ERPError::DBError)?
+    //     .ok_or(ERPError::ParamError("商品编号未找到".to_string()))?;
+    //
+    //     // let sku = sqlx::query_as!(
+    //     //     SKUModel,
+    //     //     "select * from skus where sku_no like '%$1%'",
+    //     //     param.goods_no
+    //     // )
+    //     // .fetch_optional(&state.db)
+    //     // .await
+    //     // .map_err(ERPError::DBError)?
+    //     // .ok_or(ERPError::ParamError("商品编号未找到".to_string()))?;
+    //
+    //     goods_id = sku.goods_id;
+    //
+    //     vec![sku.id]
+    // }
+    // }
 
     // 获取order_good
     let order_goods: Vec<OrderGoodsDto> = sqlx::query_as!(
@@ -105,11 +146,11 @@ async fn get_order_items_progress(
             og.package_card as package_card, og.package_card_des as package_card_des
         from order_goods og, goods g
         where og.goods_id = g.id and og.order_id = $1
-            and g.id = $2
+            and g.id = any($2)
         order by og.id;
         "#,
         order_id,
-        goods_id,
+        &goods_ids,
     )
     .fetch_all(&state.db)
     .await
